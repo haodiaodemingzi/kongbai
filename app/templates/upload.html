@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}战绩统计系统 - 上传战斗日志{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">上传战斗日志</h2>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('battle.upload_file') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">选择战斗日志文件:</label>
+                            <input type="file" class="form-control" id="file" name="file" required>
+                            <div class="form-text">请上传TXT格式的战斗日志文件，文件编码应为GBK。</div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h5>日志格式说明</h5>
+                            <p>系统支持解析以下格式的日志：</p>
+                            <ul>
+                                <li>击杀记录：[战况]玩家A 击杀 玩家B !坐标:X，Y  (YYYYMMDD,HH:MM:SS)</li>
+                                <li>祝福记录：[公告]  玩家A 得到了 XX祝福 的祝福! (YYYYMMDD,HH:MM:SS)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> 上传并解析
+                            </button>
+                            <a href="{{ url_for('battle.rankings') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回排名
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

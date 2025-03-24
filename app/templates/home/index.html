@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}战斗统计仪表盘{% endblock %}
+
+{% block styles %}
+<style>
+body {
+    background-color: #f8f9fa;
+}
+
+.stats-card {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.chart-container {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    height: 400px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.mvp-card {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.mvp-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #333;
+}
+
+.stat-label {
+    font-size: 1em;
+    color: #666;
+}
+
+.faction-梵天 { color: #ff4d4d; }
+.faction-比湿奴 { color: #4d94ff; }
+.faction-湿婆 { color: #9966ff; }
+
+.modal-kill-details {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.kill-detail-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.kill-detail-item:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- 在图表上方添加日期选择器 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">数据统计</h5>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('home.index', date_range='all') }}" 
+                               class="btn btn-{{ 'primary active' if date_range == 'all' or not date_range else 'outline-primary' }}">全部</a>
+                            <a href="{{ url_for('home.index', date_range='today') }}" 
+                               class="btn btn-{{ 'primary active' if date_range == 'today' else 'outline-primary' }}">今天</a>
+                            <a href="{{ url_for('home.index', date_range='yesterday') }}" 
+                               class="btn btn-{{ 'primary active' if date_range == 'yesterday' else 'outline-primary' }}">昨天</a>
+                            <a href="{{ url_for('home.index', date_range='week') }}" 
+                               class="btn btn-{{ 'primary active' if date_range == 'week' else 'outline-primary' }}">一周</a>
+                            <a href="{{ url_for('home.index', date_range='month') }}" 
+                               class="btn btn-{{ 'primary active' if date_range == 'month' else 'outline-primary' }}">一个月</a>
+                            <a href="{{ url_for('home.index', date_range='three_months') }}" 
+                               class="btn btn-{{ 'primary active' if date_range == 'three_months' else 'outline-primary' }}">三个月</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 总体统计卡片 -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <div class="stat-value">{{ total_kills }}</div>
+                <div class="stat-label">总击杀数</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <div class="stat-value">{{ total_deaths }}</div>
+                <div class="stat-label">总死亡数</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <div class="stat-value">{{ total_blessings }}</div>
+                <div class="stat-label">总祝福数</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图表区域 -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="chart-container" id="factionStatsChart"></div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-container" id="killsPieChart"></div>
+        </div>
+    </div>
+
+    <!-- MVP区域 -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <h4 class="text-center mb-3">击杀王</h4>
+            {% for killer in top_killers %}
+            <div class="mvp-card" onclick="showKillDetails('{{ killer.name }}')">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="faction-{{ killer.faction }}">【{{ killer.faction }}】</span>
+                        <span>{{ killer.name }}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-danger">{{ killer.kills }} 击杀</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="col-md-4">
+            <h4 class="text-center mb-3">得分王</h4>
+            {% for scorer in top_scorers %}
+            <div class="mvp-card" onclick="showKillDetails('{{ scorer.name }}')">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="faction-{{ scorer.faction }}">【{{ scorer.faction }}】</span>
+                        <span>{{ scorer.name }}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary">{{ scorer.score }} 分</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="col-md-4">
+            <h4 class="text-center mb-3">死亡榜</h4>
+            {% if top_deaths %}
+                {% for death in top_deaths %}
+                <div class="mvp-card" onclick="showKillDetails('{{ death.name }}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="faction-{{ death.faction }}">【{{ death.faction }}】</span>
+                            <span>{{ death.name }}</span>
+                        </div>
+                        <div>
+                            <span class="badge bg-dark">{{ death.deaths }} 死亡</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="mvp-card">
+                    <div class="text-center text-muted">
+                        暂无数据
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 击杀详情模态框 -->
+<div class="modal fade" id="killDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">击杀详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="killDetailsList" class="modal-kill-details">
+                    <!-- 击杀详情将通过 JavaScript 动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+// 初始化图表
+document.addEventListener('DOMContentLoaded', function() {
+    // 柱状图
+    const factionStatsChart = echarts.init(document.getElementById('factionStatsChart'));
+    const factionStatsOption = {
+        title: {
+            text: '势力战斗数据统计',
+            textStyle: {
+                color: '#333'
+            }
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            }
+        },
+        legend: {
+            data: ['击杀', '死亡', '祝福'],
+            textStyle: {
+                color: '#333'
+            }
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            data: {{ chart_data.factions | tojson }},
+            axisLabel: {
+                color: '#333'
+            }
+        },
+        yAxis: {
+            type: 'value',
+            axisLabel: {
+                color: '#333'
+            }
+        },
+        series: [
+            {
+                name: '击杀',
+                type: 'bar',
+                data: {{ chart_data.kills | tojson }},
+                itemStyle: {
+                    color: '#ff4d4d'
+                }
+            },
+            {
+                name: '死亡',
+                type: 'bar',
+                data: {{ chart_data.deaths | tojson }},
+                itemStyle: {
+                    color: '#4d94ff'
+                }
+            },
+            {
+                name: '祝福',
+                type: 'bar',
+                data: {{ chart_data.blessings | tojson }},
+                itemStyle: {
+                    color: '#9966ff'
+                }
+            }
+        ]
+    };
+    factionStatsChart.setOption(factionStatsOption);
+
+    // 饼图
+    const killsPieChart = echarts.init(document.getElementById('killsPieChart'));
+    const killsPieOption = {
+        title: {
+            text: '势力击杀占比',
+            left: 'center',
+            top: 10,
+            textStyle: {
+                color: '#333'
+            }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+            orient: 'horizontal',
+            bottom: 10,
+            left: 'center',
+            itemWidth: 25,
+            itemHeight: 14,
+            data: {{ chart_data.factions | tojson }},
+            textStyle: {
+                color: '#333',
+                fontSize: 12,
+                padding: [0, 4, 0, 4]
+            }
+        },
+        series: [
+            {
+                name: '击杀数',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['50%', '50%'],
+                avoidLabelOverlap: true,
+                itemStyle: {
+                    borderRadius: 4,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: '18',
+                        fontWeight: 'bold'
+                    }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: {{ chart_data.factions | chart_data(chart_data.kills) | tojson }}
+            }
+        ],
+        color: ['#ff4d4d', '#4d94ff', '#9966ff']
+    };
+    killsPieChart.setOption(killsPieOption);
+
+    // 响应式调整
+    window.addEventListener('resize', function() {
+        factionStatsChart.resize();
+        killsPieChart.resize();
+    });
+});
+
+// 显示击杀详情
+function showKillDetails(playerName) {
+    fetch(`/battle/player/${playerName}/kills`)
+        .then(response => response.json())
+        .then(data => {
+            const detailsList = document.getElementById('killDetailsList');
+            detailsList.innerHTML = '';
+            
+            if (data.kills && data.kills.length > 0) {
+                data.kills.forEach(kill => {
+                    const killItem = document.createElement('div');
+                    killItem.className = 'kill-detail-item';
+                    killItem.innerHTML = `
+                        <div class="d-flex justify-content-between">
+                            <div>击杀 <span class="faction-${kill.victim_faction}">【${kill.victim_faction}】${kill.victim}</span></div>
+                            <div class="text-muted">${kill.count} 次</div>
+                        </div>
+                    `;
+                    detailsList.appendChild(killItem);
+                });
+            } else {
+                detailsList.innerHTML = '<div class="text-center p-3">暂无击杀记录</div>';
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('killDetailsModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('获取击杀详情失败:', error);
+            alert('获取击杀详情失败，请稍后重试');
+        });
+}
+</script>
+{% endblock %} 

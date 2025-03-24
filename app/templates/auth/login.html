@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}登录{% endblock %}
+
+{% block styles %}
+<style>
+    .login-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+        margin: -20px -15px;
+        padding: 20px;
+    }
+
+    .login-box {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 15px 25px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        max-width: 400px;
+        width: 100%;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #333;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .form-floating {
+        margin-bottom: 20px;
+    }
+
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid #eee;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #a777e3;
+        box-shadow: 0 0 0 0.25rem rgba(167, 119, 227, 0.25);
+    }
+
+    .captcha-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .captcha-input {
+        flex: 1;
+    }
+
+    .captcha-image {
+        height: 58px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .captcha-image:hover {
+        transform: scale(1.05);
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+        border: none;
+        color: white;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(110, 142, 251, 0.4);
+    }
+
+    .btn-login:active {
+        transform: translateY(0);
+    }
+
+    .form-label-group {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .form-label-group i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+
+    .form-label-group input {
+        padding-left: 40px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-box">
+        <h2 class="login-title">
+            <i class="fas fa-user-shield"></i> 管理员登录
+        </h2>
+        <form method="post">
+            <div class="form-label-group">
+                <i class="fas fa-user"></i>
+                <input type="text" 
+                       id="username" 
+                       name="username" 
+                       class="form-control" 
+                       placeholder="用户名"
+                       required 
+                       autofocus>
+            </div>
+            
+            <div class="form-label-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       class="form-control" 
+                       placeholder="密码"
+                       required>
+            </div>
+
+            <div class="captcha-container">
+                <div class="form-label-group captcha-input">
+                    <i class="fas fa-shield-alt"></i>
+                    <input type="text" 
+                           id="captcha" 
+                           name="captcha" 
+                           class="form-control" 
+                           placeholder="验证码"
+                           required>
+                </div>
+                <img src="{{ url_for('auth.get_captcha') }}" 
+                     alt="验证码" 
+                     class="captcha-image" 
+                     onclick="this.src='{{ url_for('auth.get_captcha') }}?'+ Math.random()"
+                     title="点击刷新验证码">
+            </div>
+
+            <button class="btn btn-login" type="submit">
+                <i class="fas fa-sign-in-alt me-2"></i>登录
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加输入框焦点效果
+    const inputs = document.querySelectorAll('.form-control');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.querySelector('i').style.color = '#a777e3';
+        });
+        input.addEventListener('blur', function() {
+            this.parentElement.querySelector('i').style.color = '#6c757d';
+        });
+    });
+
+    // 表单提交动画
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function() {
+        const button = this.querySelector('.btn-login');
+        button.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>登录中...';
+        button.disabled = true;
+    });
+});
+</script>
+{% endblock %} 

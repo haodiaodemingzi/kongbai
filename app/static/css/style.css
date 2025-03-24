@@ -1,0 +1,221 @@
+/* 自定义CSS样式 */
+
+/* 势力标签颜色 */
+.faction-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+}
+
+.faction-梵天 {
+    background-color: #0d6efd; /* 蓝色 */
+}
+
+.faction-比湿奴 {
+    background-color: #198754; /* 绿色 */
+}
+
+.faction-湿婆 {
+    background-color: #dc3545; /* 红色 */
+}
+
+/* 卡片自定义样式 */
+.card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+/* 表格响应式调整 */
+@media (max-width: 768px) {
+    .table th, .table td {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+}
+
+/* 统计卡片悬停效果 */
+.card.h-100:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+}
+
+/* 页面标题样式 */
+h1, h2, h3, h4 {
+    font-weight: 600;
+}
+
+/* 页面背景色 */
+body {
+    background-color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    .container {
+        max-width: 100%;
+        padding: 0 15px;
+    }
+}
+
+/* 按钮样式增强 */
+.btn {
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* 导航栏样式优化 */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.nav-link {
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Tab标签样式优化 */
+.nav-tabs .nav-link {
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #f8f9fa;
+    border-bottom-color: transparent;
+    font-weight: 600;
+}
+
+/* 表格行悬停效果 */
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* 卡片标题样式 */
+.card-header {
+    font-weight: bold;
+}
+
+/* 全局样式 */
+.container {
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+/* 卡片样式 */
+.card {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    font-weight: bold;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+/* 表格样式 */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+.table-dark {
+    background-color: #212529 !important;
+}
+
+.table-dark th {
+    color: white !important;
+    background-color: #212529 !important;
+    border-color: #32383e !important;
+}
+
+/* 确保表格标题始终是黑色背景 */
+.table thead.table-dark th {
+    background-color: #212529 !important;
+    color: white !important;
+}
+
+/* 玩家详情页样式 */
+.player-header {
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    text-align: center;
+}
+
+.player-name {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.player-meta {
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+.player-stats {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.player-link {
+    color: #007bff;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.player-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+/* 击杀和死亡详情表格 */
+.kill-details .table td, .death-details .table td {
+    vertical-align: middle;
+}
+
+.kill-details a, .death-details a {
+    color: #212529;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.kill-details a:hover, .death-details a:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+    .player-stats {
+        font-size: 1.5rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+} 

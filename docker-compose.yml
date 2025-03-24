@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - battle_logs:/app/logs
+      - upload_data:/app/uploads
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=production
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=mysql+pymysql://root:password@mysql:3306/oneapi
+    depends_on:
+      - mysql
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=oneapi
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_logs:/var/log/mysql
+    restart: always
+
+volumes:
+  mysql_data:
+  battle_logs:
+  upload_data:
+  mysql_logs: 
