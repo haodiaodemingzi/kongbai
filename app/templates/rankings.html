@@ -18,21 +18,63 @@
         {% endif %}
     </div>
     
-    <!-- 势力筛选 -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">按势力筛选</h4>
+    <!-- 筛选条件卡片 -->
+    <div class="row mb-4">
+        <!-- 势力筛选 -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">按势力筛选</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-center flex-wrap">
+                        <a href="{{ url_for('battle.rankings', time_range=time_range) }}" class="btn {% if not current_faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            全部
+                        </a>
+                        {% for faction in factions %}
+                        <a href="{{ url_for('battle.rankings', faction=faction, time_range=time_range) }}" class="btn {% if current_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            {{ faction }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="d-flex justify-content-center">
-                <a href="{{ url_for('battle.rankings') }}" class="btn {% if not current_faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2">
-                    全部
-                </a>
-                {% for faction in factions %}
-                <a href="{{ url_for('battle.rankings', faction=faction) }}" class="btn {% if current_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2">
-                    {{ faction }}
-                </a>
-                {% endfor %}
+
+        <!-- 时间范围筛选 -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">时间范围筛选</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-center flex-wrap">
+                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='all') }}" 
+                           class="btn {% if not time_range or time_range == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            全部时间
+                        </a>
+                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='today') }}" 
+                           class="btn {% if time_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            今天
+                        </a>
+                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='yesterday') }}" 
+                           class="btn {% if time_range == 'yesterday' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            昨天
+                        </a>
+                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='week') }}" 
+                           class="btn {% if time_range == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            近7天
+                        </a>
+                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='month') }}" 
+                           class="btn {% if time_range == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            近30天
+                        </a>
+                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='three_months') }}" 
+                           class="btn {% if time_range == 'three_months' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            近90天
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

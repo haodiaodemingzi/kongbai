@@ -163,42 +163,67 @@ def get_faction_stats(date_range=None):
         logger.error(f"获取势力统计数据时出错: {str(e)}", exc_info=True)
         return [], []
 
-def get_player_rankings(faction=None):
+def get_player_rankings(faction=None, time_range=None):
     """
     获取玩家排名数据
     
     Args:
         faction: 可选，指定势力名称进行筛选
+        time_range: 可选，指定时间范围筛选（today, yesterday, week, month, three_months）
         
     Returns:
         list: 玩家排名数据列表
     """
     try:
+        # 构建时间筛选条件
+        date_condition = ""
+        if time_range:
+            if time_range == 'today':
+                date_condition = "AND DATE(br.created_at) = CURDATE()"
+            elif time_range == 'yesterday':
+                date_condition = "AND DATE(br.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+            elif time_range == 'week':
+                date_condition = "AND br.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif time_range == 'month':
+                date_condition = "AND br.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+            elif time_range == 'three_months':
+                date_condition = "AND br.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)"
+
         # 构建基础查询
-        query = text("""
+        query = text(f"""
             SELECT 
                 p.id,
                 p.name,
                 p.god as faction,
                 COALESCE(
-                    (SELECT COUNT(*) FROM battle_record br WHERE br.win = p.name), 
+                    (SELECT COUNT(*) FROM battle_record br 
+                     WHERE br.win = p.name {date_condition}), 
                     0
                 ) as kills,
                 COALESCE(
-                    (SELECT COUNT(*) FROM battle_record br WHERE br.lost = p.name),
+                    (SELECT COUNT(*) FROM battle_record br 
+                     WHERE br.lost = p.name {date_condition}),
                     0
                 ) as deaths,
                 COALESCE(
-                    (SELECT COUNT(*) FROM blessings b WHERE b.player_id = p.id),
+                    (SELECT COUNT(*) FROM battle_record br 
+                     WHERE br.win = p.name AND br.remark > 0 {date_condition}),
                     0
                 ) as blessings,
                 COALESCE(
-                    (SELECT COUNT(*) FROM battle_record br WHERE br.win = p.name) * 3 -
-                    (SELECT COUNT(*) FROM battle_record br WHERE br.lost = p.name),
+                    (SELECT COUNT(*) FROM battle_record br 
+                     WHERE br.win = p.name {date_condition}) * 3 -
+                    (SELECT COUNT(*) FROM battle_record br 
+                     WHERE br.lost = p.name {date_condition}),
                     0
                 ) as score
             FROM person p
             WHERE 1=1
+            AND EXISTS (
+                SELECT 1 FROM battle_record br 
+                WHERE (br.win = p.name OR br.lost = p.name)
+                {date_condition}
+            )
         """)
         
         # 添加势力筛选条件
@@ -211,17 +236,19 @@ def get_player_rankings(faction=None):
         # 转换结果为列表
         players = []
         for row in result:
-            player = {
-                'id': row.id,
-                'name': row.name,
-                'faction': row.faction,
-                'kills': row.kills,
-                'deaths': row.deaths,
-                'blessings': row.blessings,
-                'score': row.score,
-                'kd_ratio': round(row.kills / row.deaths, 2) if row.deaths > 0 else row.kills
-            }
-            players.append(player)
+            # 只包含在指定时间范围内有战斗记录的玩家
+            if row.kills > 0 or row.deaths > 0:
+                player = {
+                    'id': row.id,
+                    'name': row.name,
+                    'faction': row.faction,
+                    'kills': row.kills,
+                    'deaths': row.deaths,
+                    'blessings': row.blessings,
+                    'score': row.score,
+                    'kd_ratio': round(row.kills / row.deaths, 2) if row.deaths > 0 else row.kills
+                }
+                players.append(player)
             
         # 按得分和击杀数排序
         players.sort(key=lambda x: (-x['score'], -x['kills'], x['deaths']))

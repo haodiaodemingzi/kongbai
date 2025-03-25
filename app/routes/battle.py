@@ -123,11 +123,15 @@ def rankings():
     
     # 获取筛选参数
     faction = request.args.get('faction')
-    logger.debug(f"排名筛选参数: faction={faction}")
+    time_range = request.args.get('time_range', 'all')
+    logger.debug(f"排名筛选参数: faction={faction}, time_range={time_range}")
     
     try:
         # 获取玩家排名数据
-        player_rankings = get_player_rankings(faction=faction)
+        player_rankings = get_player_rankings(
+            faction=faction,
+            time_range=time_range if time_range != 'all' else None
+        )
         logger.debug(f"获取到 {len(player_rankings)} 名玩家排名数据")
         
         # 获取所有势力
@@ -137,14 +141,16 @@ def rankings():
         return render_template('rankings.html', 
                               players=player_rankings, 
                               factions=factions, 
-                              current_faction=faction)
+                              current_faction=faction,
+                              time_range=time_range)
     except Exception as e:
         logger.error(f"玩家排名页面渲染出错: {str(e)}", exc_info=True)
         flash('获取排名数据时出错', 'error')
         return render_template('rankings.html', 
                               players=[], 
                               factions=['梵天', '比湿奴', '湿婆'], 
-                              current_faction=faction)
+                              current_faction=faction,
+                              time_range=time_range)
 
 
 @battle_bp.route('/player/<int:person_id>')

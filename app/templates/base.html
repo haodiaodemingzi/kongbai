@@ -84,10 +84,6 @@
                            href="{{ url_for('battle.rankings') }}">排行榜</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'battle.report' %}active{% endif %}" 
-                           href="{{ url_for('battle.report') }}">战报</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'battle.upload_file' %}active{% endif %}" 
                            href="{{ url_for('battle.upload_file') }}">上传</a>
                     </li>
