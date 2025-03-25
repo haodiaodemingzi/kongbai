@@ -130,11 +130,14 @@ body {
 
     <!-- 图表区域 -->
     <div class="row mt-4">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <div class="chart-container" id="factionStatsChart"></div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="chart-container" id="killsPieChart"></div>
+        </div>
+        <div class="col-md-3">
+            <div class="chart-container" id="factionPlayersPieChart"></div>
         </div>
     </div>
 
@@ -351,10 +354,77 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     killsPieChart.setOption(killsPieOption);
 
+    // 渲染势力人数分布饼图
+    const factionPlayersPieChart = echarts.init(document.getElementById('factionPlayersPieChart'));
+    const factionPlayersPieOption = {
+        title: {
+            text: '势力人数分布',
+            left: 'center',
+            top: 10,
+            textStyle: {
+                color: '#333'
+            }
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+            orient: 'horizontal',
+            bottom: 10,
+            left: 'center',
+            itemWidth: 25,
+            itemHeight: 14,
+            textStyle: {
+                color: '#333',
+                fontSize: 12,
+                padding: [0, 4, 0, 4]
+            }
+        },
+        series: [
+            {
+                name: '玩家数',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['50%', '50%'],
+                avoidLabelOverlap: true,
+                itemStyle: {
+                    borderRadius: 4,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: '18',
+                        fontWeight: 'bold'
+                    }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: [
+                    {% for stat in faction_statistics %}
+                    {
+                        name: "{{ stat.faction }}",
+                        value: {{ stat.player_count }}
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            }
+        ],
+        color: ['#ff4d4d', '#4d94ff', '#9966ff', '#ff9933', '#33cc99', '#cc66ff']
+    };
+    factionPlayersPieChart.setOption(factionPlayersPieOption);
+
     // 响应式调整
     window.addEventListener('resize', function() {
         factionStatsChart.resize();
         killsPieChart.resize();
+        factionPlayersPieChart.resize();
     });
 });
 

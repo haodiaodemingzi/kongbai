@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.models.player import Person, BattleRecord
 from app.utils.file_parser import parse_text_file, save_battle_log_to_db
-from app.utils.data_service import get_player_rankings, get_battle_details_by_player, export_data_to_json
+from app.utils.data_service import get_player_rankings, get_battle_details_by_player, export_data_to_json, get_statistics
 from app.config import Config
 from app.utils.logger import get_logger
 from app.utils.battle_report import generate_battle_report, export_battle_sql
@@ -492,4 +492,129 @@ def get_player_kills(player_name):
         return jsonify({'kills': kills})
     except Exception as e:
         logger.error(f"获取玩家 {player_name} 击杀详情时出错: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
+
+def get_statistics(faction=None):
+    """
+    获取总统计数据
+    :param faction: 势力名称
+    :return: (总玩家数, 总击杀数, 总死亡数, 总得分)
+    """
+    logger.info("获取总统计数据")
+    
+    # 构建查询
+    sql = """
+    SELECT 
+        (SELECT COUNT(DISTINCT p.id) FROM person p 
+         WHERE p.deleted_at IS NULL
+         AND (:faction IS NULL OR p.god = :faction)
+         AND EXISTS (SELECT 1 FROM battle_record br WHERE p.name IN (br.win, br.lost))
+        ) AS total_players,
+        SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) AS total_kills,
+        SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) AS total_deaths
+    FROM person p
+    LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+    WHERE p.deleted_at IS NULL
+    AND (:faction IS NULL OR p.god = :faction)
+    """
+    
+    # 执行查询
+    params = {'faction': faction}
+    result = db.session.execute(text(sql), params).fetchone()
+    
+    total_players = result.total_players or 0
+    total_kills = result.total_kills or 0
+    total_deaths = result.total_deaths or 0
+    
+    # 计算总得分
+    total_score = (total_kills * 3) - total_deaths
+    
+    logger.debug(f"总玩家数: {total_players}, 总击杀数: {total_kills}, 总死亡数: {total_deaths}, 总得分: {total_score}")
+    
+    return total_players, total_kills, total_deaths, total_score
+
+@battle_bp.route('/rankings/stats')
+@login_required
+def rankings_stats():
+    """获取排名统计数据"""
+    logger.info("访问排名统计数据API")
+    
+    # 获取筛选参数
+    faction = request.args.get('faction')
+    logger.debug(f"统计数据筛选参数: faction={faction}")
+    
+    try:
+        # 获取统计数据
+        total_players, total_kills, total_deaths, total_score = get_statistics(faction=faction)
+        
+        # 返回JSON数据
+        return jsonify({
+            'total_count': total_players,
+            'total_kills': total_kills,
+            'total_deaths': total_deaths,
+            'total_score': total_score
+        })
+        
+    except Exception as e:
+        logger.error(f"获取统计数据时出错: {str(e)}", exc_info=True)
+        return jsonify({'error': '获取统计数据失败'}), 500
+
+def get_faction_statistics():
+    """
+    获取各个势力的统计数据
+    :return: 各个势力的人数、击杀数和死亡数
+    """
+    logger.info("获取各个势力的统计数据")
+    
+    # 构建查询
+    sql = """
+    SELECT 
+        p.god AS faction,
+        COUNT(DISTINCT p.id) AS player_count,
+        SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) AS kills,
+        SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) AS deaths
+    FROM person p
+    LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+    WHERE p.deleted_at IS NULL
+    AND EXISTS (SELECT 1 FROM battle_record br2 WHERE p.name IN (br2.win, br2.lost))
+    AND p.god IS NOT NULL
+    GROUP BY p.god
+    ORDER BY p.god
+    """
+    
+    # 执行查询
+    result = db.session.execute(text(sql))
+    
+    # 处理结果
+    faction_stats = []
+    for row in result:
+        faction_stats.append({
+            'faction': row.faction,
+            'player_count': row.player_count or 0,
+            'kills': row.kills or 0,
+            'deaths': row.deaths or 0,
+            'score': (row.kills or 0) * 3 - (row.deaths or 0)
+        })
+    
+    logger.debug(f"势力统计数据: {faction_stats}")
+    
+    return faction_stats 
+
+@battle_bp.route('/rankings/faction_stats')
+@login_required
+def rankings_faction_stats():
+    """获取势力统计数据"""
+    logger.info("访问势力统计数据API")
+    
+    try:
+        # 获取势力统计数据
+        faction_stats = get_faction_statistics()
+        
+        # 返回JSON数据
+        return jsonify({
+            'faction_stats': faction_stats
+        })
+        
+    except Exception as e:
+        logger.error(f"获取势力统计数据时出错: {str(e)}", exc_info=True)
+        return jsonify({'error': '获取势力统计数据失败'}), 500 

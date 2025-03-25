@@ -218,6 +218,17 @@
         
         <!-- 阵营统计 -->
         <h2>阵营统计</h2>
+        
+        <!-- 添加势力人数分布饼图 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">势力人数分布</h5>
+            </div>
+            <div class="card-body text-center">
+                <canvas id="factionsPlayerChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+        
         <div class="god-stats">
             {% for god_key, god in god_stats.items() %}
             <div class="god-card">
@@ -340,6 +351,68 @@
             document.getElementById('end_date').value = '';
             document.querySelector('.date-filter form').submit();
         }
+    </script>
+    
+    <!-- 添加Chart.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取阵营数据
+        const godData = {
+            {% for god_key, god in god_stats.items() %}
+            "{{ god.name or '未知' }}": {{ god.player_count }},
+            {% endfor %}
+        };
+        
+        // 准备饼图数据
+        const factionsChart = new Chart(
+            document.getElementById('factionsPlayerChart'),
+            {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(godData),
+                    datasets: [{
+                        data: Object.values(godData),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)', // 梵天
+                            'rgba(54, 162, 235, 0.8)', // 比湿奴
+                            'rgba(153, 102, 255, 0.8)'  // 湿婆
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += context.parsed + ' 玩家';
+                                    return label;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: '势力人数分布'
+                        }
+                    }
+                }
+            }
+        );
+    });
     </script>
 </body>
 </html> 

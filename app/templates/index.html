@@ -93,11 +93,119 @@
             color: #666;
             font-size: 14px;
         }
+        /* 添加饼图样式 */
+        .stats-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .stats-card h2 {
+            color: #333;
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 0 auto;
+            max-width: 500px;
+        }
+        .faction-text-stats {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .faction-row {
+            margin-bottom: 10px;
+        }
+        .faction-name {
+            font-weight: bold;
+        }
+        .faction-count {
+            margin-left: 10px;
+        }
+        /* 添加总体统计数据卡片样式 */
+        .stats-overview {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .stats-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .stat-card {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            width: calc(25% - 20px);
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>战斗系统</h1>
+        
+        <!-- 添加势力人数对比饼图 -->
+        <div class="stats-card">
+            <h2>势力人数对比</h2>
+            <div class="chart-container">
+                <canvas id="factionsPlayerChart" width="400" height="300"></canvas>
+            </div>
+            <!-- 添加文本形式的势力人数统计 -->
+            <div class="faction-text-stats">
+                <div class="faction-row">
+                    <span class="faction-name">梵天:</span>
+                    <span class="faction-count" id="brahma-count">加载中...</span>
+                </div>
+                <div class="faction-row">
+                    <span class="faction-name">比湿奴:</span>
+                    <span class="faction-count" id="vishnu-count">加载中...</span>
+                </div>
+                <div class="faction-row">
+                    <span class="faction-name">湿婆:</span>
+                    <span class="faction-count" id="shiva-count">加载中...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 添加总体统计数据卡片 -->
+        <div class="stats-overview">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-players">-</div>
+                    <div class="stat-label">总玩家数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-kills">-</div>
+                    <div class="stat-label">总击杀数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-deaths">-</div>
+                    <div class="stat-label">总死亡数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-score">-</div>
+                    <div class="stat-label">总得分</div>
+                </div>
+            </div>
+        </div>
         
         <div class="menu">
             <div class="menu-item">
@@ -130,5 +238,100 @@
             <p>© 2023 战斗系统 | 版本 1.0</p>
         </div>
     </div>
+    
+    <!-- 添加Chart.js库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 请求势力统计数据
+        fetch('/battle/rankings/faction_stats')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 确保我们拥有所有三个势力的数据，即使某些势力没有数据
+                const allFactions = {
+                    '梵天': 0,
+                    '比湿奴': 0,
+                    '湿婆': 0
+                };
+                
+                // 更新实际数据
+                data.faction_stats.forEach(stat => {
+                    if (stat.faction in allFactions) {
+                        allFactions[stat.faction] = stat.player_count || 0;
+                    }
+                });
+                
+                // 更新文本显示
+                document.getElementById('brahma-count').textContent = allFactions['梵天'];
+                document.getElementById('vishnu-count').textContent = allFactions['比湿奴'];
+                document.getElementById('shiva-count').textContent = allFactions['湿婆'];
+                
+                // 准备饼图数据
+                const factionNames = Object.keys(allFactions);
+                const factionCounts = Object.values(allFactions);
+                
+                // 创建饼图
+                const factionsChart = new Chart(
+                    document.getElementById('factionsPlayerChart'),
+                    {
+                        type: 'pie',
+                        data: {
+                            labels: factionNames,
+                            datasets: [{
+                                data: factionCounts,
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.8)', // 梵天
+                                    'rgba(54, 162, 235, 0.8)', // 比湿奴
+                                    'rgba(153, 102, 255, 0.8)'  // 湿婆
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(153, 102, 255, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            label += context.parsed + ' 玩家';
+                                            return label;
+                                        }
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: '势力人数分布'
+                                }
+                            }
+                        }
+                    }
+                );
+            })
+            .catch(error => {
+                console.error('获取势力统计数据出错:', error);
+                document.getElementById('factionsPlayerChart').parentNode.innerHTML = '<p>无法加载势力分布图</p>';
+                document.getElementById('brahma-count').textContent = '加载失败';
+                document.getElementById('vishnu-count').textContent = '加载失败';
+                document.getElementById('shiva-count').textContent = '加载失败';
+            });
+    });
+    </script>
 </body>
 </html> 

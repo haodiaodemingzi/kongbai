@@ -612,4 +612,55 @@ def export_data_to_json(faction=None):
         return json_data, filename
     except Exception as e:
         logger.error(f"导出数据时出错: {str(e)}", exc_info=True)
-        return "{\"error\": \"导出数据时出错: " + str(e) + "\"}", "error.json" 
+        return "{\"error\": \"导出数据时出错: " + str(e) + "\"}", "error.json"
+
+
+def get_statistics(faction=None):
+    """
+    获取总统计数据
+    :param faction: 势力名称（可选）
+    :return: 总玩家数, 总击杀数, 总死亡数, 总得分
+    """
+    logger.info(f"获取总统计数据，势力筛选：{faction}")
+    
+    try:
+        # 构建查询
+        sql = """
+        SELECT 
+            COUNT(DISTINCT p.id) AS total_players,
+            COALESCE(SUM(
+                (SELECT COUNT(*) FROM battle_record WHERE winner_name = p.name)
+            ), 0) AS total_kills,
+            COALESCE(SUM(
+                (SELECT COUNT(*) FROM battle_record WHERE loser_name = p.name)
+            ), 0) AS total_deaths
+        FROM 
+            person p
+        WHERE 
+            p.deleted_at IS NULL
+        """
+        
+        # 添加势力筛选条件
+        params = {}
+        if faction:
+            sql += " AND p.god = :faction"
+            params['faction'] = faction
+            
+        # 执行查询
+        result = db.session.execute(text(sql), params).fetchone()
+        
+        # 处理结果
+        total_players = result.total_players or 0
+        total_kills = result.total_kills or 0
+        total_deaths = result.total_deaths or 0
+        
+        # 计算总得分
+        total_score = (total_kills * 3) - total_deaths
+        
+        logger.debug(f"统计结果：总玩家数={total_players}, 总击杀数={total_kills}, 总死亡数={total_deaths}, 总得分={total_score}")
+        
+        return total_players, total_kills, total_deaths, total_score
+        
+    except Exception as e:
+        logger.error(f"获取总统计数据时出错: {str(e)}", exc_info=True)
+        return 0, 0, 0, 0 

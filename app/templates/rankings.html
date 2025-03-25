@@ -45,6 +45,78 @@
             </h4>
         </div>
         <div class="card-body">
+            <!-- 添加统计信息 -->
+            <div class="mb-3 d-flex justify-content-between">
+                <p id="total_count">总玩家数: 加载中...</p>
+                <p id="total_kills">总击杀数: 加载中...</p>
+                <p id="total_deaths">总死亡数: 加载中...</p>
+                <p id="total_score">总得分: 加载中...</p>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // 获取当前筛选的势力
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const faction = urlParams.get('faction');
+                    
+                    // 构建API URL
+                    let apiUrl = '/battle/rankings/stats';
+                    if (faction) {
+                        apiUrl += `?faction=${faction}`;
+                    }
+                    
+                    // 请求统计数据
+                    fetch(apiUrl)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // 更新统计数据显示
+                            document.getElementById('total_count').textContent = `总玩家数: ${data.total_count}`;
+                            document.getElementById('total_kills').textContent = `总击杀数: ${data.total_kills}`;
+                            document.getElementById('total_deaths').textContent = `总死亡数: ${data.total_deaths}`;
+                            document.getElementById('total_score').textContent = `总得分: ${data.total_score}`;
+                        })
+                        .catch(error => {
+                            console.error('获取统计数据出错:', error);
+                            // 显示错误消息
+                            document.getElementById('total_count').textContent = '总玩家数: 获取失败';
+                            document.getElementById('total_kills').textContent = '总击杀数: 获取失败';
+                            document.getElementById('total_deaths').textContent = '总死亡数: 获取失败';
+                            document.getElementById('total_score').textContent = '总得分: 获取失败';
+                        });
+                        
+                    // 请求势力统计数据
+                    fetch('/battle/rankings/faction_stats')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // 更新势力统计显示
+                            const factionMap = {};
+                            data.faction_stats.forEach(stat => {
+                                factionMap[stat.faction] = stat.player_count;
+                            });
+                            
+                            document.getElementById('faction-brahma-count').textContent = factionMap['梵天'] || 0;
+                            document.getElementById('faction-vishnu-count').textContent = factionMap['比湿奴'] || 0;
+                            document.getElementById('faction-shiva-count').textContent = factionMap['湿婆'] || 0;
+                        })
+                        .catch(error => {
+                            console.error('获取势力统计数据出错:', error);
+                            // 显示错误消息
+                            document.getElementById('faction-brahma-count').textContent = '获取失败';
+                            document.getElementById('faction-vishnu-count').textContent = '获取失败';
+                            document.getElementById('faction-shiva-count').textContent = '获取失败';
+                        });
+                });
+            </script>
+            
             {% if players %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
