@@ -1,37 +1,51 @@
-version: '3'
+version: '3.8'
 
 services:
   web:
     build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - .:/app
-      - battle_logs:/app/logs
-      - upload_data:/app/uploads
-    environment:
-      - FLASK_APP=run.py
-      - FLASK_ENV=production
-      - LOG_LEVEL=INFO
-      - DATABASE_URL=mysql+pymysql://root:password@mysql:3306/oneapi
-    depends_on:
-      - mysql
     restart: always
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
 
-  mysql:
-    image: mysql:8.0
+  nginx:
+    image: nginx:alpine
     ports:
-      - "3306:3306"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3306:3306"  # 暴露数据库端口，方便调试
     environment:
-      - MYSQL_ROOT_PASSWORD=password
-      - MYSQL_DATABASE=oneapi
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
-      - mysql_logs:/var/log/mysql
-    restart: always
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
-  mysql_data:
-  battle_logs:
-  upload_data:
-  mysql_logs: 
+  mysql_data: 

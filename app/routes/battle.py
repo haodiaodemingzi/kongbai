@@ -130,7 +130,6 @@ def rankings():
         # 获取玩家排名数据
         player_rankings = get_player_rankings(
             faction=faction,
-            time_range=time_range if time_range != 'all' else None
         )
         logger.debug(f"获取到 {len(player_rankings)} 名玩家排名数据")
         

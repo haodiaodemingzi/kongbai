@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    min-height: 100vh;
+    background: #f3f4f6;
+}
+
+.content-wrapper {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.2);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+</style>
+
+<div class="page-container">
+    <div class="content-wrapper">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">编辑人员</h1>
+            <a href="{{ url_for('person.person_list') }}" class="btn btn-secondary">
+                返回列表
+            </a>
+        </div>
+
+        <form id="editForm" class="max-w-2xl">
+            <div class="form-group">
+                <label class="form-label" for="name">游戏ID</label>
+                <input type="text" id="name" name="name" class="form-input" value="{{ person.name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="god">主神</label>
+                <select id="god" name="god" class="form-select" required>
+                    <option value="">请选择主神</option>
+                    <option value="梵天" {% if person.god == '梵天' %}selected{% endif %}>梵天</option>
+                    <option value="湿婆" {% if person.god == '湿婆' %}selected{% endif %}>湿婆</option>
+                    <option value="比湿奴" {% if person.god == '比湿奴' %}selected{% endif %}>比湿奴</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="union_name">战盟</label>
+                <input type="text" id="union_name" name="union_name" class="form-input" value="{{ person.union_name }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="job">职业</label>
+                <input type="text" id="job" name="job" class="form-input" value="{{ person.job }}" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="level">主神等级</label>
+                <input type="number" id="level" name="level" class="form-input" value="{{ person.level }}" required>
+            </div>
+
+            <div class="flex gap-4">
+                <button type="submit" class="btn btn-primary">
+                    保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('person.person_list') }}'">
+                    取消
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('name').value,
+        god: document.getElementById('god').value,
+        union_name: document.getElementById('union_name').value,
+        job: document.getElementById('job').value,
+        level: document.getElementById('level').value
+    };
+
+    fetch('{{ url_for("person.person_edit", id=person.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.code === 0) {
+            alert('修改成功');
+            window.location.href = '{{ url_for("person.person_list") }}';
+        } else {
+            alert(data.message || '修改失败');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('修改失败');
+    });
+});
+</script>
+{% endblock %} 
