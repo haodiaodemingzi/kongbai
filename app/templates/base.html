@@ -95,6 +95,10 @@
                         <a class="nav-link {% if request.endpoint == 'battle.gods_ranking' %}active{% endif %}" 
                            href="{{ url_for('battle.gods_ranking') }}">三神战绩</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'person.list' %}active{% endif %}" 
+                           href="/person/list">玩家管理</a>
+                    </li>
                 </ul>
                 {% if session.get('user_id') %}
                 <ul class="navbar-nav">
