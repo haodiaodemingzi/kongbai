@@ -628,14 +628,48 @@ def rankings_faction_stats():
 @login_required
 def gods_ranking():
     """显示三个神的击杀死亡情况"""
+    # 获取日期参数
+    start_datetime_str = request.args.get('start_datetime')
+    end_datetime_str = request.args.get('end_datetime')
+    
+    # 设置默认日期为全部时间
+    start_datetime = None
+    end_datetime = None
+    
+    # 解析日期时间
+    if start_datetime_str:
+        try:
+            start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            flash('开始时间格式不正确', 'error')
+            
+    if end_datetime_str:
+        try:
+            end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M')
+            # 设置结束时间的秒数为59，以包含整分钟
+            end_datetime = end_datetime.replace(second=59)
+        except ValueError:
+            flash('结束时间格式不正确', 'error')
+    
     # 获取三个神的数据
     gods = ['梵天', '比湿奴', '湿婆']
     stats = {}
     
     try:
         for god in gods:
+            # 构建日期条件
+            date_condition = ""
+            query_params = {'god': god}
+            
+            if start_datetime:
+                date_condition += " AND br.publish_at >= :start_datetime"
+                query_params['start_datetime'] = start_datetime
+            if end_datetime:
+                date_condition += " AND br.publish_at <= :end_datetime"
+                query_params['end_datetime'] = end_datetime
+            
             # 使用原始SQL查询获取每个神的玩家击杀和死亡数据
-            query = text("""
+            query = text(f"""
                 WITH player_stats AS (
                     SELECT 
                         p.name,
@@ -646,6 +680,7 @@ def gods_ranking():
                     LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
                     WHERE p.god = :god
                     AND p.deleted_at IS NULL
+                    {date_condition}
                     GROUP BY p.name
                     HAVING kills > 0 OR deaths > 0
                 )
@@ -664,7 +699,7 @@ def gods_ranking():
             total_deaths = 0
             total_bless = 0
             
-            for row in db.session.execute(query, {'god': god}):
+            for row in db.session.execute(query, query_params):
                 player_stats.append({
                     'name': row.name,
                     'kills': int(row.kills or 0),
@@ -683,7 +718,10 @@ def gods_ranking():
                 'player_count': len(player_stats)
             }
         
-        return render_template('battle/gods.html', stats=stats)
+        return render_template('battle/gods.html', 
+                             stats=stats,
+                             start_datetime=start_datetime_str,
+                             end_datetime=end_datetime_str)
     except Exception as e:
         logger.error(f"获取三神战绩统计时出错: {str(e)}", exc_info=True)
         flash('获取战绩统计数据时出错', 'error')
