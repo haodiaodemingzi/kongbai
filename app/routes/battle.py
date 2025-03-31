@@ -623,3 +623,68 @@ def rankings_faction_stats():
     except Exception as e:
         logger.error(f"获取势力统计数据时出错: {str(e)}", exc_info=True)
         return jsonify({'error': '获取势力统计数据失败'}), 500 
+
+@battle_bp.route('/gods_ranking')
+@login_required
+def gods_ranking():
+    """显示三个神的击杀死亡情况"""
+    # 获取三个神的数据
+    gods = ['梵天', '比湿奴', '湿婆']
+    stats = {}
+    
+    try:
+        for god in gods:
+            # 使用原始SQL查询获取每个神的玩家击杀和死亡数据
+            query = text("""
+                WITH player_stats AS (
+                    SELECT 
+                        p.name,
+                        COUNT(CASE WHEN br.win = p.name THEN 1 END) as kills,
+                        COUNT(CASE WHEN br.lost = p.name THEN 1 END) as deaths,
+                        CAST(SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS SIGNED) as bless
+                    FROM person p
+                    LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+                    WHERE p.god = :god
+                    AND p.deleted_at IS NULL
+                    GROUP BY p.name
+                    HAVING kills > 0 OR deaths > 0
+                )
+                SELECT 
+                    name,
+                    kills,
+                    deaths,
+                    bless
+                FROM player_stats
+                ORDER BY kills DESC, deaths ASC, bless DESC
+            """)
+            
+            # 获取玩家数据
+            player_stats = []
+            total_kills = 0
+            total_deaths = 0
+            total_bless = 0
+            
+            for row in db.session.execute(query, {'god': god}):
+                player_stats.append({
+                    'name': row.name,
+                    'kills': int(row.kills or 0),
+                    'deaths': int(row.deaths or 0),
+                    'bless': int(row.bless or 0)
+                })
+                total_kills += int(row.kills or 0)
+                total_deaths += int(row.deaths or 0)
+                total_bless += int(row.bless or 0)
+            
+            stats[god] = {
+                'kills': total_kills,
+                'deaths': total_deaths,
+                'bless': total_bless,
+                'players': player_stats,
+                'player_count': len(player_stats)
+            }
+        
+        return render_template('battle/gods.html', stats=stats)
+    except Exception as e:
+        logger.error(f"获取三神战绩统计时出错: {str(e)}", exc_info=True)
+        flash('获取战绩统计数据时出错', 'error')
+        return redirect(url_for('battle.rankings')) 

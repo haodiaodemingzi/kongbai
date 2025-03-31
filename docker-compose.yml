@@ -4,11 +4,14 @@ services:
   web:
     build: .
     restart: always
+    ports:
+      - "5000:5000"  # 暴露 Flask 端口，方便调试
     env_file:
       - .env
+    environment:
+      - SQLALCHEMY_DATABASE_URI=mysql+pymysql://root:123456@db:3306/kongbai?charset=utf8mb4
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - app-network
 
@@ -27,7 +30,7 @@ services:
     image: mysql:8.0
     restart: always
     ports:
-      - "3306:3306"  # 暴露数据库端口，方便调试
+      - "3306:3306"  # 暴露 MySQL 端口到主机
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -35,13 +38,11 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 networks:
   app-network:

@@ -14,9 +14,15 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your_secret_key_here'
     
     # 数据库配置
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://cheetah:cheetah@192.168.123.144/oneapi?charset=utf8mb4'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI') or \
+        'mysql+pymysql://{}:{}@{}/{}'.format(
+            os.environ.get('MYSQL_USER', 'root'),
+            os.environ.get('MYSQL_PASSWORD', 'root'),
+            os.environ.get('MYSQL_HOST', 'localhost'),
+            os.environ.get('MYSQL_DATABASE', 'kongbai')
+        )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = False  # 设为True可以查看SQL语句
+    SQLALCHEMY_ECHO = os.environ.get('FLASK_ENV') == 'development'  # 在开发环境下显示SQL语句
     
     # 上传文件配置
     UPLOAD_FOLDER = os.path.join(os.path.dirname(basedir), 'uploads')
@@ -39,7 +45,7 @@ class Config:
     def init_app(app):
         # 配置日志
         logging.basicConfig(
-            level=logging.DEBUG,
+            level=logging.DEBUG if app.debug else logging.INFO,
             format='[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
             handlers=[
                 logging.FileHandler(os.path.join(os.path.dirname(basedir), 'logs', 'app.log')),
@@ -49,3 +55,6 @@ class Config:
         
         # 创建上传目录
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        
+        # 创建日志目录
+        os.makedirs(os.path.join(os.path.dirname(basedir), 'logs'), exist_ok=True)

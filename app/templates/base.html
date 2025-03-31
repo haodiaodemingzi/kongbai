@@ -87,6 +87,14 @@
                         <a class="nav-link {% if request.endpoint == 'battle.upload_file' %}active{% endif %}" 
                            href="{{ url_for('battle.upload_file') }}">上传</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'battle.rankings' %}active{% endif %}" 
+                           href="{{ url_for('battle.rankings') }}">战斗记录</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'battle.gods_ranking' %}active{% endif %}" 
+                           href="{{ url_for('battle.gods_ranking') }}">三神战绩</a>
+                    </li>
                 </ul>
                 {% if session.get('user_id') %}
                 <ul class="navbar-nav">
