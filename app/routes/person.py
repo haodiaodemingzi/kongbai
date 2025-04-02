@@ -3,6 +3,7 @@ from app.models.player import Person
 from app.extensions import db
 from sqlalchemy import or_, and_
 from datetime import datetime
+import json
 
 bp = Blueprint('person', __name__)
 

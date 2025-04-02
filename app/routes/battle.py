@@ -123,33 +123,104 @@ def rankings():
     
     # 获取筛选参数
     faction = request.args.get('faction')
+    job = request.args.get('job')  # 新增职业筛选参数
     time_range = request.args.get('time_range', 'all')
-    logger.debug(f"排名筛选参数: faction={faction}, time_range={time_range}")
+    logger.debug(f"排名筛选参数: faction={faction}, job={job}, time_range={time_range}")
     
     try:
         # 获取玩家排名数据
-        player_rankings = get_player_rankings(
-            faction=faction,
-        )
+        query = text("""
+            WITH player_stats AS (
+                SELECT 
+                    p.id,
+                    p.name,
+                    p.job,
+                    p.god as faction,
+                    COUNT(CASE WHEN br.win = p.name THEN 1 END) as kills,
+                    COUNT(CASE WHEN br.lost = p.name THEN 1 END) as deaths,
+                    SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as blessings,
+                    CASE 
+                        WHEN COUNT(CASE WHEN br.lost = p.name THEN 1 END) > 0 
+                        THEN ROUND(COUNT(CASE WHEN br.win = p.name THEN 1 END) * 1.0 / 
+                             COUNT(CASE WHEN br.lost = p.name THEN 1 END), 2)
+                        ELSE COUNT(CASE WHEN br.win = p.name THEN 1 END)
+                    END as kd_ratio
+                FROM person p
+                LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+                WHERE p.deleted_at IS NULL
+                AND (:faction IS NULL OR p.god = :faction)
+                AND (:job IS NULL OR p.job = :job)
+                GROUP BY p.id, p.name, p.job, p.god
+                HAVING kills > 0 OR deaths > 0
+            )
+            SELECT 
+                id,
+                name,
+                job,
+                faction,
+                kills,
+                deaths,
+                blessings,
+                kd_ratio,
+                (kills * 3 + blessings - deaths) as score
+            FROM player_stats
+            ORDER BY score DESC, kills DESC, deaths ASC
+        """)
+        
+        # 执行查询
+        result = db.session.execute(query, {
+            'faction': faction,
+            'job': job
+        })
+        
+        # 转换结果为列表
+        player_rankings = []
+        for row in result:
+            player_rankings.append({
+                'id': row.id,
+                'name': row.name,
+                'job': row.job,
+                'faction': row.faction,
+                'kills': int(row.kills),
+                'deaths': int(row.deaths),
+                'blessings': int(row.blessings),
+                'kd_ratio': float(row.kd_ratio),
+                'score': int(row.score)
+            })
+        
         logger.debug(f"获取到 {len(player_rankings)} 名玩家排名数据")
+        
+        # 获取所有职业列表（去重）
+        jobs_query = text("""
+            SELECT DISTINCT job 
+            FROM person 
+            WHERE job IS NOT NULL 
+            AND deleted_at IS NULL 
+            ORDER BY job
+        """)
+        jobs = [row[0] for row in db.session.execute(jobs_query)]
         
         # 获取所有势力
         factions = ['梵天', '比湿奴', '湿婆']
         
         logger.debug("渲染排名页面")
         return render_template('rankings.html', 
-                              players=player_rankings, 
-                              factions=factions, 
-                              current_faction=faction,
-                              time_range=time_range)
+                             players=player_rankings, 
+                             factions=factions,
+                             jobs=jobs,  # 传递职业列表到模板
+                             current_faction=faction,
+                             current_job=job,  # 传递当前选中的职业
+                             time_range=time_range)
     except Exception as e:
         logger.error(f"玩家排名页面渲染出错: {str(e)}", exc_info=True)
         flash('获取排名数据时出错', 'error')
         return render_template('rankings.html', 
-                              players=[], 
-                              factions=['梵天', '比湿奴', '湿婆'], 
-                              current_faction=faction,
-                              time_range=time_range)
+                             players=[], 
+                             factions=['梵天', '比湿奴', '湿婆'],
+                             jobs=[],
+                             current_faction=faction,
+                             current_job=job,
+                             time_range=time_range)
 
 
 @battle_bp.route('/player/<int:person_id>')
