@@ -82,9 +82,17 @@
     <!-- 排名表格 -->
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">
-                {% if current_faction %}{{ current_faction }}{% else %}全部{% endif %} 玩家排名
-            </h4>
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    {% if current_faction %}{{ current_faction }}{% else %}全部{% endif %} 玩家排名
+                </h4>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-light active" onclick="showAllJobs()">全部职业</button>
+                    {% for job in jobs %}
+                        <button type="button" class="btn btn-light" onclick="filterByJob('{{ job }}')">{{ job }}</button>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
         <div class="card-body">
             <!-- 添加统计信息 -->
@@ -129,34 +137,38 @@
                             document.getElementById('total_deaths').textContent = '总死亡数: 获取失败';
                             document.getElementById('total_score').textContent = '总得分: 获取失败';
                         });
-                        
-                    // 请求势力统计数据
-                    fetch('/battle/rankings/faction_stats')
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            // 更新势力统计显示
-                            const factionMap = {};
-                            data.faction_stats.forEach(stat => {
-                                factionMap[stat.faction] = stat.player_count;
-                            });
-                            
-                            document.getElementById('faction-brahma-count').textContent = factionMap['梵天'] || 0;
-                            document.getElementById('faction-vishnu-count').textContent = factionMap['比湿奴'] || 0;
-                            document.getElementById('faction-shiva-count').textContent = factionMap['湿婆'] || 0;
-                        })
-                        .catch(error => {
-                            console.error('获取势力统计数据出错:', error);
-                            // 显示错误消息
-                            document.getElementById('faction-brahma-count').textContent = '获取失败';
-                            document.getElementById('faction-vishnu-count').textContent = '获取失败';
-                            document.getElementById('faction-shiva-count').textContent = '获取失败';
-                        });
                 });
+
+                // 职业筛选功能
+                function showAllJobs() {
+                    document.querySelectorAll('tr[data-job]').forEach(tr => {
+                        tr.style.display = '';
+                    });
+                    // 更新按钮状态
+                    updateButtonStates('全部职业');
+                }
+
+                function filterByJob(job) {
+                    document.querySelectorAll('tr[data-job]').forEach(tr => {
+                        if (tr.getAttribute('data-job') === job) {
+                            tr.style.display = '';
+                        } else {
+                            tr.style.display = 'none';
+                        }
+                    });
+                    // 更新按钮状态
+                    updateButtonStates(job);
+                }
+
+                function updateButtonStates(selectedJob) {
+                    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                        if (btn.textContent === selectedJob) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                }
             </script>
             
             {% if players %}
@@ -178,7 +190,7 @@
                     </thead>
                     <tbody>
                         {% for player in players %}
-                        <tr>
+                        <tr data-job="{{ player.job|default('未知', true) }}">
                             <td>{{ loop.index }}</td>
                             <td><a href="{{ url_for('battle.player_details', person_id=player.id) }}">{{ player.name|default('未知', true) }}</a></td>
                             <td>{{ player.job|default('未知', true) }}</td>
@@ -206,4 +218,36 @@
         </div>
     </div>
 </div>
+
+<style>
+.btn-group .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-group .btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+@media (max-width: 768px) {
+    .btn-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0.25rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .card-header .d-flex {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        border-radius: 4px !important;
+        margin: 0;
+    }
+}
+</style>
 {% endblock %} 
