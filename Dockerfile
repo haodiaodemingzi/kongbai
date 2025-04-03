@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai \
     FLASK_APP=run.py \
-    FLASK_ENV=production
+    FLASK_ENV=development
 
 # 安装系统依赖
 RUN apt-get update \
@@ -44,4 +44,4 @@ USER appuser
 EXPOSE 5000
 
 # 启动命令
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--log-level", "info", "--access-logfile", "logs/access.log", "--error-logfile", "logs/error.log", "run:app"] 
+CMD ["python", "run.py"] 
