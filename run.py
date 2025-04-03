@@ -7,6 +7,8 @@ import sys
 from dotenv import load_dotenv
 from app import create_app
 from app.utils.logger import get_logger
+from decimal import Decimal
+
 
 # 加载环境变量
 load_dotenv()
@@ -23,9 +25,19 @@ logging.basicConfig(
 # 设置Werkzeug日志级别
 werkzeug_logger = logging.getLogger('werkzeug')
 werkzeug_logger.setLevel(logging.DEBUG)
+# 配置自定义编码器
+from flask.json import JSONEncoder
+
+class DecimalJSONEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return float(o)  # 或 str(o)
+        return super().default(o)
+
 
 # 创建应用
 app = create_app()
+app.json_encoder = DecimalJSONEncoder
 
 if __name__ == '__main__':
     # 设置日志级别

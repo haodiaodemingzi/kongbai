@@ -6,12 +6,12 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 # 配置变量
-DOMAIN="your-domain.com"  # 替换为你的域名
-EMAIL="your-email@example.com"  # 替换为你的邮箱
-MYSQL_ROOT_PASSWORD="your-mysql-password"  # 替换为你的MySQL root密码
-MYSQL_DATABASE="battle_stats"
-MYSQL_USER="battle_user"
-MYSQL_PASSWORD="battle_password"
+DOMAIN="bigmang.xyz"  # 替换为你的域名
+EMAIL="haodiaodemingzi@gmail.com"  # 替换为你的邮箱
+MYSQL_ROOT_PASSWORD="admin123"  # 替换为你的MySQL root密码
+MYSQL_DATABASE="oneapi"
+MYSQL_USER="oneapi"
+MYSQL_PASSWORD="oneapi123"
 
 # 配置 Docker 日志清理
 echo -e "${GREEN}Configuring Docker log rotation...${NC}"
@@ -78,46 +78,11 @@ services:
       - FLASK_APP=app
       - FLASK_ENV=production
       - SQLALCHEMY_DATABASE_URI=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}
+    ports:
+      - "5000:5000"
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  nginx:
-    image: nginx:alpine
-    container_name: battle_stats_nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
-    depends_on:
-      - web
-    networks:
-      - app-network
-    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  certbot:
-    image: certbot/certbot
-    container_name: battle_stats_certbot
-    volumes:
-      - ./data/certbot/conf:/etc/letsencrypt
-      - ./data/certbot/www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
     logging:
       driver: "json-file"
       options:
@@ -143,17 +108,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - app-network
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-networks:
-  app-network:
-    driver: bridge
 EOF
 
 # 创建 nginx 配置文件

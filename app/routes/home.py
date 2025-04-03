@@ -101,6 +101,8 @@ def index():
                 })
         top_scorers.sort(key=lambda x: (-x['score']))
         top_scorers = top_scorers[:3]
+        print('123123123123123123')
+        print(chart_data)
 
         return render_template('home/index.html',
                             chart_data=chart_data,

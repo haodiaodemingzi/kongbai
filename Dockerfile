@@ -1,5 +1,5 @@
 # 使用 Python 3.13 作为基础镜像
-FROM python:3.13-slim
+FROM python:3.8-slim
 
 # 设置工作目录
 WORKDIR /app
@@ -20,6 +20,12 @@ RUN apt-get update \
         libjpeg-dev \
         zlib1g-dev \
         libpng-dev \
+        libfreetype6-dev \
+        libwebp-dev \
+        libtiff5-dev \
+        libxcb1-dev \
+        python3-dev \
+        build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone

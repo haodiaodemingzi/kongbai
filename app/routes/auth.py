@@ -72,6 +72,9 @@ def login():
         
         # 验证用户名和密码
         if username == 'admin' and password == 'admin123':
+            session['user_id'] = username
+            session.pop('captcha', None)  # 清除验证码
+            return redirect(url_for('home.index'))
             # 验证验证码
             if captcha == session.get('captcha', ''):
                 session['user_id'] = username
