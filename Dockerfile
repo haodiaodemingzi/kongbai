@@ -17,6 +17,9 @@ RUN apt-get update \
         gcc \
         default-libmysqlclient-dev \
         pkg-config \
+        libjpeg-dev \
+        zlib1g-dev \
+        libpng-dev \
     && rm -rf /var/lib/apt/lists/* \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo ${TZ} > /etc/timezone
