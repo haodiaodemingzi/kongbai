@@ -1,53 +1,20 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
-    restart: always
-    environment:
-      - TZ=Asia/Shanghai
-      - FLASK_APP=run.py
-      - FLASK_ENV=development
-    volumes:
-      - ./app:/app/app
-      - ./static:/app/static
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-    networks:
-      - app-network
-
-  nginx:
-    image: nginx:alpine
-    restart: always
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./static:/usr/share/nginx/html/static
-    depends_on:
-      - app
-    networks:
-      - app-network
-
   db:
     image: mysql:8.0
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_DATABASE=oneapi
+      - MYSQL_USER=oneapi
+      - MYSQL_PASSWORD=admin123
       - TZ=Asia/Shanghai
     volumes:
-      - ./data/mysql:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - app-network
+      - /opt/mysql:/var/lib/mysql
+      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    ports:
+      - 3306:3306
     command: --default-authentication-plugin=mysql_native_password
 
-networks:
-  app-network:
-    driver: bridge
-
-volumes:
-  mysql_data: 

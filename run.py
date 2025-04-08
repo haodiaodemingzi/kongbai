@@ -7,6 +7,19 @@ import sys
 from dotenv import load_dotenv
 from app import create_app
 from app.utils.logger import get_logger
+from decimal import Decimal
+import json
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            # 转换为 float 或字符串（根据精度需求）
+            return float(obj)  # 或 str(obj)
+        elif isinstance(obj, (datetime.date, datetime.datetime)):
+            # 可选：处理日期时间对象
+            return obj.isoformat()
+        return super().default(obj)
+
 
 # 加载环境变量
 load_dotenv()
@@ -26,6 +39,7 @@ werkzeug_logger.setLevel(logging.DEBUG)
 
 # 创建应用
 app = create_app()
+app.json_encoder = CustomJSONEncoder
 
 if __name__ == '__main__':
     # 设置日志级别

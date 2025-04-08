@@ -32,7 +32,11 @@ def create_app(config_class=Config):
     # 从环境变量加载配置覆盖
     if 'DATABASE_URL' in os.environ:
         app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
+    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:admin123@db:3306/oneapi?charset=utf8mb4'
+
+    if 'SQLALCHEMY_DATABASE_URI' in os.environ:
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
     
     # 初始化数据库
     db.init_app(app)
