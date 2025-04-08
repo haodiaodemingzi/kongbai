@@ -34,7 +34,7 @@
 
 <script>
 function formatNumber(num) {
-    return (num / 100000000).toFixed(2) + '亿';
+    return Math.floor(num / 100000000) + '亿';
 }
 
 function parseRewards() {
