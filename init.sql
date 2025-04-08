@@ -1,3 +1,4 @@
+create database oneapi;
 use oneapi;
 set names 'utf8mb4';
 
