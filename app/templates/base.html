@@ -95,6 +95,10 @@
                         <a class="nav-link {% if request.endpoint == 'person.list' %}active{% endif %}" 
                            href="/person/list">玩家管理</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reward.rewards' %}active{% endif %}" 
+                           href="{{ url_for('reward.rewards') }}">奖励统计</a>
+                    </li>
                 </ul>
                 {% if session.get('user_id') %}
                 <ul class="navbar-nav">

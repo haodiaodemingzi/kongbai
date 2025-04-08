@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>PK奖励统计</h2>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>解析奖励文本</h5>
+                </div>
+                <div class="card-body">
+                    <textarea id="rewardText" class="form-control" rows="10" placeholder="请输入奖励文本..."></textarea>
+                    <button class="btn btn-primary mt-3" onclick="parseRewards()">解析</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 id="resultTitle">奖励统计结果</h5>
+                </div>
+                <div class="card-body">
+                    <div id="rewardResults">
+                        <!-- 结果将在这里动态显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatNumber(num) {
+    return (num / 100000000).toFixed(2) + '亿';
+}
+
+function parseRewards() {
+    const text = document.getElementById('rewardText').value;
+    if (!text) {
+        alert('请输入奖励文本');
+        return;
+    }
+    
+    fetch('/api/rewards/parse', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: text })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            displayResults(data.results);
+        }
+    })
+    .catch(error => {
+        alert('解析失败：' + error);
+    });
+}
+
+// 用于标准化名字的函数，将名字转为小写并移除非字母部分
+function normalizeName(name) {
+    if (!name) return '';
+    // 转小写
+    name = name.toLowerCase();
+    // 移除标点符号和空格
+    return name.replace(/[^\u4e00-\u9fa5a-z0-9]/g, '');
+}
+
+// 检查名字相似度
+function areSimilarNames(name1, name2) {
+    const norm1 = normalizeName(name1);
+    const norm2 = normalizeName(name2);
+    
+    // 如果标准化后完全相同
+    if (norm1 === norm2) return true;
+    
+    // 如果其中一个是另一个的子串
+    if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
+    
+    return false;
+}
+
+// 查找相似名字
+function findSimilarNameInMap(name, nameMap) {
+    for (const existingName of Object.keys(nameMap)) {
+        if (areSimilarNames(existingName, name)) {
+            return existingName;
+        }
+    }
+    return null;
+}
+
+function displayResults(results) {
+    const container = document.getElementById('rewardResults');
+    container.innerHTML = '';
+    
+    if (results.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">没有找到可分析的数据</div>';
+        return;
+    }
+    
+    // 设置标题为起始日期
+    const startDate = results[0].date;
+    const endDate = results[results.length - 1].date;
+    document.getElementById('resultTitle').textContent = `奖励统计结果 (${startDate})`;
+    
+    // 合并所有人员奖励记录
+    const allPeople = {};
+    
+    results.forEach(result => {
+        result.people.forEach(person => {
+            // 跳过名字为空的情况
+            if (!person.name || person.name.trim() === '') {
+                return;
+            }
+            
+            // 检查是否有相似名字已经存在
+            const similarName = findSimilarNameInMap(person.name, allPeople);
+            
+            if (similarName) {
+                // 使用已存在的相似名字
+                allPeople[similarName].base_reward += person.base_reward;
+                allPeople[similarName].healer_bonus += person.healer_bonus;
+                allPeople[similarName].light_bonus += person.light_bonus;
+                allPeople[similarName].total_reward += person.total_reward;
+                allPeople[similarName].participations += 1;
+                // 如果当前是奶妈，标记为奶妈
+                if (person.is_healer) {
+                    allPeople[similarName].is_healer = true;
+                }
+            } else if (!allPeople[person.name]) {
+                // 创建新条目
+                allPeople[person.name] = {
+                    name: person.name,
+                    is_healer: person.is_healer,
+                    base_reward: person.base_reward,
+                    healer_bonus: person.healer_bonus,
+                    light_bonus: person.light_bonus,
+                    total_reward: person.total_reward,
+                    participations: 1
+                };
+            } else {
+                // 更新已有条目
+                allPeople[person.name].base_reward += person.base_reward;
+                allPeople[person.name].healer_bonus += person.healer_bonus;
+                allPeople[person.name].light_bonus += person.light_bonus;
+                allPeople[person.name].total_reward += person.total_reward;
+                allPeople[person.name].participations += 1;
+                // 如果当前是奶妈，标记为奶妈
+                if (person.is_healer) {
+                    allPeople[person.name].is_healer = true;
+                }
+            }
+        });
+    });
+    
+    // 创建表格
+    const table = document.createElement('table');
+    table.className = 'table table-bordered';
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>玩家</th>
+                <th>参与次数</th>
+                <th>基础奖励</th>
+                <th>奶妈奖励</th>
+                <th>出灯奖励</th>
+                <th>总奖励</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    `;
+    
+    const tbody = table.querySelector('tbody');
+    
+    // 将对象转为数组并按照总奖励降序排序
+    const peopleArray = Object.values(allPeople).sort((a, b) => b.total_reward - a.total_reward);
+    
+    peopleArray.forEach(person => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${person.name}${person.is_healer ? '（奶妈）' : ''}</td>
+            <td>${person.participations}</td>
+            <td>${formatNumber(person.base_reward)}</td>
+            <td>${formatNumber(person.healer_bonus)}</td>
+            <td>${formatNumber(person.light_bonus)}</td>
+            <td>${formatNumber(person.total_reward)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    container.appendChild(table);
+}
+</script>
+{% endblock %} 

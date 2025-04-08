@@ -43,12 +43,14 @@ def create_app(config_class=Config):
     from app.routes.home import home_bp
     from app.routes.auth import auth_bp, login_required
     from app.routes.person import bp as person_bp
+    from app.routes.reward import bp as reward_bp
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(battle_bp, url_prefix='/battle')
     app.register_blueprint(home_bp)
     app.register_blueprint(person_bp)
-    logger.info("蓝图已注册: /auth, /battle, /, /person")
+    app.register_blueprint(reward_bp)
+    logger.info("蓝图已注册: /auth, /battle, /, /person, /reward")
     
     # 为需要登录的蓝图添加保护
     for blueprint in [home_bp, battle_bp]:
