@@ -5,7 +5,7 @@
     <h2>PK奖励统计</h2>
     
     <div class="row mt-4">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
                     <h5>解析奖励文本</h5>
@@ -16,11 +16,54 @@
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6">
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 id="resultTitle">奖励统计结果</h5>
+                    <h5>总统计</h5>
+                </div>
+                <div class="card-body">
+                    <div id="totalStats" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stat-item p-3 bg-light rounded">
+                                    <h6>总参与次数</h6>
+                                    <h4 id="totalParticipants">0</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item p-3 bg-light rounded">
+                                    <h6>总出灯次数</h6>
+                                    <h4 id="totalLights">0</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item p-3 bg-light rounded">
+                                    <h6>总悬赏次数</h6>
+                                    <h4 id="totalBounties">0</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-item p-3 bg-light rounded">
+                                    <h6>总奖金</h6>
+                                    <h4 id="totalReward">0</h4>
+                                    <small>亿</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>奖励统计结果</h5>
                 </div>
                 <div class="card-body">
                     <div id="rewardResults">
@@ -33,6 +76,24 @@
 </div>
 
 <script>
+// 名字标准化映射
+const nameMapping = {
+    '薇风': '薇风',
+    '微风': '薇风',
+    '神气': '神气弓',
+    '神气弓': '神气弓',
+    'Q字母': 'Q字母弓',
+    'Q字母弓': 'Q字母弓',
+    '黛少': '黛少',
+    '戴少': '黛少',
+    'c字母法': 'C字母法',
+    'C字母法': 'C字母法'
+};
+
+function standardizeName(name) {
+    return nameMapping[name] || name;
+}
+
 function formatNumber(num) {
     return Math.floor(num / 100000000) + '亿';
 }
@@ -43,7 +104,7 @@ function parseRewards() {
         alert('请输入奖励文本');
         return;
     }
-    
+
     fetch('/api/rewards/parse', {
         method: 'POST',
         headers: {
@@ -64,39 +125,6 @@ function parseRewards() {
     });
 }
 
-// 用于标准化名字的函数，将名字转为小写并移除非字母部分
-function normalizeName(name) {
-    if (!name) return '';
-    // 转小写
-    name = name.toLowerCase();
-    // 移除标点符号和空格
-    return name.replace(/[^\u4e00-\u9fa5a-z0-9]/g, '');
-}
-
-// 检查名字相似度
-function areSimilarNames(name1, name2) {
-    const norm1 = normalizeName(name1);
-    const norm2 = normalizeName(name2);
-    
-    // 如果标准化后完全相同
-    if (norm1 === norm2) return true;
-    
-    // 如果其中一个是另一个的子串
-    if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
-    
-    return false;
-}
-
-// 查找相似名字
-function findSimilarNameInMap(name, nameMap) {
-    for (const existingName of Object.keys(nameMap)) {
-        if (areSimilarNames(existingName, name)) {
-            return existingName;
-        }
-    }
-    return null;
-}
-
 function displayResults(results) {
     const container = document.getElementById('rewardResults');
     container.innerHTML = '';
@@ -106,72 +134,72 @@ function displayResults(results) {
         return;
     }
     
-    // 设置标题为起始日期
-    const startDate = results[0].date;
-    const endDate = results[results.length - 1].date;
-    document.getElementById('resultTitle').textContent = `奖励统计结果 (${startDate})`;
-    
     // 合并所有人员奖励记录
     const allPeople = {};
-    
+    let totalParticipants = 0;
+    let totalLights = 0;
+    let totalBounties = 0;
+    let totalReward = 0;
+
     results.forEach(result => {
         result.people.forEach(person => {
-            // 跳过名字为空的情况
             if (!person.name || person.name.trim() === '') {
                 return;
             }
             
-            // 检查是否有相似名字已经存在
-            const similarName = findSimilarNameInMap(person.name, allPeople);
+            // 标准化名字
+            const standardName = standardizeName(person.name);
             
-            if (similarName) {
-                // 使用已存在的相似名字
-                allPeople[similarName].base_reward += person.base_reward;
-                allPeople[similarName].healer_bonus += person.healer_bonus;
-                allPeople[similarName].light_bonus += person.light_bonus;
-                allPeople[similarName].total_reward += person.total_reward;
-                allPeople[similarName].participations += 1;
-                // 如果当前是奶妈，标记为奶妈
-                if (person.is_healer) {
-                    allPeople[similarName].is_healer = true;
-                }
-            } else if (!allPeople[person.name]) {
-                // 创建新条目
-                allPeople[person.name] = {
-                    name: person.name,
+            if (!allPeople[standardName]) {
+                allPeople[standardName] = {
+                    name: standardName,
                     is_healer: person.is_healer,
-                    base_reward: person.base_reward,
-                    healer_bonus: person.healer_bonus,
-                    light_bonus: person.light_bonus,
-                    total_reward: person.total_reward,
-                    participations: 1
+                    participations: 0,
+                    light_count: 0,
+                    bounty_count: 0,
+                    base_reward: 0,
+                    healer_bonus: 0,
+                    light_bonus: 0,
+                    bounty_bonus: 0,
+                    total_reward: 0
                 };
-            } else {
-                // 更新已有条目
-                allPeople[person.name].base_reward += person.base_reward;
-                allPeople[person.name].healer_bonus += person.healer_bonus;
-                allPeople[person.name].light_bonus += person.light_bonus;
-                allPeople[person.name].total_reward += person.total_reward;
-                allPeople[person.name].participations += 1;
-                // 如果当前是奶妈，标记为奶妈
-                if (person.is_healer) {
-                    allPeople[person.name].is_healer = true;
-                }
             }
+            
+            const personData = allPeople[standardName];
+            personData.participations++;
+            personData.light_count += person.light_count;
+            personData.bounty_count += person.bounty_count;
+            personData.base_reward += person.base_reward;
+            personData.healer_bonus += person.healer_bonus;
+            personData.light_bonus += person.light_bonus;
+            personData.bounty_bonus += person.bounty_bonus;
+            personData.total_reward += person.total_reward;
+            
+            if (person.is_healer) {
+                personData.is_healer = true;
+            }
+            
+            totalParticipants++;
+            totalLights += person.light_count;
+            totalBounties += person.bounty_count;
+            totalReward += person.total_reward;
         });
     });
     
     // 创建表格
     const table = document.createElement('table');
-    table.className = 'table table-bordered';
+    table.className = 'table table-bordered table-striped';
     table.innerHTML = `
         <thead>
             <tr>
                 <th>玩家</th>
                 <th>参与次数</th>
+                <th>出灯次数</th>
+                <th>悬赏次数</th>
                 <th>基础奖励</th>
-                <th>奶妈奖励</th>
+                <th>活奶奖励</th>
                 <th>出灯奖励</th>
+                <th>悬赏奖励</th>
                 <th>总奖励</th>
             </tr>
         </thead>
@@ -187,17 +215,27 @@ function displayResults(results) {
     peopleArray.forEach(person => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${person.name}${person.is_healer ? '（奶妈）' : ''}</td>
+            <td>${person.name}${person.is_healer ? '（活）' : ''}</td>
             <td>${person.participations}</td>
+            <td>${person.light_count}</td>
+            <td>${person.bounty_count}</td>
             <td>${formatNumber(person.base_reward)}</td>
             <td>${formatNumber(person.healer_bonus)}</td>
             <td>${formatNumber(person.light_bonus)}</td>
+            <td>${formatNumber(person.bounty_bonus)}</td>
             <td>${formatNumber(person.total_reward)}</td>
         `;
         tbody.appendChild(row);
     });
     
     container.appendChild(table);
+    
+    // 更新总统计
+    document.getElementById('totalStats').style.display = 'block';
+    document.getElementById('totalParticipants').textContent = totalParticipants;
+    document.getElementById('totalLights').textContent = totalLights;
+    document.getElementById('totalBounties').textContent = totalBounties;
+    document.getElementById('totalReward').textContent = Math.floor(totalReward / 100000000);
 }
 </script>
 {% endblock %} 
