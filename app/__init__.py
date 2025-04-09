@@ -61,6 +61,20 @@ def create_app(config_class=Config):
     from app.routes.reward import bp as reward_bp
     from app.routes.player_group import bp as player_group_bp
     
+    # 添加自定义JSON编码器，处理Decimal类型
+    import json
+    from decimal import Decimal
+    from flask.json import JSONEncoder
+    
+    class CustomJSONEncoder(JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, Decimal):
+                return float(obj)
+            return super().default(obj)
+    
+    app.json_encoder = CustomJSONEncoder
+    logger.info("已注册自定义JSON编码器，支持Decimal类型")
+    
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(battle_bp, url_prefix='/battle')
     app.register_blueprint(home_bp)
