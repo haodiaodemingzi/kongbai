@@ -951,8 +951,8 @@ def group_details():
         end_datetime_str = request.args.get('end_datetime')
         
         # 验证必要参数
-        if not player_name or not god:
-            return jsonify({'error': '缺少必要参数'}), 400
+        if not player_name:
+            return jsonify({'error': '缺少必要参数：player_name'}), 400
             
         # 解析日期时间
         start_datetime = None
@@ -991,16 +991,11 @@ def group_details():
             SELECT 
                 pg.id as group_id,
                 pg.group_name,
-                pg.description,
-                COALESCE(p.player_group_id, p.id) AS group_key
+                pg.description
             FROM 
-                person p
-            LEFT JOIN
-                player_group pg ON p.player_group_id = pg.id
+                player_group pg 
             WHERE 
-                p.god = :god
-                AND p.deleted_at IS NULL
-                AND COALESCE(pg.group_name, p.name) = :player_name
+                pg.group_name = :player_name
             LIMIT 1
         """)
         
@@ -1011,13 +1006,13 @@ def group_details():
             
         # 获取分组ID
         group_id = group_result.group_id
-        group_key = group_result.group_key
         
         # 查询该分组下所有玩家的战绩
         members_query = text(f"""
             SELECT 
                 p.id,
                 p.name,
+                p.god,
                 COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) AS kills,
                 COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) AS deaths,
                 SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS bless
@@ -1026,15 +1021,12 @@ def group_details():
             LEFT JOIN 
                 battle_record br ON p.name IN (br.win, br.lost)
             WHERE 
-                p.god = :god
-                AND p.deleted_at IS NULL
-                AND (
-                    (p.player_group_id IS NOT NULL AND p.player_group_id = :group_id)
-                    OR (p.player_group_id IS NULL AND p.id = :group_key)
-                )
+                p.deleted_at IS NULL
+                AND p.player_group_id = :group_id
+                {'' if god is None else 'AND p.god = :god'}
                 {date_condition}
             GROUP BY 
-                p.id, p.name
+                p.id, p.name, p.god
             HAVING 
                 kills > 0 OR deaths > 0
             ORDER BY 
@@ -1043,7 +1035,6 @@ def group_details():
         
         # 添加分组ID参数
         query_params['group_id'] = group_id
-        query_params['group_key'] = group_key
         
         # 获取成员数据
         members = []
@@ -1051,6 +1042,7 @@ def group_details():
             members.append({
                 'id': row.id,
                 'name': row.name,
+                'god': row.god,
                 'kills': int(row.kills or 0),
                 'deaths': int(row.deaths or 0),
                 'bless': int(row.bless or 0)
