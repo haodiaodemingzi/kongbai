@@ -833,7 +833,16 @@ def gods_ranking():
                             -- 获取分组名称
                             COALESCE(pg.group_name, p.name) AS player_name,
                             -- 判断是否为玩家分组（该分组下有多个游戏ID）
-                            COUNT(*) OVER(PARTITION BY COALESCE(p.player_group_id, p.id)) > 1 AS is_group
+                            -- 只有当player_group_id不为空且该分组下有多个玩家时，才是真正的分组
+                            CASE 
+                                WHEN p.player_group_id IS NOT NULL AND EXISTS (
+                                    SELECT 1 FROM person p2 
+                                    WHERE p2.player_group_id = p.player_group_id 
+                                    AND p2.id != p.id
+                                    AND p2.deleted_at IS NULL
+                                ) THEN 1
+                                ELSE 0
+                            END AS is_group
                         FROM 
                             person p
                         LEFT JOIN

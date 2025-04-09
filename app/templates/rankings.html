@@ -18,74 +18,75 @@
         {% endif %}
     </div>
     
-    <!-- 筛选条件卡片 -->
-    <div class="row mb-4">
-        <!-- 势力筛选 -->
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">按势力筛选</h4>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-center flex-wrap">
-                        <a href="{{ url_for('battle.rankings', time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" class="btn {% if not selected_faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            全部
-                        </a>
-                        {% for faction in ['梵天', '比湿奴', '湿婆'] %}
-                        <a href="{{ url_for('battle.rankings', faction=faction, time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" class="btn {% if selected_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            {{ faction }}
-                        </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+    <!-- 筛选条件统一卡片 -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white py-2">
+            <h4 class="m-0">筛选选项</h4>
         </div>
+        <div class="card-body pt-3 pb-2">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-md-12">
+                    <div class="row g-2">
+                        <!-- 势力筛选 -->
+                        <div class="col-md-4">
+                            <div class="filter-section">
+                                <h5 class="filter-title"><i class="fas fa-shield-alt me-2"></i>按势力筛选</h5>
+                                <div class="btn-group w-100 flex-wrap">
+                                    <a href="{{ url_for('battle.rankings', time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" 
+                                       class="btn btn-sm {% if not selected_faction %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        全部
+                                    </a>
+                                    {% for faction in ['梵天', '比湿奴', '湿婆'] %}
+                                    <a href="{{ url_for('battle.rankings', faction=faction, time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" 
+                                       class="btn btn-sm {% if selected_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        {{ faction }}
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
 
-        <!-- 时间范围筛选 -->
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">时间范围筛选</h4>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-center flex-wrap">
-                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='all', show_grouped=show_grouped, job=selected_job) }}" 
-                           class="btn {% if not selected_time or selected_time == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            全部时间
-                        </a>
-                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='today', show_grouped=show_grouped, job=selected_job) }}" 
-                           class="btn {% if selected_time == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            今天
-                        </a>
-                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='week', show_grouped=show_grouped, job=selected_job) }}" 
-                           class="btn {% if selected_time == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            近7天
-                        </a>
-                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='month', show_grouped=show_grouped, job=selected_job) }}" 
-                           class="btn {% if selected_time == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            近30天
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 分组显示选项 -->
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">显示选项</h4>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-center flex-wrap">
-                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='true', job=selected_job) }}" 
-                           class="btn {% if show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            按玩家分组显示
-                        </a>
-                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='false', job=selected_job) }}" 
-                           class="btn {% if not show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            按游戏ID显示
-                        </a>
+                        <!-- 时间范围筛选 -->
+                        <div class="col-md-4">
+                            <div class="filter-section">
+                                <h5 class="filter-title"><i class="fas fa-calendar-alt me-2"></i>时间范围</h5>
+                                <div class="btn-group w-100 flex-wrap">
+                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='all', show_grouped=show_grouped, job=selected_job) }}" 
+                                       class="btn btn-sm {% if not selected_time or selected_time == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        全部
+                                    </a>
+                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='today', show_grouped=show_grouped, job=selected_job) }}" 
+                                       class="btn btn-sm {% if selected_time == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        今天
+                                    </a>
+                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='week', show_grouped=show_grouped, job=selected_job) }}" 
+                                       class="btn btn-sm {% if selected_time == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        7天
+                                    </a>
+                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='month', show_grouped=show_grouped, job=selected_job) }}" 
+                                       class="btn btn-sm {% if selected_time == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        30天
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 显示选项 -->
+                        <div class="col-md-4">
+                            <div class="filter-section">
+                                <h5 class="filter-title"><i class="fas fa-eye me-2"></i>显示选项</h5>
+                                <div class="btn-group w-100">
+                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='true', job=selected_job) }}" 
+                                       class="btn btn-sm {% if show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        <i class="fas fa-users"></i> 玩家分组
+                                    </a>
+                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='false', job=selected_job) }}" 
+                                       class="btn btn-sm {% if not show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                                        <i class="fas fa-user"></i> 游戏ID
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -219,12 +220,23 @@
 </div>
 
 <style>
+.filter-section {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+}
+.filter-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #555;
+}
 .btn-group {
     display: flex;
-    flex-wrap: wrap;
+    gap: 2px;
 }
-.btn-group .btn {
-    margin: 0.1rem;
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
 }
 </style>
 {% endblock %} 
