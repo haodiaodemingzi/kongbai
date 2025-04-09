@@ -27,25 +27,87 @@
 
 .page-title i {
     margin-right: 0.5rem;
-    color: #3b82f6;
+    color: #cb2d3e;
     font-size: 1.25rem;
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
 }
 
 .search-container {
     background: #ffffff;
     border-radius: 8px;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     border: 1px solid #e2e8f0;
     margin-bottom: 1.5rem;
-    display: flex;
-    justify-content: center;
 }
 
 .search-form {
-    width: 50%;
     display: flex;
-    gap: 0.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 50%;
+}
+
+.search-input-container {
+    position: relative;
+    flex: 1;
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    font-size: 0.813rem;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #cb2d3e;
+    box-shadow: 0 0 0 3px rgba(203, 45, 62, 0.1);
+}
+
+.btn-search {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    background: linear-gradient(to right, #cb2d3e, #ef473a);
+    color: white;
+    border: none;
+    box-shadow: 0 2px 5px rgba(203, 45, 62, 0.3);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.btn-search:hover {
+    background: linear-gradient(to right, #b82435, #d63a2f);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(203, 45, 62, 0.4);
+}
+
+.btn-search i {
+    margin-right: 0.35rem;
 }
 
 .group-container {
@@ -64,7 +126,7 @@
 }
 
 .group-header {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, rgba(203, 45, 62, 0.05), rgba(239, 71, 58, 0.05));
     border-bottom: 1px solid #e2e8f0;
     padding: 0.75rem 1rem;
     display: flex;
@@ -160,15 +222,16 @@
 }
 
 .btn-primary {
-    background: #3b82f6;
+    background: linear-gradient(to right, #cb2d3e, #ef473a);
     color: white;
     border: none;
+    box-shadow: 0 2px 5px rgba(203, 45, 62, 0.3);
 }
 
 .btn-primary:hover {
-    background: #2563eb;
+    background: linear-gradient(to right, #b82435, #d63a2f);
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 4px 8px rgba(203, 45, 62, 0.4);
 }
 
 .btn-edit {
@@ -198,22 +261,6 @@
     display: flex;
 }
 
-.search-input {
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    font-size: 0.813rem;
-    width: 100%;
-    transition: all 0.3s ease;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
 .pagination {
     display: flex;
     justify-content: center;
@@ -234,9 +281,9 @@
 }
 
 .page-link:hover {
-    background: #3b82f6;
+    background: linear-gradient(to right, #cb2d3e, #ef473a);
     color: white;
-    border-color: #3b82f6;
+    border-color: #cb2d3e;
 }
 
 .page-info {
@@ -291,26 +338,43 @@
     color: #94a3b8;
     padding: 0.25rem 0;
 }
+
+.btn-add {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-add-container {
+    display: flex;
+    justify-content: flex-end;
+}
 </style>
 
 <div class="page-container">
     <div class="content-wrapper">
-        <div class="flex justify-between items-center mb-4">
+        <div class="header-container">
             <h1 class="page-title"><i class="fas fa-users"></i>玩家分组管理</h1>
-            <a href="{{ url_for('player_group.player_group_add') }}" class="btn btn-primary">
+            <a href="{{ url_for('player_group.player_group_add') }}" class="btn btn-primary btn-add">
                 <i class="fas fa-plus btn-icon"></i>添加分组
             </a>
         </div>
 
         <div class="search-container">
             <form method="get" class="search-form">
-                <input type="text" 
-                       name="search" 
-                       value="{{ search }}" 
-                       placeholder="搜索分组名称或描述..." 
-                       class="search-input">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-search btn-icon"></i>搜索
+                <div class="search-input-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" 
+                           name="search" 
+                           value="{{ search }}" 
+                           placeholder="搜索分组..." 
+                           class="search-input">
+                </div>
+                <button type="submit" class="btn-search">
+                    <i class="fas fa-search"></i> 搜索
                 </button>
             </form>
         </div>

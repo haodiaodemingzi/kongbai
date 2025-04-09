@@ -29,15 +29,25 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.DEBUG)
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
     
-    # 从环境变量加载配置覆盖
-    if 'DATABASE_URL' in os.environ:
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:admin123@db:3306/oneapi?charset=utf8mb4'
-
-    if 'SQLALCHEMY_DATABASE_URI' in os.environ:
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
+    # 配置数据库连接
+    if app.debug:
+        # 开发模式使用固定数据库
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
+        logger.info("开发模式：使用192.168.123.144数据库")
+    else:
+        # 生产模式优先使用环境变量中的数据库配置
+        if 'SQLALCHEMY_DATABASE_URI' in os.environ:
+            app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
+            logger.info("生产模式：使用环境变量中的数据库配置")
+        elif 'DATABASE_URL' in os.environ:
+            app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+            logger.info("生产模式：使用DATABASE_URL环境变量")
+        else:
+            # 如果环境变量中没有配置，使用默认配置
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:admin123@db:3306/oneapi?charset=utf8mb4'
+            logger.info("生产模式：使用默认数据库配置")
+    
+    logger.info(f"数据库连接URI: {app.config['SQLALCHEMY_DATABASE_URI'][:15]}...")
     
     # 初始化数据库
     db.init_app(app)

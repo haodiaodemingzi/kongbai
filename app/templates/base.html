@@ -58,27 +58,36 @@
         }
         
         .navbar-brand:hover, .nav-link:hover {
-            color: #f8f9fa !important;
+            color: #ffdd00 !important;
             transform: translateY(-2px);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
         
         .nav-link.active {
             color: #fff !important;
             font-weight: bold;
-            background-color: rgba(255, 255, 255, 0.15);
+            background-color: rgba(255, 255, 255, 0.25);
             border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
         }
         
         .nav-link.active:after {
             content: '';
             position: absolute;
-            bottom: 0;
+            bottom: -3px;
             left: 50%;
             transform: translateX(-50%);
-            width: 30px;
-            height: 3px;
+            width: 40px;
+            height: 4px;
             background-color: #fff;
             border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .nav-link.active i {
+            color: #ffdd00;
+            text-shadow: 0 0 5px rgba(255, 221, 0, 0.5);
         }
         
         .nav-link i {
@@ -187,7 +196,11 @@
             }
             
             .nav-link.active {
-                background-color: rgba(255, 255, 255, 0.2);
+                background-color: rgba(255, 255, 255, 0.3);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                border-left: 5px solid #ffdd00;
+                padding-left: calc(1rem - 5px);
+                transform: none;
             }
             
             .nav-link.active:after {
@@ -379,33 +392,33 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'home.index' %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and 'home' in request.endpoint %}active{% endif %}" 
                            href="{{ url_for('home.index') }}"><i class="fas fa-tachometer-alt"></i> 仪表盘</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'battle.upload_file' %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('battle.upload') %}active{% endif %}" 
                            href="{{ url_for('battle.upload_file') }}"><i class="fas fa-cloud-upload-alt"></i> 上传</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'battle.rankings' %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint == 'battle.rankings' or request.endpoint == 'battle.player_details' %}active{% endif %}" 
                            href="{{ url_for('battle.rankings') }}"><i class="fas fa-history"></i> 战斗记录</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'battle.gods_ranking' %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint == 'battle.gods_ranking' %}active{% endif %}" 
                            href="{{ url_for('battle.gods_ranking') }}"><i class="fas fa-crown"></i> 三神战绩</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'person.list' %}active{% endif %}" 
-                           href="/person/list"><i class="fas fa-user-cog"></i> 玩家管理</a>
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('person.') %}active{% endif %}" 
+                           href="{{ url_for('person.person_list') }}"><i class="fas fa-user-cog"></i> 玩家管理</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'player_group.player_group_list' %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('player_group.') %}active{% endif %}" 
                            href="{{ url_for('player_group.player_group_list') }}">
                            <i class="fas fa-user-friends"></i> 玩家分组
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'reward.rewards' %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('reward.') %}active{% endif %}" 
                            href="{{ url_for('reward.rewards') }}"><i class="fas fa-medal"></i> 奖励统计</a>
                     </li>
                 </ul>
