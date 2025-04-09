@@ -779,6 +779,8 @@ def gods_ranking():
     # 获取日期参数
     start_datetime_str = request.args.get('start_datetime')
     end_datetime_str = request.args.get('end_datetime')
+    # 添加分组显示参数
+    show_grouped = request.args.get('show_grouped', 'true') == 'true'
     
     # 设置默认日期为全部时间
     start_datetime = None
@@ -816,30 +818,86 @@ def gods_ranking():
                 date_condition += " AND br.publish_at <= :end_datetime"
                 query_params['end_datetime'] = end_datetime
             
-            # 使用原始SQL查询获取每个神的玩家击杀和死亡数据
-            query = text(f"""
-                WITH player_stats AS (
+            # 根据是否需要按玩家分组进行统计选择不同的查询
+            if show_grouped:
+                # 使用玩家分组的查询
+                query = text(f"""
+                    WITH player_distinct AS (
+                        -- 获取所有有效的玩家ID，并关联其分组信息
+                        SELECT 
+                            p.id,
+                            p.name,
+                            p.god,
+                            -- 使用分组ID作为分组键，如果没有分组则使用玩家自身ID
+                            COALESCE(p.player_group_id, p.id) AS group_key,
+                            -- 获取分组名称
+                            COALESCE(pg.group_name, p.name) AS player_name,
+                            -- 判断是否为玩家分组（该分组下有多个游戏ID）
+                            COUNT(*) OVER(PARTITION BY COALESCE(p.player_group_id, p.id)) > 1 AS is_group
+                        FROM 
+                            person p
+                        LEFT JOIN
+                            player_group pg ON p.player_group_id = pg.id
+                        WHERE 
+                            p.god = :god
+                            AND p.deleted_at IS NULL
+                    ),
+                    group_battle_stats AS (
+                        -- 按分组计算战斗数据
+                        SELECT 
+                            pd.group_key,
+                            pd.player_name,
+                            MAX(pd.is_group) AS is_group,
+                            COUNT(DISTINCT CASE WHEN br.win = pd.name THEN br.id END) AS kills,
+                            COUNT(DISTINCT CASE WHEN br.lost = pd.name THEN br.id END) AS deaths,
+                            SUM(CASE WHEN br.win = pd.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS bless
+                        FROM 
+                            player_distinct pd
+                        LEFT JOIN 
+                            battle_record br ON pd.name IN (br.win, br.lost)
+                        WHERE 1=1
+                            {date_condition}
+                        GROUP BY 
+                            pd.group_key, pd.player_name
+                        HAVING 
+                            kills > 0 OR deaths > 0
+                    )
                     SELECT 
-                        p.name,
-                        COUNT(CASE WHEN br.win = p.name THEN 1 END) as kills,
-                        COUNT(CASE WHEN br.lost = p.name THEN 1 END) as deaths,
-                        CAST(SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS SIGNED) as bless
-                    FROM person p
-                    LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
-                    WHERE p.god = :god
-                    AND p.deleted_at IS NULL
-                    {date_condition}
-                    GROUP BY p.name
-                    HAVING kills > 0 OR deaths > 0
-                )
-                SELECT 
-                    name,
-                    kills,
-                    deaths,
-                    bless
-                FROM player_stats
-                ORDER BY kills DESC, deaths ASC, bless DESC
-            """)
+                        player_name as name,
+                        kills,
+                        deaths,
+                        bless,
+                        is_group
+                    FROM 
+                        group_battle_stats
+                    ORDER BY 
+                        kills DESC, deaths ASC, bless DESC
+                """)
+            else:
+                # 原始查询（不考虑玩家分组）
+                query = text(f"""
+                    WITH player_stats AS (
+                        SELECT 
+                            p.name,
+                            COUNT(CASE WHEN br.win = p.name THEN 1 END) as kills,
+                            COUNT(CASE WHEN br.lost = p.name THEN 1 END) as deaths,
+                            CAST(SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS SIGNED) as bless
+                        FROM person p
+                        LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+                        WHERE p.god = :god
+                        AND p.deleted_at IS NULL
+                        {date_condition}
+                        GROUP BY p.name
+                        HAVING kills > 0 OR deaths > 0
+                    )
+                    SELECT 
+                        name,
+                        kills,
+                        deaths,
+                        bless
+                    FROM player_stats
+                    ORDER BY kills DESC, deaths ASC, bless DESC
+                """)
             
             # 获取玩家数据
             player_stats = []
@@ -848,12 +906,18 @@ def gods_ranking():
             total_bless = 0
             
             for row in db.session.execute(query, query_params):
-                player_stats.append({
+                player_data = {
                     'name': row.name,
                     'kills': int(row.kills or 0),
                     'deaths': int(row.deaths or 0),
                     'bless': int(row.bless or 0)
-                })
+                }
+                
+                # 如果是分组查询，添加is_group字段
+                if show_grouped:
+                    player_data['is_group'] = bool(row.is_group) if hasattr(row, 'is_group') else False
+                    
+                player_stats.append(player_data)
                 total_kills += int(row.kills or 0)
                 total_deaths += int(row.deaths or 0)
                 total_bless += int(row.bless or 0)
@@ -869,8 +933,139 @@ def gods_ranking():
         return render_template('battle/gods.html', 
                              stats=stats,
                              start_datetime=start_datetime_str,
-                             end_datetime=end_datetime_str)
+                             end_datetime=end_datetime_str,
+                             show_grouped=show_grouped)
     except Exception as e:
         logger.error(f"获取三神战绩统计时出错: {str(e)}", exc_info=True)
         flash('获取战绩统计数据时出错', 'error')
         return redirect(url_for('battle.rankings')) 
+
+@battle_bp.route('/api/group_details')
+def group_details():
+    """获取玩家分组下所有游戏ID的详细战绩"""
+    try:
+        # 获取参数
+        god = request.args.get('god')
+        player_name = request.args.get('player_name')
+        start_datetime_str = request.args.get('start_datetime')
+        end_datetime_str = request.args.get('end_datetime')
+        
+        # 验证必要参数
+        if not player_name or not god:
+            return jsonify({'error': '缺少必要参数'}), 400
+            
+        # 解析日期时间
+        start_datetime = None
+        end_datetime = None
+        
+        if start_datetime_str:
+            try:
+                start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                return jsonify({'error': '开始时间格式不正确'}), 400
+                
+        if end_datetime_str:
+            try:
+                end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M')
+                # 设置结束时间的秒数为59，以包含整分钟
+                end_datetime = end_datetime.replace(second=59)
+            except ValueError:
+                return jsonify({'error': '结束时间格式不正确'}), 400
+        
+        # 构建日期条件
+        date_condition = ""
+        query_params = {
+            'god': god,
+            'player_name': player_name
+        }
+        
+        if start_datetime:
+            date_condition += " AND br.publish_at >= :start_datetime"
+            query_params['start_datetime'] = start_datetime
+        if end_datetime:
+            date_condition += " AND br.publish_at <= :end_datetime"
+            query_params['end_datetime'] = end_datetime
+        
+        # 首先查询分组信息
+        group_query = text("""
+            SELECT 
+                pg.id as group_id,
+                pg.group_name,
+                pg.description,
+                COALESCE(p.player_group_id, p.id) AS group_key
+            FROM 
+                person p
+            LEFT JOIN
+                player_group pg ON p.player_group_id = pg.id
+            WHERE 
+                p.god = :god
+                AND p.deleted_at IS NULL
+                AND COALESCE(pg.group_name, p.name) = :player_name
+            LIMIT 1
+        """)
+        
+        group_result = db.session.execute(group_query, query_params).fetchone()
+        
+        if not group_result:
+            return jsonify({'error': '找不到指定的玩家分组'}), 404
+            
+        # 获取分组ID
+        group_id = group_result.group_id
+        group_key = group_result.group_key
+        
+        # 查询该分组下所有玩家的战绩
+        members_query = text(f"""
+            SELECT 
+                p.id,
+                p.name,
+                COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) AS kills,
+                COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) AS deaths,
+                SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS bless
+            FROM 
+                person p
+            LEFT JOIN 
+                battle_record br ON p.name IN (br.win, br.lost)
+            WHERE 
+                p.god = :god
+                AND p.deleted_at IS NULL
+                AND (
+                    (p.player_group_id IS NOT NULL AND p.player_group_id = :group_id)
+                    OR (p.player_group_id IS NULL AND p.id = :group_key)
+                )
+                {date_condition}
+            GROUP BY 
+                p.id, p.name
+            HAVING 
+                kills > 0 OR deaths > 0
+            ORDER BY 
+                kills DESC, deaths ASC
+        """)
+        
+        # 添加分组ID参数
+        query_params['group_id'] = group_id
+        query_params['group_key'] = group_key
+        
+        # 获取成员数据
+        members = []
+        for row in db.session.execute(members_query, query_params):
+            members.append({
+                'id': row.id,
+                'name': row.name,
+                'kills': int(row.kills or 0),
+                'deaths': int(row.deaths or 0),
+                'bless': int(row.bless or 0)
+            })
+        
+        # 返回结果
+        return jsonify({
+            'group': {
+                'id': group_result.group_id,
+                'name': group_result.group_name,
+                'description': group_result.description
+            },
+            'members': members
+        })
+        
+    except Exception as e:
+        logger.error(f"获取分组详情出错: {str(e)}", exc_info=True)
+        return jsonify({'error': f'获取分组详情时出错: {str(e)}'}), 500 

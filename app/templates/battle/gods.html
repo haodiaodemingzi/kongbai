@@ -23,6 +23,24 @@
         </div>
     </div>
     
+    <!-- 显示选项 -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="d-flex justify-content-center align-items-center">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('battle.gods_ranking', start_datetime=start_datetime, end_datetime=end_datetime, show_grouped='true') }}" 
+                       class="btn {{ 'btn-primary' if show_grouped else 'btn-outline-primary' }}">
+                        <i class="fas fa-users"></i> 按玩家分组显示
+                    </a>
+                    <a href="{{ url_for('battle.gods_ranking', start_datetime=start_datetime, end_datetime=end_datetime, show_grouped='false') }}" 
+                       class="btn {{ 'btn-primary' if not show_grouped else 'btn-outline-primary' }}">
+                        <i class="fas fa-user"></i> 按游戏ID显示
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         {% for god, data in stats.items() %}
         <div class="col-md-4">
@@ -51,25 +69,60 @@
                     </div>
                     
                     <div class="player-stats mt-4">
-                        <h4 class="text-center mb-3">玩家战绩</h4>
+                        <h4 class="text-center mb-3">
+                            {% if show_grouped %}
+                            实际玩家战绩
+                            {% else %}
+                            游戏ID战绩
+                            {% endif %}
+                        </h4>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>玩家</th>
+                                        <th>
+                                            {% if show_grouped %}
+                                            玩家
+                                            {% else %}
+                                            游戏ID
+                                            {% endif %}
+                                        </th>
                                         <th>击杀</th>
                                         <th>死亡</th>
                                         <th>祝福</th>
+                                        {% if show_grouped %}
+                                        <th>操作</th>
+                                        {% endif %}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for player in data.players %}
-                                    <tr>
-                                        <td>{{ player.name }}</td>
-                                        <td class="text-success">{{ player.kills }}</td>
-                                        <td class="text-danger">{{ player.deaths }}</td>
-                                        <td class="text-warning">{{ player.bless }}</td>
+                                    <tr class="{% if show_grouped and player.is_group %}player-group-row{% endif %}" data-god="{{ god }}" data-player="{{ player.name }}">
+                                        <td {% if show_grouped and player.is_group %}class="text-danger fw-bold"{% endif %}>{{ player.name }}</td>
+                                        <td class="text-success {% if show_grouped and player.is_group %}fw-bold{% endif %}">{{ player.kills }}</td>
+                                        <td class="text-danger {% if show_grouped and player.is_group %}fw-bold{% endif %}">{{ player.deaths }}</td>
+                                        <td class="text-warning {% if show_grouped and player.is_group %}fw-bold{% endif %}">{{ player.bless }}</td>
+                                        {% if show_grouped and player.is_group %}
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info toggle-details" data-bs-toggle="tooltip" title="查看详细数据">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </td>
+                                        {% elif show_grouped %}
+                                        <td></td>
+                                        {% endif %}
                                     </tr>
+                                    {% if show_grouped and player.is_group %}
+                                    <tr class="details-row" style="display: none;">
+                                        <td colspan="5" class="p-0">
+                                            <div class="details-container p-3 bg-light" style="display: none;">
+                                                <div class="text-center mb-2">
+                                                    <span class="badge bg-secondary">加载中...</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -175,6 +228,40 @@ input[type="datetime-local"] {
     padding-right: 0.5rem;
 }
 
+.player-group-row {
+    cursor: pointer;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.player-group-row:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+.details-container {
+    border-top: 1px dashed #dee2e6;
+}
+
+.inner-table {
+    margin-bottom: 0;
+}
+
+.inner-table th {
+    font-size: 0.8rem;
+    background-color: #e9ecef;
+}
+
+.inner-table td {
+    font-size: 0.85rem;
+}
+
+.toggle-details {
+    transition: transform 0.3s;
+}
+
+.toggle-details.active {
+    transform: rotate(180deg);
+}
+
 @media (max-width: 768px) {
     .form-control {
         min-width: 160px;
@@ -185,4 +272,148 @@ input[type="datetime-local"] {
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化所有工具提示
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // 监听展开/折叠按钮点击事件
+    document.querySelectorAll('.toggle-details').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation(); // 防止事件冒泡到行
+            toggleDetails(this);
+        });
+    });
+    
+    // 监听分组行点击事件
+    document.querySelectorAll('.player-group-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+            const toggleButton = this.querySelector('.toggle-details');
+            if (toggleButton) {
+                toggleDetails(toggleButton);
+            }
+        });
+    });
+    
+    // 展开/折叠详情函数
+    function toggleDetails(button) {
+        const icon = button.querySelector('i');
+        const isActive = button.classList.toggle('active');
+        const row = button.closest('tr');
+        const detailsRow = row.nextElementSibling;
+        const detailsContainer = detailsRow.querySelector('.details-container');
+        
+        if (isActive) {
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+            detailsRow.style.display = 'table-row';
+            detailsContainer.style.display = 'block';
+            
+            // 获取玩家分组和神的信息
+            const god = row.dataset.god;
+            const playerName = row.dataset.player;
+            
+            // 加载详细数据
+            loadGroupDetails(god, playerName, detailsContainer);
+        } else {
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+            detailsRow.style.display = 'none';
+            detailsContainer.style.display = 'none';
+        }
+    }
+    
+    // 加载分组详细数据
+    function loadGroupDetails(god, playerName, container) {
+        // 获取时间参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const startDatetime = urlParams.get('start_datetime') || '';
+        const endDatetime = urlParams.get('end_datetime') || '';
+        
+        // 构建请求URL
+        const url = `/battle/api/group_details?god=${encodeURIComponent(god)}&player_name=${encodeURIComponent(playerName)}&start_datetime=${encodeURIComponent(startDatetime)}&end_datetime=${encodeURIComponent(endDatetime)}`;
+        
+        // API调用
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderGroupDetails(data, container);
+            })
+            .catch(error => {
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> 加载详细数据失败: ${error.message}
+                    </div>
+                    <div class="text-center mt-2">
+                        <button class="btn btn-sm btn-outline-secondary reload-details">重试</button>
+                    </div>
+                `;
+                
+                // 添加重试按钮事件监听
+                const reloadBtn = container.querySelector('.reload-details');
+                if (reloadBtn) {
+                    reloadBtn.addEventListener('click', function() {
+                        loadGroupDetails(god, playerName, container);
+                    });
+                }
+            });
+    }
+    
+    // 渲染分组详细数据
+    function renderGroupDetails(data, container) {
+        if (!data || !data.members || data.members.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 该分组没有详细数据或尚未添加游戏ID
+                </div>
+            `;
+            return;
+        }
+        
+        // 创建表格HTML
+        let html = `
+            <div class="table-responsive">
+                <table class="table table-sm table-striped inner-table">
+                    <thead>
+                        <tr>
+                            <th>游戏ID</th>
+                            <th>击杀</th>
+                            <th>死亡</th>
+                            <th>祝福</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        // 添加每个成员的行
+        data.members.forEach(member => {
+            html += `
+                <tr>
+                    <td class="fw-bold">${member.name}</td>
+                    <td class="text-success fw-bold">${member.kills}</td>
+                    <td class="text-danger fw-bold">${member.deaths}</td>
+                    <td class="text-warning fw-bold">${member.bless}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+    }
+});
+</script>
 {% endblock %} 
