@@ -37,11 +37,11 @@
                         <div class="col-12 mt-3">
                             <div class="btn-group w-100" role="group">
                                 <a href="{{ url_for('battle.gods_ranking', start_datetime=start_datetime, end_datetime=end_datetime, show_grouped='true') }}" 
-                                class="btn {{ 'btn-primary' if show_grouped else 'btn-outline-primary' }} flex-grow-1">
+                                class="btn {% if show_grouped %}btn-primary active{% else %}btn-outline-primary{% endif %} flex-grow-1">
                                     <i class="fas fa-users"></i> 按玩家分组显示
                                 </a>
                                 <a href="{{ url_for('battle.gods_ranking', start_datetime=start_datetime, end_datetime=end_datetime, show_grouped='false') }}" 
-                                class="btn {{ 'btn-primary' if not show_grouped else 'btn-outline-primary' }} flex-grow-1">
+                                class="btn {% if not show_grouped %}btn-primary active{% else %}btn-outline-primary{% endif %} flex-grow-1">
                                     <i class="fas fa-user"></i> 按游戏ID显示
                                 </a>
                             </div>
@@ -124,12 +124,12 @@
                                         data-deaths="{{ player.deaths }}"
                                         data-bless="{{ player.bless }}"
                                         data-kd="{{ (player.kills / player.deaths) if player.deaths > 0 else player.kills }}">
-                                        <td {% if show_grouped and player.is_group %}class="text-danger fw-bold"{% endif %}>
+                                        <td {% if show_grouped and player.is_group %}class="text-danger fw-bold"{% else %}class="fw-bold"{% endif %}>
                                             {{ player.name }}
                                         </td>
-                                        <td class="text-success text-center {% if show_grouped and player.is_group %}fw-bold{% endif %}">{{ player.kills }}</td>
-                                        <td class="text-danger text-center {% if show_grouped and player.is_group %}fw-bold{% endif %}">{{ player.deaths }}</td>
-                                        <td class="text-warning text-center {% if show_grouped and player.is_group %}fw-bold{% endif %}">{{ player.bless }}</td>
+                                        <td class="text-success text-center fw-bold">{{ player.kills }}</td>
+                                        <td class="text-danger text-center fw-bold">{{ player.deaths }}</td>
+                                        <td class="text-warning text-center fw-bold">{{ player.bless }}</td>
                                         {% if show_grouped %}
                                         <td class="text-end">
                                             {% if player.is_group %}
@@ -229,13 +229,31 @@
 .player-group-row {
     cursor: pointer;
     background-color: rgba(239, 71, 58, 0.1);
+    font-weight: 500;
+    position: relative;
+    transition: all 0.2s ease;
 }
 
 .player-group-row:hover {
     background-color: rgba(239, 71, 58, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(239, 71, 58, 0.3);
 }
 
-.toggle-details {
+.player-group-row td:first-child {
+    position: relative;
+}
+
+.player-group-row td:first-child::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background-color: #ef473a;
+}
+
+.player-group-row .toggle-details {
     background-color: transparent;
     color: #ef473a;
     border-color: #ef473a;
