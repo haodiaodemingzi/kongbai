@@ -77,27 +77,33 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'home.index' %}active{% endif %}" 
-                           href="{{ url_for('home.index') }}">仪表盘</a>
+                           href="{{ url_for('home.index') }}"><i class="fas fa-home fa-sm"></i> 仪表盘</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'battle.upload_file' %}active{% endif %}" 
-                           href="{{ url_for('battle.upload_file') }}">上传</a>
+                           href="{{ url_for('battle.upload_file') }}"><i class="fas fa-upload fa-sm"></i> 上传</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'battle.rankings' %}active{% endif %}" 
-                           href="{{ url_for('battle.rankings') }}">战斗记录</a>
+                           href="{{ url_for('battle.rankings') }}"><i class="fas fa-list-ol fa-sm"></i> 战斗记录</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'battle.gods_ranking' %}active{% endif %}" 
-                           href="{{ url_for('battle.gods_ranking') }}">三神战绩</a>
+                           href="{{ url_for('battle.gods_ranking') }}"><i class="fas fa-trophy fa-sm"></i> 三神战绩</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'person.list' %}active{% endif %}" 
-                           href="/person/list">玩家管理</a>
+                           href="/person/list"><i class="fas fa-user-circle fa-sm"></i> 玩家管理</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'player_group.player_group_list' %}active{% endif %}" 
+                           href="{{ url_for('player_group.player_group_list') }}">
+                           <i class="fas fa-users fa-sm"></i> 玩家分组
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'reward.rewards' %}active{% endif %}" 
-                           href="{{ url_for('reward.rewards') }}">奖励统计</a>
+                           href="{{ url_for('reward.rewards') }}"><i class="fas fa-gift fa-sm"></i> 奖励统计</a>
                     </li>
                 </ul>
                 {% if session.get('user_id') %}

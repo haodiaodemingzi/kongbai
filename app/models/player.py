@@ -15,11 +15,33 @@ class Person(db.Model):
     deleted_at = db.Column(db.DateTime)
     create_by = db.Column(db.Integer)
     update_by = db.Column(db.Integer)
+    player_group_id = db.Column(db.Integer, db.ForeignKey('player_group.id'), nullable=True)  # 关联到玩家分组
     
     battle_records = db.relationship('BattleRecord', backref='person', lazy=True)
     
     def __repr__(self):
         return f'<Person {self.name}>'
+
+
+class PlayerGroup(db.Model):
+    """
+    玩家分组表 - 用于关联多个游戏ID属于同一个实际玩家
+    """
+    __tablename__ = 'player_group'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    group_name = db.Column(db.String(100), nullable=False)  # 分组名称，通常是玩家的实际名字
+    description = db.Column(db.String(255))  # 分组描述
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    create_by = db.Column(db.Integer)
+    update_by = db.Column(db.Integer)
+    
+    # 关联多个Person记录
+    persons = db.relationship('Person', backref='player_group', lazy=True)
+    
+    def __repr__(self):
+        return f'<PlayerGroup {self.group_name}>'
 
 
 class BattleRecord(db.Model):

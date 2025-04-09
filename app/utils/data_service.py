@@ -617,33 +617,71 @@ def export_data_to_json(faction=None):
 
 def get_statistics(faction=None):
     """
-    获取总统计数据
+    获取总统计数据，考虑到同一个玩家可能有多个ID的情况
     :param faction: 势力名称（可选）
     :return: 总玩家数, 总击杀数, 总死亡数, 总得分
     """
     logger.info(f"获取总统计数据，势力筛选：{faction}")
     
     try:
-        # 构建查询
+        # 构建查询，按玩家组统计
         sql = """
+        WITH player_distinct AS (
+            -- 获取所有有效的玩家ID，并关联其分组信息
+            SELECT 
+                p.id,
+                p.name,
+                p.god,
+                -- 使用分组ID作为分组键，如果没有分组则使用玩家自身ID
+                COALESCE(p.player_group_id, p.id) AS group_key
+            FROM 
+                person p
+            WHERE 
+                p.deleted_at IS NULL
+                AND (:faction IS NULL OR p.god = :faction)
+        ),
+        unique_group_players AS (
+            -- 按分组计算不重复的玩家数（每个分组只计算一次）
+            SELECT 
+                group_key,
+                COUNT(DISTINCT id) AS player_count,
+                -- 示例：可以在这里添加更多聚合字段
+                MIN(god) AS faction
+            FROM 
+                player_distinct
+            GROUP BY 
+                group_key
+        ),
+        battle_stats AS (
+            -- 计算战斗统计数据
+            SELECT 
+                pd.group_key,
+                COUNT(DISTINCT CASE WHEN br.win = pd.name THEN br.id END) AS kills,
+                COUNT(DISTINCT CASE WHEN br.lost = pd.name THEN br.id END) AS deaths
+            FROM 
+                player_distinct pd
+            LEFT JOIN 
+                battle_record br ON pd.name IN (br.win, br.lost)
+            GROUP BY 
+                pd.group_key
+        )
+        -- 最终汇总数据
         SELECT 
-            COUNT(DISTINCT p.id) AS total_players,
-            COALESCE(SUM(
-                (SELECT COUNT(*) FROM battle_record WHERE winner_name = p.name)
-            ), 0) AS total_kills,
-            COALESCE(SUM(
-                (SELECT COUNT(*) FROM battle_record WHERE loser_name = p.name)
-            ), 0) AS total_deaths
+            -- 计算不重复的分组数量为实际玩家数
+            COUNT(DISTINCT ugp.group_key) AS total_players,
+            -- 汇总所有击杀数
+            SUM(bs.kills) AS total_kills,
+            -- 汇总所有死亡数
+            SUM(bs.deaths) AS total_deaths
         FROM 
-            person p
-        WHERE 
-            p.deleted_at IS NULL
+            unique_group_players ugp
+        LEFT JOIN 
+            battle_stats bs ON ugp.group_key = bs.group_key
         """
         
         # 添加势力筛选条件
         params = {}
         if faction:
-            sql += " AND p.god = :faction"
             params['faction'] = faction
             
         # 执行查询
@@ -657,7 +695,7 @@ def get_statistics(faction=None):
         # 计算总得分
         total_score = (total_kills * 3) - total_deaths
         
-        logger.debug(f"统计结果：总玩家数={total_players}, 总击杀数={total_kills}, 总死亡数={total_deaths}, 总得分={total_score}")
+        logger.debug(f"统计结果（考虑玩家分组）：总实际玩家数={total_players}, 总击杀数={total_kills}, 总死亡数={total_deaths}, 总得分={total_score}")
         
         return total_players, total_kills, total_deaths, total_score
         

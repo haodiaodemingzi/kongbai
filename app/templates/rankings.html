@@ -12,7 +12,7 @@
             <i class="fas fa-upload"></i> 上传战斗日志
         </a>
         {% if players %}
-        <a href="{{ url_for('battle.export_json', faction=current_faction) }}" class="btn btn-success ms-2">
+        <a href="{{ url_for('battle.export_json', faction=selected_faction) }}" class="btn btn-success ms-2">
             <i class="fas fa-file-download"></i> 导出JSON
         </a>
         {% endif %}
@@ -21,18 +21,18 @@
     <!-- 筛选条件卡片 -->
     <div class="row mb-4">
         <!-- 势力筛选 -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">按势力筛选</h4>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-center flex-wrap">
-                        <a href="{{ url_for('battle.rankings', time_range=time_range) }}" class="btn {% if not current_faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                        <a href="{{ url_for('battle.rankings', time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" class="btn {% if not selected_faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
                             全部
                         </a>
-                        {% for faction in factions %}
-                        <a href="{{ url_for('battle.rankings', faction=faction, time_range=time_range) }}" class="btn {% if current_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                        {% for faction in ['梵天', '比湿奴', '湿婆'] %}
+                        <a href="{{ url_for('battle.rankings', faction=faction, time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" class="btn {% if selected_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
                             {{ faction }}
                         </a>
                         {% endfor %}
@@ -42,36 +42,49 @@
         </div>
 
         <!-- 时间范围筛选 -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">时间范围筛选</h4>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-center flex-wrap">
-                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='all') }}" 
-                           class="btn {% if not time_range or time_range == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='all', show_grouped=show_grouped, job=selected_job) }}" 
+                           class="btn {% if not selected_time or selected_time == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
                             全部时间
                         </a>
-                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='today') }}" 
-                           class="btn {% if time_range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='today', show_grouped=show_grouped, job=selected_job) }}" 
+                           class="btn {% if selected_time == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
                             今天
                         </a>
-                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='yesterday') }}" 
-                           class="btn {% if time_range == 'yesterday' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            昨天
-                        </a>
-                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='week') }}" 
-                           class="btn {% if time_range == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='week', show_grouped=show_grouped, job=selected_job) }}" 
+                           class="btn {% if selected_time == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
                             近7天
                         </a>
-                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='month') }}" 
-                           class="btn {% if time_range == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='month', show_grouped=show_grouped, job=selected_job) }}" 
+                           class="btn {% if selected_time == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
                             近30天
                         </a>
-                        <a href="{{ url_for('battle.rankings', faction=current_faction, time_range='three_months') }}" 
-                           class="btn {% if time_range == 'three_months' %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
-                            近90天
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分组显示选项 -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">显示选项</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-center flex-wrap">
+                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='true', job=selected_job) }}" 
+                           class="btn {% if show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            按玩家分组显示
+                        </a>
+                        <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='false', job=selected_job) }}" 
+                           class="btn {% if not show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %} me-2 mb-2">
+                            按游戏ID显示
                         </a>
                     </div>
                 </div>
@@ -84,7 +97,12 @@
         <div class="card-header bg-primary text-white">
             <div class="d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                    {% if current_faction %}{{ current_faction }}{% else %}全部{% endif %} 玩家排名
+                    {% if selected_faction %}{{ selected_faction }}{% else %}全部{% endif %} 玩家排名
+                    {% if show_grouped %}
+                    <small class="text-light">(按实际玩家统计)</small>
+                    {% else %}
+                    <small class="text-light">(按游戏ID统计)</small>
+                    {% endif %}
                 </h4>
                 <div class="btn-group">
                     <button type="button" class="btn btn-light active" onclick="showAllJobs()">全部职业</button>
@@ -95,50 +113,31 @@
             </div>
         </div>
         <div class="card-body">
-            <!-- 添加统计信息 -->
-            <div class="mb-3 d-flex justify-content-between">
-                <p id="total_count">总玩家数: 加载中...</p>
-                <p id="total_kills">总击杀数: 加载中...</p>
-                <p id="total_deaths">总死亡数: 加载中...</p>
-                <p id="total_score">总得分: 加载中...</p>
+            <!-- 统计信息 -->
+            <div class="mb-3 d-flex justify-content-between flex-wrap">
+                <div class="card bg-light mb-2" style="min-width: 200px;">
+                    <div class="card-body py-2">
+                        <p class="mb-0"><strong>总玩家数:</strong> {{ total_players }}</p>
+                    </div>
+                </div>
+                <div class="card bg-light mb-2" style="min-width: 200px;">
+                    <div class="card-body py-2">
+                        <p class="mb-0"><strong>总击杀数:</strong> {{ total_kills }}</p>
+                    </div>
+                </div>
+                <div class="card bg-light mb-2" style="min-width: 200px;">
+                    <div class="card-body py-2">
+                        <p class="mb-0"><strong>总死亡数:</strong> {{ total_deaths }}</p>
+                    </div>
+                </div>
+                <div class="card bg-light mb-2" style="min-width: 200px;">
+                    <div class="card-body py-2">
+                        <p class="mb-0"><strong>总得分:</strong> {{ total_score }}</p>
+                    </div>
+                </div>
             </div>
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    // 获取当前筛选的势力
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const faction = urlParams.get('faction');
-                    
-                    // 构建API URL
-                    let apiUrl = '/battle/rankings/stats';
-                    if (faction) {
-                        apiUrl += `?faction=${faction}`;
-                    }
-                    
-                    // 请求统计数据
-                    fetch(apiUrl)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            // 更新统计数据显示
-                            document.getElementById('total_count').textContent = `总玩家数: ${data.total_count}`;
-                            document.getElementById('total_kills').textContent = `总击杀数: ${data.total_kills}`;
-                            document.getElementById('total_deaths').textContent = `总死亡数: ${data.total_deaths}`;
-                            document.getElementById('total_score').textContent = `总得分: ${data.total_score}`;
-                        })
-                        .catch(error => {
-                            console.error('获取统计数据出错:', error);
-                            // 显示错误消息
-                            document.getElementById('total_count').textContent = '总玩家数: 获取失败';
-                            document.getElementById('total_kills').textContent = '总击杀数: 获取失败';
-                            document.getElementById('total_deaths').textContent = '总死亡数: 获取失败';
-                            document.getElementById('total_score').textContent = '总得分: 获取失败';
-                        });
-                });
 
+            <script>
                 // 职业筛选功能
                 function showAllJobs() {
                     document.querySelectorAll('tr[data-job]').forEach(tr => {
@@ -194,15 +193,15 @@
                             <td>{{ loop.index }}</td>
                             <td><a href="{{ url_for('battle.player_details', person_id=player.id) }}">{{ player.name|default('未知', true) }}</a></td>
                             <td>{{ player.job|default('未知', true) }}</td>
-                            <td>{{ player.god|default('未知', true) }}</td>
+                            <td>{{ player.faction|default('未知', true) }}</td>
                             <td class="text-success fw-bold">{{ player.kills|int }}</td>
                             <td class="text-danger fw-bold">{{ player.deaths|int }}</td>
                             <td>{{ player.kd_ratio }}</td>
-                            <td>{% if player.blessings %}{% for i in range(player.blessings|int) %}&#x1F3EE;{% endfor %}{% else %}0{% endif %}</td>
-                            <td>{{ player.score|int }}</td>
+                            <td>{{ player.blessings|int }}</td>
+                            <td class="font-weight-bold">{{ player.score|int }}</td>
                             <td>
                                 <a href="{{ url_for('battle.player_details', person_id=player.id) }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-info-circle"></i> 详情
+                                    <i class="fas fa-search"></i>
                                 </a>
                             </td>
                         </tr>
@@ -211,8 +210,8 @@
                 </table>
             </div>
             {% else %}
-            <div class="alert alert-info">
-                还没有战斗记录，请上传战斗日志。
+            <div class="alert alert-warning mt-3">
+                <i class="fas fa-exclamation-triangle me-2"></i> 没有找到符合条件的战绩记录
             </div>
             {% endif %}
         </div>
@@ -220,34 +219,12 @@
 </div>
 
 <style>
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+}
 .btn-group .btn {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.875rem;
-}
-
-.btn-group .btn.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-}
-
-@media (max-width: 768px) {
-    .btn-group {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 0.25rem;
-        width: 100%;
-        margin-top: 1rem;
-    }
-    
-    .card-header .d-flex {
-        flex-direction: column;
-    }
-    
-    .btn-group .btn {
-        border-radius: 4px !important;
-        margin: 0;
-    }
+    margin: 0.1rem;
 }
 </style>
 {% endblock %} 

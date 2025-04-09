@@ -37,6 +37,7 @@ def create_app(config_class=Config):
 
     if 'SQLALCHEMY_DATABASE_URI' in os.environ:
         app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
     
     # 初始化数据库
     db.init_app(app)
@@ -48,16 +49,18 @@ def create_app(config_class=Config):
     from app.routes.auth import auth_bp, login_required
     from app.routes.person import bp as person_bp
     from app.routes.reward import bp as reward_bp
+    from app.routes.player_group import bp as player_group_bp
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(battle_bp, url_prefix='/battle')
     app.register_blueprint(home_bp)
     app.register_blueprint(person_bp)
     app.register_blueprint(reward_bp)
-    logger.info("蓝图已注册: /auth, /battle, /, /person, /reward")
+    app.register_blueprint(player_group_bp)
+    logger.info("蓝图已注册: /auth, /battle, /, /person, /reward, /player_group")
     
     # 为需要登录的蓝图添加保护
-    for blueprint in [home_bp, battle_bp]:
+    for blueprint in [home_bp, battle_bp, player_group_bp]:
         for view_func in blueprint.view_functions.values():
             view_func.decorated = login_required(view_func)
     
