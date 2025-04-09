@@ -157,8 +157,9 @@
                     <thead class="table-dark">
                         <tr>
                             <th>时间</th>
-                            <th>击杀</th>
-                            <th>死亡</th>
+                            <th>游戏ID</th>
+                            <th>对手游戏ID</th>
+                            <th>战斗结果</th>
                             <th>祝福</th>
                             <th>坐标</th>
                         </tr>
@@ -167,14 +168,13 @@
                         {% for record in player.recent_battles %}
                         <tr>
                             <td>{{ record.time }}</td>
+                            <td>{{ player.name }}</td>
+                            <td>{{ record.opponent_name }}</td>
                             <td>
-                                {% if record.killed_player and record.killed_player != '0' %}
-                                <span class="text-success fw-bold">击杀了: {{ record.killed_player }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if record.killed_by_player and record.killed_by_player != '0' %}
-                                <span class="text-danger fw-bold">被击杀: {{ record.killed_by_player }}</span>
+                                {% if record.battle_result == 'win' %}
+                                <span class="text-success fw-bold">击杀了对手</span>
+                                {% elif record.battle_result == 'lost' %}
+                                <span class="text-danger fw-bold">被对手击杀</span>
                                 {% endif %}
                             </td>
                             <td>{{ record.blessings|int }}</td>
@@ -182,7 +182,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="text-center">暂无战斗记录</td>
+                            <td colspan="6" class="text-center">暂无战斗记录</td>
                         </tr>
                         {% endfor %}
                     </tbody>
