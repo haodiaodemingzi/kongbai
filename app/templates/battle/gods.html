@@ -7,7 +7,7 @@
             <h4 class="m-0">筛选与显示选项</h4>
         </div>
         <div class="card-body py-3">
-            <form class="row g-2 justify-content-center" method="get">
+            <form class="row g-2 justify-content-center" id="filter-form" method="get">
                 <div class="col-lg-8 col-md-10 col-12">
                     <div class="row g-2">
                         <div class="col-md-4">
@@ -35,16 +35,15 @@
                             {% endif %}
                         </div>
                         <div class="col-12 mt-3">
-                            <div class="btn-group w-100" role="group">
-                                <a href="{{ url_for('battle.gods_ranking', start_datetime=start_datetime, end_datetime=end_datetime, show_grouped='true') }}" 
-                                class="btn {% if show_grouped %}btn-primary active{% else %}btn-outline-primary{% endif %} flex-grow-1">
+                            <div class="btn-group w-100 filter-btn-group" role="group">
+                                <button type="button" class="btn filter-btn {% if show_grouped %}btn-primary active{% else %}btn-outline-primary{% endif %} flex-grow-1" data-filter="show_grouped" data-value="true">
                                     <i class="fas fa-users"></i> 按玩家分组显示
-                                </a>
-                                <a href="{{ url_for('battle.gods_ranking', start_datetime=start_datetime, end_datetime=end_datetime, show_grouped='false') }}" 
-                                class="btn {% if not show_grouped %}btn-primary active{% else %}btn-outline-primary{% endif %} flex-grow-1">
+                                </button>
+                                <button type="button" class="btn filter-btn {% if not show_grouped %}btn-primary active{% else %}btn-outline-primary{% endif %} flex-grow-1" data-filter="show_grouped" data-value="false">
                                     <i class="fas fa-user"></i> 按游戏ID显示
-                                </a>
+                                </button>
                             </div>
+                            <input type="hidden" id="show_grouped" name="show_grouped" value="{{ 'true' if show_grouped else 'false' }}">
                         </div>
                     </div>
                 </div>
@@ -67,7 +66,7 @@
                             <div class="stat-label">玩家</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value text-success">{{ data.kills }}</div>
+                            <div class="stat-value text-primary">{{ data.kills }}</div>
                             <div class="stat-label">击杀</div>
                         </div>
                         <div class="stat-item">
@@ -75,7 +74,7 @@
                             <div class="stat-label">死亡</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-value text-warning">{{ data.bless }}</div>
+                            <div class="stat-value" style="color: #28a745;">{{ data.bless }}</div>
                             <div class="stat-label">祝福</div>
                         </div>
                     </div>
@@ -124,16 +123,20 @@
                                         data-deaths="{{ player.deaths }}"
                                         data-bless="{{ player.bless }}"
                                         data-kd="{{ (player.kills / player.deaths) if player.deaths > 0 else player.kills }}">
-                                        <td {% if show_grouped and player.is_group %}class="text-danger fw-bold"{% else %}class="fw-bold"{% endif %}>
+                                        <td {% if show_grouped and player.is_group %}class="text-primary fw-bold"{% else %}class="fw-bold"{% endif %}>
                                             {{ player.name }}
                                         </td>
-                                        <td class="text-success text-center fw-bold">{{ player.kills }}</td>
+                                        <td class="text-primary text-center fw-bold">{{ player.kills }}</td>
                                         <td class="text-danger text-center fw-bold">{{ player.deaths }}</td>
-                                        <td class="text-warning text-center fw-bold">{{ player.bless }}</td>
+                                        {% if player.bless|int > 0 %}
+                                        <td class="text-center fw-bold" style="color: #198754;">{{ player.bless }}</td>
+                                        {% else %}
+                                        <td class="text-center fw-bold" style="color: #6c757d;">{{ player.bless }}</td>
+                                        {% endif %}
                                         {% if show_grouped %}
                                         <td class="text-end">
                                             {% if player.is_group %}
-                                            <button class="btn btn-sm btn-outline-info toggle-details" data-bs-toggle="tooltip" title="查看详细数据">
+                                            <button class="btn btn-sm btn-outline-primary toggle-details" data-bs-toggle="tooltip" title="查看详细数据">
                                                 <i class="fas fa-chevron-down"></i>
                                             </button>
                                             {% endif %}
@@ -217,26 +220,56 @@
 .sort-btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
+    transition: all 0.2s ease;
 }
 
 .sort-btn.active {
-    background: linear-gradient(to right, #cb2d3e, #ef473a);
-    border-color: #cb2d3e;
+    background: linear-gradient(to right, #0062cc, #0069d9);
+    border-color: #0062cc;
     color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
 }
 
-/* 原有样式保持不变 */
+.sort-btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* 为标签添加持久化的激活状态 */
+.btn-primary.active, 
+.btn-outline-primary.active,
+.btn-light.active,
+.filter-btn.active,
+.sort-btn.active,
+.btn-group .btn.active {
+    position: relative;
+    font-weight: 500;
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+}
+
+/* 确保所有按钮激活状态下没有下划线 */
+.btn-group .btn.active::after,
+.filter-btn.active::after,
+.sort-btn.active::after,
+.btn-primary.active::after, 
+.btn-outline-primary.active::after,
+.btn-light.active::after {
+    display: none !important;
+}
+
+/* 导航栏按钮样式 - 无下划线 */
 .player-group-row {
     cursor: pointer;
-    background-color: rgba(239, 71, 58, 0.1);
+    background-color: rgba(0, 123, 255, 0.1);
     font-weight: 500;
     position: relative;
     transition: all 0.2s ease;
 }
 
 .player-group-row:hover {
-    background-color: rgba(239, 71, 58, 0.2);
-    box-shadow: inset 0 0 0 1px rgba(239, 71, 58, 0.3);
+    background-color: rgba(0, 123, 255, 0.2);
+    box-shadow: inset 0 0 0 1px rgba(0, 123, 255, 0.3);
 }
 
 .player-group-row td:first-child {
@@ -250,24 +283,24 @@
     top: 0;
     height: 100%;
     width: 3px;
-    background-color: #ef473a;
+    background-color: #007bff;
 }
 
 .player-group-row .toggle-details {
     background-color: transparent;
-    color: #ef473a;
-    border-color: #ef473a;
+    color: #007bff;
+    border-color: #007bff;
     padding: 0.1rem 0.3rem;
     transition: all 0.3s ease;
 }
 
 .toggle-details:hover {
-    background-color: #ef473a;
+    background-color: #007bff;
     color: white;
 }
 
 .toggle-details.active {
-    background-color: #ef473a;
+    background-color: #007bff;
     color: white;
     transform: rotate(180deg);
 }
@@ -300,6 +333,39 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
+    // 处理筛选按钮点击事件
+    document.querySelectorAll('.filter-btn').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 获取筛选类型和值
+            const filterType = this.dataset.filter;
+            const filterValue = this.dataset.value;
+            
+            // 更新隐藏输入字段
+            document.getElementById(filterType).value = filterValue;
+            console.log(`设置 ${filterType} = ${filterValue}`);
+            
+            // 更新按钮状态
+            const btnGroup = this.closest('.filter-btn-group');
+            btnGroup.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === filterType) {
+                    btn.classList.remove('btn-primary', 'active', 'btn-outline-primary');
+                    btn.classList.add(btn === this ? 'btn-primary' : 'btn-outline-primary');
+                    if (btn === this) {
+                        btn.classList.add('active');
+                    }
+                }
+            });
+            
+            // 保存当前状态到localStorage
+            localStorage.setItem(`active_${filterType}_value`, filterValue);
+            
+            // 提交表单
+            document.getElementById('filter-form').submit();
+        });
+    });
+    
     // 监听展开/折叠按钮点击事件
     document.querySelectorAll('.toggle-details').forEach(function(button) {
         button.addEventListener('click', function(e) {
@@ -318,11 +384,81 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // 加载持久化的筛选值
+    function loadFilterStates() {
+        const groupedValue = localStorage.getItem('active_show_grouped_value');
+        if (groupedValue) {
+            document.querySelectorAll(`.filter-btn[data-filter="show_grouped"][data-value="${groupedValue}"]`).forEach(btn => {
+                // 只是为了在页面刷新后保持视觉一致性
+                const btnGroup = btn.closest('.filter-btn-group');
+                btnGroup.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('btn-primary', 'active');
+                    b.classList.add('btn-outline-primary');
+                });
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary', 'active');
+            });
+        }
+    }
+    
+    // 初始加载筛选器状态
+    loadFilterStates();
+    
+    // 检查URL参数，激活相应的按钮
+    const urlParams = new URLSearchParams(window.location.search);
+    const sortParam = urlParams.get('sort');
+    
+    if (sortParam) {
+        document.querySelectorAll('.sort-btn').forEach(function(btn) {
+            if (btn.dataset.sort === sortParam) {
+                // 先移除同组内其他按钮的激活状态
+                const btnGroup = btn.closest('.btn-group');
+                btnGroup.querySelectorAll('.sort-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                // 激活当前按钮
+                btn.classList.add('active');
+                
+                // 执行排序
+                const godName = btn.closest('.card').querySelector('.card-title').textContent.trim();
+                const tableId = 'table-' + godName.replace(/\s+/g, '_');
+                const table = document.getElementById(tableId);
+                sortTable(table, sortParam);
+            }
+        });
+    }
+    
+    // 持久化过滤和排序按钮状态
+    function persistButtonState(button, type) {
+        // 在本地存储中保存按钮状态
+        localStorage.setItem(`active_${type}_button`, button.dataset.sort || button.dataset.filter);
+    }
+    
+    // 加载按钮状态
+    function loadButtonStates() {
+        const activeSort = localStorage.getItem('active_sort_button');
+        if (activeSort) {
+            document.querySelectorAll(`.sort-btn[data-sort="${activeSort}"]`).forEach(btn => {
+                // 只更新当前组内的按钮
+                const btnGroup = btn.closest('.btn-group');
+                btnGroup.querySelectorAll('.sort-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+            });
+        }
+    }
+    
     // 添加排序功能
     document.querySelectorAll('.sort-btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-            // 更新按钮状态
-            document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 更新按钮状态 - 仅在当前卡片内部的btn-group中更新
+            const btnGroup = this.closest('.btn-group');
+            btnGroup.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
             this.classList.add('active');
             
             // 获取要排序的表格
@@ -333,10 +469,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // 获取排序类型
             const sortType = this.dataset.sort;
             
+            // 在URL中添加排序参数
+            const url = new URL(window.location);
+            url.searchParams.set('sort', sortType);
+            window.history.replaceState({}, '', url);
+            
+            // 保存按钮状态
+            persistButtonState(this, 'sort');
+            
             // 执行排序
             sortTable(table, sortType);
         });
     });
+    
+    // 初始加载按钮状态
+    loadButtonStates();
     
     // 表格排序函数
     function sortTable(table, sortType) {
@@ -430,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 container.innerHTML = `
-                    <div class="alert alert-danger">
+                    <div class="alert alert-primary">
                         <i class="fas fa-exclamation-triangle"></i> 加载详细数据失败: ${error.message}
                     </div>
                     <div class="text-center mt-2">
@@ -452,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderGroupDetails(data, container) {
         if (!data || !data.members || data.members.length === 0) {
             container.innerHTML = `
-                <div class="alert alert-info">
+                <div class="alert alert-primary">
                     <i class="fas fa-info-circle"></i> 该分组没有详细数据或尚未添加游戏ID
                 </div>
             `;
@@ -481,9 +628,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tr>
                     <td class="fw-bold">${member.name}</td>
                     <td>${member.god || '-'}</td>
-                    <td class="text-success fw-bold">${member.kills}</td>
+                    <td class="text-primary fw-bold">${member.kills}</td>
                     <td class="text-danger fw-bold">${member.deaths}</td>
-                    <td class="text-warning fw-bold">${member.bless}</td>
+                    <td class="fw-bold ${member.bless > 0 ? 'text-success' : ''}">${member.bless}</td>
                 </tr>
             `;
         });

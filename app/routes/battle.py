@@ -124,6 +124,11 @@ def rankings():
     # 获取筛选参数
     faction = request.args.get('faction')
     job = request.args.get('job')  # 新增职业筛选参数
+    if job == 'all' or job == '':
+        job = None
+    if faction == 'all' or faction == '':
+        faction = None
+
     time_range = request.args.get('time_range', 'all')
     show_grouped = request.args.get('show_grouped', 'true') == 'true'  # 新增参数：是否按分组统计
     logger.debug(f"排名筛选参数: faction={faction}, job={job}, time_range={time_range}, show_grouped={show_grouped}")
@@ -851,23 +856,36 @@ def gods_ranking():
                             p.god = :god
                             AND p.deleted_at IS NULL
                     ),
-                    group_battle_stats AS (
-                        -- 按分组计算战斗数据
+                    group_leaders AS (
+                        -- 获取每个分组的代表（用于显示）
                         SELECT 
-                            pd.group_key,
-                            pd.player_name,
-                            MAX(pd.is_group) AS is_group,
+                            group_key,
+                            player_name,
+                            MAX(is_group) AS is_group
+                        FROM 
+                            player_distinct
+                        GROUP BY 
+                            group_key, player_name
+                    ),
+                    group_battle_stats AS (
+                        -- 按分组计算战斗数据，合并组内所有玩家的战绩
+                        SELECT 
+                            gl.group_key,
+                            gl.player_name,
+                            gl.is_group,
                             COUNT(DISTINCT CASE WHEN br.win = pd.name THEN br.id END) AS kills,
                             COUNT(DISTINCT CASE WHEN br.lost = pd.name THEN br.id END) AS deaths,
                             SUM(CASE WHEN br.win = pd.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS bless
                         FROM 
-                            player_distinct pd
+                            group_leaders gl
+                        JOIN
+                            player_distinct pd ON gl.group_key = pd.group_key
                         LEFT JOIN 
                             battle_record br ON pd.name IN (br.win, br.lost)
                         WHERE 1=1
                             {date_condition}
                         GROUP BY 
-                            pd.group_key, pd.player_name
+                            gl.group_key, gl.player_name, gl.is_group
                         HAVING 
                             kills > 0 OR deaths > 0
                     )

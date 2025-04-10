@@ -12,7 +12,7 @@
             <i class="fas fa-upload"></i> 上传战斗日志
         </a>
         {% if players %}
-        <a href="{{ url_for('battle.export_json', faction=selected_faction) }}" class="btn btn-success ms-2">
+        <a href="{{ url_for('battle.export_json', faction=selected_faction) }}" class="btn btn-primary ms-2">
             <i class="fas fa-file-download"></i> 导出JSON
         </a>
         {% endif %}
@@ -24,72 +24,57 @@
             <h4 class="m-0">筛选选项</h4>
         </div>
         <div class="card-body pt-3 pb-2">
-            <div class="row justify-content-center">
-                <div class="col-lg-10 col-md-12">
-                    <div class="row g-2">
-                        <!-- 势力筛选 -->
-                        <div class="col-md-4">
-                            <div class="filter-section">
-                                <h5 class="filter-title"><i class="fas fa-shield-alt me-2"></i>按势力筛选</h5>
-                                <div class="btn-group w-100 flex-wrap">
-                                    <a href="{{ url_for('battle.rankings', time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" 
-                                       class="btn btn-sm {% if not selected_faction %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        全部
-                                    </a>
-                                    {% for faction in ['梵天', '比湿奴', '湿婆'] %}
-                                    <a href="{{ url_for('battle.rankings', faction=faction, time_range=selected_time, show_grouped=show_grouped, job=selected_job) }}" 
-                                       class="btn btn-sm {% if selected_faction == faction %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        {{ faction }}
-                                    </a>
-                                    {% endfor %}
+            <form id="filter-form" method="get" action="{{ url_for('battle.rankings') }}">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10 col-md-12">
+                        <div class="row g-2">
+                            <!-- 势力筛选 -->
+                            <div class="col-md-6">
+                                <div class="filter-section">
+                                    <h5 class="filter-title"><i class="fas fa-shield-alt me-2"></i>按势力筛选</h5>
+                                    <div class="btn-group w-100 flex-wrap faction-filter-group" role="group">
+                                        <button type="button" class="btn btn-sm filter-btn {% if not selected_faction %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="faction" data-value="">
+                                            全部
+                                        </button>
+                                        {% for faction in ['梵天', '比湿奴', '湿婆'] %}
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_faction == faction %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="faction" data-value="{{ faction }}">
+                                            {{ faction }}
+                                        </button>
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- 时间范围筛选 -->
-                        <div class="col-md-4">
-                            <div class="filter-section">
-                                <h5 class="filter-title"><i class="fas fa-calendar-alt me-2"></i>时间范围</h5>
-                                <div class="btn-group w-100 flex-wrap">
-                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='all', show_grouped=show_grouped, job=selected_job) }}" 
-                                       class="btn btn-sm {% if not selected_time or selected_time == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        全部
-                                    </a>
-                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='today', show_grouped=show_grouped, job=selected_job) }}" 
-                                       class="btn btn-sm {% if selected_time == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        今天
-                                    </a>
-                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='week', show_grouped=show_grouped, job=selected_job) }}" 
-                                       class="btn btn-sm {% if selected_time == 'week' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        7天
-                                    </a>
-                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range='month', show_grouped=show_grouped, job=selected_job) }}" 
-                                       class="btn btn-sm {% if selected_time == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        30天
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 显示选项 -->
-                        <div class="col-md-4">
-                            <div class="filter-section">
-                                <h5 class="filter-title"><i class="fas fa-eye me-2"></i>显示选项</h5>
-                                <div class="btn-group w-100">
-                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='true', job=selected_job) }}" 
-                                       class="btn btn-sm {% if show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        <i class="fas fa-users"></i> 玩家分组
-                                    </a>
-                                    <a href="{{ url_for('battle.rankings', faction=selected_faction, time_range=selected_time, show_grouped='false', job=selected_job) }}" 
-                                       class="btn btn-sm {% if not show_grouped %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                                        <i class="fas fa-user"></i> 游戏ID
-                                    </a>
+                            <!-- 时间范围筛选 -->
+                            <div class="col-md-6">
+                                <div class="filter-section">
+                                    <h5 class="filter-title"><i class="fas fa-calendar-alt me-2"></i>时间范围</h5>
+                                    <div class="btn-group w-100 flex-wrap time-filter-group" role="group">
+                                        <button type="button" class="btn btn-sm filter-btn {% if not selected_time or selected_time == 'all' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="all">
+                                            全部
+                                        </button>
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'today' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="today">
+                                            今天
+                                        </button>
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'week' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="week">
+                                            7天
+                                        </button>
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'month' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="month">
+                                            30天
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                
+                <!-- 隐藏字段用于表单提交 -->
+                <input type="hidden" id="faction" name="faction" value="{{ selected_faction or '' }}">
+                <input type="hidden" id="time_range" name="time_range" value="{{ selected_time or 'all' }}">
+                <input type="hidden" id="show_grouped" name="show_grouped" value="false">
+                <input type="hidden" id="job" name="job" value="{{ selected_job or '' }}">
+            </form>
         </div>
     </div>
     
@@ -99,16 +84,14 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
                     {% if selected_faction %}{{ selected_faction }}{% else %}全部{% endif %} 玩家排名
-                    {% if show_grouped %}
-                    <small class="text-light">(按实际玩家统计)</small>
-                    {% else %}
                     <small class="text-light">(按游戏ID统计)</small>
-                    {% endif %}
                 </h4>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-light active" onclick="showAllJobs()">全部职业</button>
+                <div class="btn-group job-filter-group">
+                    <button type="button" class="btn btn-light job-btn {% if not selected_job %}active{% endif %}" data-job="all">全部职业</button>
                     {% for job in jobs %}
-                        <button type="button" class="btn btn-light" onclick="filterByJob('{{ job }}')">{{ job }}</button>
+                        {% if job and not job|string|trim|first|int == job|string|trim|first %}
+                        <button type="button" class="btn btn-light job-btn {% if selected_job == job %}active{% endif %}" data-job="{{ job }}">{{ job }}</button>
+                        {% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -139,35 +122,106 @@
             </div>
 
             <script>
-                // 职业筛选功能
-                function showAllJobs() {
-                    document.querySelectorAll('tr[data-job]').forEach(tr => {
-                        tr.style.display = '';
+                document.addEventListener('DOMContentLoaded', function() {
+                    // 处理筛选按钮点击事件
+                    document.querySelectorAll('.filter-btn').forEach(function(button) {
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            
+                            // 获取筛选类型和值
+                            const filterType = this.dataset.filter;
+                            const filterValue = this.dataset.value;
+                            
+                            // 更新隐藏输入字段
+                            document.getElementById(filterType).value = filterValue;
+                            
+                            // 确保show_grouped始终为false
+                            document.getElementById('show_grouped').value = 'false';
+                            
+                            // 更新按钮状态
+                            const btnGroup = this.closest('.btn-group');
+                            btnGroup.querySelectorAll('.filter-btn').forEach(btn => {
+                                btn.classList.remove('btn-primary', 'active');
+                                btn.classList.add('btn-outline-primary');
+                            });
+                            
+                            this.classList.remove('btn-outline-primary');
+                            this.classList.add('btn-primary', 'active');
+                            
+                            // 保存当前状态到localStorage
+                            localStorage.setItem(`rankings_${filterType}`, filterValue);
+                            
+                            // 提交表单
+                            document.getElementById('filter-form').submit();
+                        });
                     });
-                    // 更新按钮状态
-                    updateButtonStates('全部职业');
+                    
+                    // 加载持久化的筛选值（如果页面刷新）
+                    function loadFilterStates() {
+                        const filterTypes = ['faction', 'time_range'];
+                        
+                        filterTypes.forEach(type => {
+                            const savedValue = localStorage.getItem(`rankings_${type}`);
+                            if (savedValue) {
+                                const buttons = document.querySelectorAll(`.filter-btn[data-filter="${type}"]`);
+                                buttons.forEach(btn => {
+                                    if (btn.dataset.value === savedValue) {
+                                        // 更新按钮UI（但不触发点击事件）
+                                        const btnGroup = btn.closest('.btn-group');
+                                        btnGroup.querySelectorAll('.filter-btn').forEach(b => {
+                                            b.classList.remove('btn-primary', 'active');
+                                            b.classList.add('btn-outline-primary');
+                                        });
+                                        btn.classList.remove('btn-outline-primary');
+                                        btn.classList.add('btn-primary', 'active');
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    
+                    // 初始加载筛选器状态
+                    loadFilterStates();
+                    
+                    // 处理职业筛选按钮点击
+                    document.querySelectorAll('.job-btn').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            
+                            // 获取职业值
+                            const job = this.getAttribute('data-job');
+                            
+                            // 更新隐藏字段值 - 全部职业时设为空字符串
+                            //document.getElementById('job').value = job === 'all' ? null : job;
+                            document.getElementById('job').value = job;
+                            
+                            // 更新按钮状态
+                            document.querySelectorAll('.job-btn').forEach(b => {
+                                b.classList.remove('active');
+                            });
+                            this.classList.add('active');
+                            
+                            // 始终提交表单获取准确数据
+                            document.getElementById('filter-form').submit();
+                        });
+                    });
+                });
+                
+                // 不再需要这些客户端过滤函数
+                // 保留声明但函数内容为空以避免可能的调用错误
+                function showAllJobs() {
+                    // 不再执行客户端筛选逻辑
+                    // 所有筛选都通过表单提交处理
                 }
 
                 function filterByJob(job) {
-                    document.querySelectorAll('tr[data-job]').forEach(tr => {
-                        if (tr.getAttribute('data-job') === job) {
-                            tr.style.display = '';
-                        } else {
-                            tr.style.display = 'none';
-                        }
-                    });
-                    // 更新按钮状态
-                    updateButtonStates(job);
+                    // 不再执行客户端筛选逻辑
+                    // 所有筛选都通过表单提交处理
                 }
 
                 function updateButtonStates(selectedJob) {
-                    document.querySelectorAll('.btn-group .btn').forEach(btn => {
-                        if (btn.textContent === selectedJob) {
-                            btn.classList.add('active');
-                        } else {
-                            btn.classList.remove('active');
-                        }
-                    });
+                    // 不再执行客户端筛选逻辑
+                    // 所有筛选都通过表单提交处理
                 }
             </script>
             
@@ -195,13 +249,13 @@
                             <td><a href="{{ url_for('battle.player_details', person_id=player.id) }}">{{ player.name|default('未知', true) }}</a></td>
                             <td>{{ player.job|default('未知', true) }}</td>
                             <td>{{ player.faction|default('未知', true) }}</td>
-                            <td class="text-success fw-bold">{{ player.kills|int }}</td>
-                            <td class="text-danger fw-bold">{{ player.deaths|int }}</td>
+                            <td class="text-primary fw-bold">{{ player.kills|int }}</td>
+                            <td class="text-primary fw-bold">{{ player.deaths|int }}</td>
                             <td>{{ player.kd_ratio }}</td>
                             <td>{{ player.blessings|int }}</td>
                             <td class="font-weight-bold">{{ player.score|int }}</td>
                             <td>
-                                <a href="{{ url_for('battle.player_details', person_id=player.id) }}" class="btn btn-sm btn-info">
+                                <a href="{{ url_for('battle.player_details', person_id=player.id) }}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-search"></i>
                                 </a>
                             </td>
@@ -211,7 +265,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="alert alert-warning mt-3">
+            <div class="alert alert-primary mt-3">
                 <i class="fas fa-exclamation-triangle me-2"></i> 没有找到符合条件的战绩记录
             </div>
             {% endif %}
@@ -237,6 +291,27 @@
 .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
+}
+
+/* 按钮激活状态样式 */
+.btn-primary.active, 
+.btn-outline-primary.active,
+.btn-light.active {
+    position: relative;
+    font-weight: 500;
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+}
+
+/* 移除底部下划线 */
+.btn-group .btn.active::after {
+    display: none;
+}
+
+/* 职业筛选按钮 */
+.job-filter-group .btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
 }
 </style>
 {% endblock %} 

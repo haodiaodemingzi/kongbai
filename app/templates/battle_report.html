@@ -193,23 +193,23 @@
                 </div>
                 <div class="col-md-4">
                     <div class="stat-container">
-                        <div class="stat-icon bg-success">
+                        <div class="stat-icon bg-primary">
                             <i class="fas fa-skull"></i>
                         </div>
                         <div class="stat-details">
                             <div class="stat-title">总击杀</div>
-                            <div class="stat-value text-success fw-bold">{{ stats_summary.total_kills|int }}</div>
+                            <div class="stat-value text-primary fw-bold">{{ stats_summary.total_kills|int }}</div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="stat-container">
-                        <div class="stat-icon bg-danger">
+                        <div class="stat-icon bg-primary">
                             <i class="fas fa-heart-broken"></i>
                         </div>
                         <div class="stat-details">
                             <div class="stat-title">总死亡</div>
-                            <div class="stat-value text-danger fw-bold">{{ stats_summary.total_deaths|int }}</div>
+                            <div class="stat-value text-primary fw-bold">{{ stats_summary.total_deaths|int }}</div>
                         </div>
                     </div>
                 </div>
@@ -235,8 +235,8 @@
                 <div class="god-name">{{ god.name or "未知" }}</div>
                 <ul class="god-stats-list">
                     <li><span class="label">玩家数量</span> <span class="value">{{ god.player_count }}</span></li>
-                    <li><span class="label">总击杀</span> <span class="value text-success fw-bold">{{ god.total_kills|int }}</span></li>
-                    <li><span class="label">总死亡</span> <span class="value text-danger fw-bold">{{ god.total_deaths|int }}</span></li>
+                    <li><span class="label">总击杀</span> <span class="value text-primary fw-bold">{{ god.total_kills|int }}</span></li>
+                    <li><span class="label">总死亡</span> <span class="value text-primary fw-bold">{{ god.total_deaths|int }}</span></li>
                     <li><span class="label">总得分</span> <span class="value">{{ god.total_score|int }}</span></li>
                     <li><span class="label">平均得分</span> <span class="value">{{ god.avg_score }}</span></li>
                     <li><span class="label">K/D比率</span> <span class="value">{{ god.kd_ratio }}</span></li>
@@ -266,8 +266,8 @@
                     <td><a href="{{ url_for('battle.player_details', person_id=player.player_id) }}">{{ player.player_name|default('未知', true) }}</a></td>
                     <td>{{ player.player_job|default('未知', true) }}</td>
                     <td>{{ player.player_god|default('未知', true) }}</td>
-                    <td class="text-success fw-bold">{{ player.kills|default(0, true)|int }}</td>
-                    <td class="text-danger fw-bold">{{ player.deaths|default(0, true)|int }}</td>
+                    <td class="text-primary fw-bold">{{ player.kills|default(0, true)|int }}</td>
+                    <td class="text-primary fw-bold">{{ player.deaths|default(0, true)|int }}</td>
                     <td>{{ player.kd_ratio|default(0, true) }}</td>
                 </tr>
                 {% endfor %}
@@ -295,8 +295,8 @@
                     <td><a href="{{ url_for('battle.player_details', person_id=player.player_id) }}">{{ player.player_name|default('未知', true) }}</a></td>
                     <td>{{ player.player_job|default('未知', true) }}</td>
                     <td>{{ player.player_god|default('未知', true) }}</td>
-                    <td class="text-success fw-bold">{{ player.kills|default(0, true)|int }}</td>
-                    <td class="text-danger fw-bold">{{ player.deaths|default(0, true)|int }}</td>
+                    <td class="text-primary fw-bold">{{ player.kills|default(0, true)|int }}</td>
+                    <td class="text-primary fw-bold">{{ player.deaths|default(0, true)|int }}</td>
                     <td>{{ player.kd_ratio|default(0, true) }}</td>
                 </tr>
                 {% endfor %}
@@ -325,8 +325,8 @@
                     <td><a href="{{ url_for('battle.player_details', person_id=player.player_id) }}">{{ player.player_name|default('未知', true) }}</a></td>
                     <td>{{ player.player_job|default('未知', true) }}</td>
                     <td>{{ player.player_god|default('未知', true) }}</td>
-                    <td class="text-success fw-bold">{{ player.kills|default(0, true)|int }}</td>
-                    <td class="text-danger fw-bold">{{ player.deaths|default(0, true)|int }}</td>
+                    <td class="text-primary fw-bold">{{ player.kills|default(0, true)|int }}</td>
+                    <td class="text-primary fw-bold">{{ player.deaths|default(0, true)|int }}</td>
                     <td>{{ player.blessings|default(0, true)|int }}</td>
                     <td>{{ player.score|default(0, true)|int }}</td>
                 </tr>
@@ -374,13 +374,13 @@
                     datasets: [{
                         data: Object.values(godData),
                         backgroundColor: [
-                            'rgba(255, 99, 132, 0.8)', // 梵天
                             'rgba(54, 162, 235, 0.8)', // 比湿奴
+                            'rgba(75, 192, 192, 0.8)', // 梵天
                             'rgba(153, 102, 255, 0.8)'  // 湿婆
                         ],
                         borderColor: [
-                            'rgba(255, 99, 132, 1)',
                             'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)',
                             'rgba(153, 102, 255, 1)'
                         ],
                         borderWidth: 1
