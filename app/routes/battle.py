@@ -825,97 +825,91 @@ def gods_ranking():
             
             # 根据是否需要按玩家分组进行统计选择不同的查询
             if show_grouped:
-                # 使用玩家分组的查询
+                # 使用玩家分组的查询 - 修正版：先计算个人战绩再按组聚合
                 query = text(f"""
-                    WITH player_distinct AS (
-                        -- 获取所有有效的玩家ID，并关联其分组信息
-                        SELECT 
-                            p.id,
+                    WITH player_battle_stats AS (
+                        -- 1. 计算每个玩家在时间范围内的独立战绩 (使用 win/lost 列)
+                        SELECT
+                            p.id, -- Include player ID
                             p.name,
+                            SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) as kills,
+                            SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) as deaths,
+                            SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as bless
+                        FROM person p
+                        LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+                            -- Apply date condition here if needed, but simpler outside JOIN now
+                        WHERE p.god = :god
+                          AND p.deleted_at IS NULL
+                          {date_condition} -- Apply date condition in WHERE clause
+                        GROUP BY p.id, p.name -- Group by ID and Name
+                        HAVING SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) > 0
+                            OR SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) > 0
+                            OR SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) > 0
+                    ),
+                    player_distinct AS (
+                        -- 2. 获取所有有效的玩家ID，并关联其分组信息 (与之前类似)
+                        SELECT
+                            p.id,
+                            p.name AS original_player_name, -- Keep original name if needed
                             p.god,
-                            -- 使用分组ID作为分组键，如果没有分组则使用玩家自身ID
                             COALESCE(p.player_group_id, p.id) AS group_key,
-                            -- 获取分组名称
-                            COALESCE(pg.group_name, p.name) AS player_name,
-                            -- 判断是否为玩家分组（该分组下有多个游戏ID）
-                            -- 只有当player_group_id不为空且该分组下有多个玩家时，才是真正的分组
-                            CASE 
+                            COALESCE(pg.group_name, p.name) AS player_name, -- Display name
+                            CASE
                                 WHEN p.player_group_id IS NOT NULL AND EXISTS (
-                                    SELECT 1 FROM person p2 
-                                    WHERE p2.player_group_id = p.player_group_id 
+                                    SELECT 1 FROM person p2
+                                    WHERE p2.player_group_id = p.player_group_id
                                     AND p2.id != p.id
                                     AND p2.deleted_at IS NULL
                                 ) THEN 1
                                 ELSE 0
                             END AS is_group
-                        FROM 
+                        FROM
                             person p
                         LEFT JOIN
                             player_group pg ON p.player_group_id = pg.id
-                        WHERE 
+                        WHERE
                             p.god = :god
                             AND p.deleted_at IS NULL
-                    ),
-                    group_leaders AS (
-                        -- 获取每个分组的代表（用于显示）
-                        SELECT 
-                            group_key,
-                            player_name,
-                            MAX(is_group) AS is_group
-                        FROM 
-                            player_distinct
-                        GROUP BY 
-                            group_key, player_name
-                    ),
-                    group_battle_stats AS (
-                        -- 按分组计算战斗数据，合并组内所有玩家的战绩
-                        SELECT 
-                            gl.group_key,
-                            gl.player_name,
-                            gl.is_group,
-                            COUNT(DISTINCT CASE WHEN br.win = pd.name THEN br.id END) AS kills,
-                            COUNT(DISTINCT CASE WHEN br.lost = pd.name THEN br.id END) AS deaths,
-                            SUM(CASE WHEN br.win = pd.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS bless
-                        FROM 
-                            group_leaders gl
-                        JOIN
-                            player_distinct pd ON gl.group_key = pd.group_key
-                        LEFT JOIN 
-                            battle_record br ON pd.name IN (br.win, br.lost)
-                        WHERE 1=1
-                            {date_condition}
-                        GROUP BY 
-                            gl.group_key, gl.player_name, gl.is_group
-                        HAVING 
-                            kills > 0 OR deaths > 0
                     )
-                    SELECT 
-                        player_name as name,
-                        kills,
-                        deaths,
-                        bless,
-                        is_group
-                    FROM 
-                        group_battle_stats
-                    ORDER BY 
+                    -- 3. 简化最终聚合：直接聚合 player_distinct 和 player_battle_stats
+                    SELECT
+                        pd.player_name AS name, -- Display name (group or individual)
+                        MAX(pd.is_group) AS is_group, -- Get the is_group flag for the group
+                        SUM(COALESCE(pbs.kills, 0)) AS kills,
+                        SUM(COALESCE(pbs.deaths, 0)) AS deaths,
+                        SUM(COALESCE(pbs.bless, 0)) AS bless
+                    FROM
+                        player_distinct pd
+                    LEFT JOIN
+                        player_battle_stats pbs ON pd.id = pbs.id -- Join member info to their stats by ID
+                    GROUP BY
+                        pd.group_key, pd.player_name -- Group by the unique group key and its display name
+                    HAVING
+                        SUM(COALESCE(pbs.kills, 0)) > 0 OR SUM(COALESCE(pbs.deaths, 0)) > 0 OR SUM(COALESCE(pbs.bless, 0)) > 0 -- Keep filtering
+                    ORDER BY
                         kills DESC, deaths ASC, bless DESC
                 """)
             else:
-                # 原始查询（不考虑玩家分组）
+                # 原始查询（不考虑玩家分组） - 修正版: 使用 ID 计算战绩
                 query = text(f"""
                     WITH player_stats AS (
                         SELECT 
+                            p.id, -- Include ID
                             p.name,
-                            COUNT(CASE WHEN br.win = p.name THEN 1 END) as kills,
-                            COUNT(CASE WHEN br.lost = p.name THEN 1 END) as deaths,
-                            CAST(SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS SIGNED) as bless
+                            SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) as kills, -- Use p.name
+                            SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) as deaths, -- Use p.name
+                            SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as bless -- Use p.name
                         FROM person p
                         LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
+                            -- Apply date condition here if needed, but simpler outside JOIN now
+                            # AND (1=1 {date_condition.replace('br.', 'br.')})
                         WHERE p.god = :god
-                        AND p.deleted_at IS NULL
-                        {date_condition}
-                        GROUP BY p.name
-                        HAVING kills > 0 OR deaths > 0
+                          AND p.deleted_at IS NULL
+                          {date_condition} -- Apply date condition in WHERE clause
+                        GROUP BY p.id, p.name -- Group by ID and Name
+                        HAVING SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) > 0 -- Use p.name
+                            OR SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) > 0 -- Use p.name
+                            OR SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) > 0 -- Use p.name
                     )
                     SELECT 
                         name,
@@ -933,6 +927,10 @@ def gods_ranking():
             total_bless = 0
             
             for row in db.session.execute(query, query_params):
+                # --- DEBUGGING: Print raw row data --- 
+                # print(f"DEBUG ROW: {row._asdict()}") 
+                # --- END DEBUGGING ---
+                
                 player_data = {
                     'name': row.name,
                     'kills': int(row.kills or 0),
@@ -964,8 +962,9 @@ def gods_ranking():
                              show_grouped=show_grouped)
     except Exception as e:
         logger.error(f"获取三神战绩统计时出错: {str(e)}", exc_info=True)
+        # 不再 flash 和 redirect，直接返回错误信息
         flash('获取战绩统计数据时出错', 'error')
-        return redirect(url_for('battle.rankings')) 
+        return redirect(url_for('battle.rankings'))
 
 @battle_bp.route('/api/group_details')
 def group_details():

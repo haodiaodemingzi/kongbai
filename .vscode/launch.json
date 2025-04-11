@@ -5,19 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Flask",
+            "name": "Python: Flask (开发模式)",
             "type": "debugpy",
             "request": "launch",
-            "module": "flask",
+            "program": "${workspaceFolder}/run.py",
             "env": {
-                "FLASK_APP": "app\\__init__.py",
-                "FLASK_DEBUG": "1"
+                "FLASK_APP": "app",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1",
+                "APP_ENV": "development"
             },
-            "args": [
-                "run"
-            ],
+            "args": [],
             "jinja": true,
-            "autoStartBrowser": false
+            "autoStartBrowser": false,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Flask (生产模式)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "env": {
+                "FLASK_APP": "app",
+                "FLASK_ENV": "production",
+                "FLASK_DEBUG": "0",
+                "APP_ENV": "production"
+            },
+            "args": [],
+            "jinja": true,
+            "autoStartBrowser": false,
+            "console": "integratedTerminal"
         }
     ]
 }

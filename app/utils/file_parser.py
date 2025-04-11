@@ -238,7 +238,11 @@ def save_battle_log_to_db(battle_details, blessings):
             logger.info(f"数据库中查询到 {len(persons)} 名玩家记录")
             
             for person in persons:
-                existing_players[person.name] = person.id
+                # existing_players[person.name] = person.id # Original line
+                # Use stripped name from DB as key to ensure exact match with stripped name from log
+                cleaned_db_name = person.name.strip() if person.name else ''
+                if cleaned_db_name: # Avoid adding empty keys if name is null/empty after stripping
+                    existing_players[cleaned_db_name] = person.id
             
             # 检查有多少玩家在数据库中能找到
             found_players = set(existing_players.keys()).intersection(all_player_names)
@@ -278,6 +282,17 @@ def save_battle_log_to_db(battle_details, blessings):
                         logger.debug(f"跳过已存在的战斗记录: {detail['killer_name']} 击杀 {detail['victim_name']} 在 {detail['timestamp']}")
                     continue
                     
+                killer_name_from_log = detail['killer_name'] # Already stripped during parsing
+                victim_name_from_log = detail['victim_name'] # Already stripped during parsing
+                
+                # --- DEBUGGING: Check name lookup --- 
+                print(f"DEBUG: Processing record {idx+1}: Killer='{killer_name_from_log}', Victim='{victim_name_from_log}'")
+                if killer_name_from_log not in existing_players:
+                    print(f"DEBUG ALERT: Killer name '{killer_name_from_log}' NOT FOUND in existing_players keys!")
+                if victim_name_from_log not in existing_players:
+                    print(f"DEBUG ALERT: Victim name '{victim_name_from_log}' NOT FOUND in existing_players keys!")
+                # --- END DEBUGGING ---
+                
                 killer_id = existing_players.get(detail['killer_name'])
                 victim_id = existing_players.get(detail['victim_name'])
                 
