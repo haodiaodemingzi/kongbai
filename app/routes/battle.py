@@ -787,17 +787,23 @@ def gods_ranking():
     # 添加分组显示参数
     show_grouped = request.args.get('show_grouped', 'true') == 'true'
     
-    # 设置默认日期为全部时间
+    # --- Default Date Logic --- 
+    now = datetime.now()
     start_datetime = None
     end_datetime = None
     
-    # 解析日期时间
     if start_datetime_str:
         try:
             start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M')
         except ValueError:
             flash('开始时间格式不正确', 'error')
+            # Fallback to default if format is wrong?
+            start_datetime_str = None # Reset string so default logic applies
             
+    if not start_datetime_str: # If not provided or format was wrong
+        start_datetime = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start_datetime_str = start_datetime.strftime('%Y-%m-%dT%H:%M')
+        
     if end_datetime_str:
         try:
             end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M')
@@ -805,6 +811,13 @@ def gods_ranking():
             end_datetime = end_datetime.replace(second=59)
         except ValueError:
             flash('结束时间格式不正确', 'error')
+            # Fallback to default?
+            end_datetime_str = None # Reset string so default logic applies
+            
+    if not end_datetime_str: # If not provided or format was wrong
+        end_datetime = now.replace(hour=23, minute=59, second=59, microsecond=0)
+        end_datetime_str = end_datetime.strftime('%Y-%m-%dT%H:%M')
+    # --- End Default Date Logic ---
     
     # 获取三个神的数据
     gods = ['梵天', '比湿奴', '湿婆']

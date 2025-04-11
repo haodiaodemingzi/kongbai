@@ -209,16 +209,6 @@ def save_battle_log_to_db(battle_details, blessings):
     logger.info(f"开始保存战斗日志到数据库: {len(battle_details)}条击杀记录, {len(blessings)}条祝福记录")
     
     try:
-        # 清空历史战斗记录
-        logger.info("清空历史战斗记录...")
-        BattleRecord.query.delete()
-        db.session.commit()
-        logger.info("历史战斗记录已清空")
-        
-        # 开始处理新的战斗记录
-        logger.info("开始处理战斗日志到数据库")
-        start_time = datetime.now()
-
         # 获取所有玩家名称
         all_player_names = set()
         for detail in battle_details:
@@ -268,19 +258,19 @@ def save_battle_log_to_db(battle_details, blessings):
             
             # 收集所有时间戳，用于检查记录是否已存在
             timestamps = {detail['timestamp'] for detail in battle_details}
-            existing_records = BattleRecord.query.filter(BattleRecord.publish_at.in_(timestamps)).all()
-            existing_timestamps = {record.publish_at for record in existing_records}
+            # existing_records = BattleRecord.query.filter(BattleRecord.publish_at.in_(timestamps)).all() # Less efficient to query all upfront
+            # existing_timestamps = {record.publish_at for record in existing_records}
             
-            logger.info(f"检查到 {len(existing_timestamps)} 条已存在的战斗记录时间戳")
+            # logger.info(f"检查到 {len(existing_timestamps)} 条可能相关的已存在战斗记录时间戳")
             
             # 逐条处理击杀记录
             for idx, detail in enumerate(battle_details):
-                # 检查该时间戳的记录是否已存在
-                if detail['timestamp'] in existing_timestamps:
-                    battle_skip_count += 1
-                    if battle_skip_count <= 5:  # 只记录前几条跳过的记录
-                        logger.debug(f"跳过已存在的战斗记录: {detail['killer_name']} 击杀 {detail['victim_name']} 在 {detail['timestamp']}")
-                    continue
+                # 检查该时间戳的记录是否已存在 - We will check full uniqueness below
+                # if detail['timestamp'] in existing_timestamps: 
+                #     battle_skip_count += 1
+                #     if battle_skip_count <= 5:  # 只记录前几条跳过的记录
+                #         logger.debug(f"跳过可能已存在的战斗记录(基于时间戳): {detail['killer_name']} 击杀 {detail['victim_name']} 在 {detail['timestamp']}")
+                #     continue
                     
                 killer_name_from_log = detail['killer_name'] # Already stripped during parsing
                 victim_name_from_log = detail['victim_name'] # Already stripped during parsing
@@ -293,29 +283,44 @@ def save_battle_log_to_db(battle_details, blessings):
                     print(f"DEBUG ALERT: Victim name '{victim_name_from_log}' NOT FOUND in existing_players keys!")
                 # --- END DEBUGGING ---
                 
-                killer_id = existing_players.get(detail['killer_name'])
-                victim_id = existing_players.get(detail['victim_name'])
+                killer_id = existing_players.get(killer_name_from_log) # Use variable
+                victim_id = existing_players.get(victim_name_from_log) # Use variable
                 
                 # 只有当击杀者和受害者都在数据库中存在时才记录战斗详情
                 if killer_id and victim_id:
                     try:
-                        # 创建战斗记录 - 只存储一次
-                        battle_record = BattleRecord(
-                            win=detail['killer_name'],  # 胜利者(击杀者)名称
-                            lost=detail['victim_name'],  # 失败者(被击杀者)名称
-                            position=f"{detail['x_coord']},{detail['y_coord']}",
-                            remark=0,  # 祝福数初始为0
-                            publish_at=detail['timestamp'],
-                            create_by=killer_id  # 记录创建者为击杀者
-                        )
-                        db.session.add(battle_record)
+                        # --- Check for existing duplicate before inserting --- 
+                        exists = BattleRecord.query.filter_by(
+                            win=detail['killer_name'],
+                            lost=detail['victim_name'],
+                            publish_at=detail['timestamp']
+                        ).first()
                         
-                        # 每100条提交一次
-                        if (idx + 1) % 100 == 0 or idx == len(battle_details) - 1:
-                            db.session.commit()
-                            logger.debug(f"已处理 {idx+1}/{len(battle_details)} 条战斗记录")
-                        
-                        battle_success_count += 1
+                        if not exists:
+                            # 创建战斗记录 - 只在记录不存在时创建
+                            battle_record = BattleRecord(
+                                win=detail['killer_name'],  # 胜利者(击杀者)名称
+                                lost=detail['victim_name'],  # 失败者(被击杀者)名称
+                                position=f"{detail['x_coord']},{detail['y_coord']}",
+                                remark=0,  # 祝福数初始为0
+                                publish_at=detail['timestamp'],
+                                create_by=killer_id  # 记录创建者为击杀者
+                            )
+                            db.session.add(battle_record)
+                            
+                            # 每100条提交一次 - moved commit outside the loop
+                            if (idx + 1) % 100 == 0 or idx == len(battle_details) - 1:
+                                db.session.commit()
+                                logger.debug(f"已处理 {idx+1}/{len(battle_details)} 条战斗记录")
+                            
+                            battle_success_count += 1
+                            
+                        else:
+                            # Record already exists, skip it
+                            battle_skip_count += 1
+                            if battle_skip_count <= 10: # Log first few skips
+                                logger.debug(f"跳过已存在的重复战斗记录: Win='{detail['killer_name']}', Lost='{detail['victim_name']}', Time='{detail['timestamp']}'")
+                            continue # Skip to next detail
                         
                     except Exception as e:
                         battle_error_count += 1
@@ -329,146 +334,71 @@ def save_battle_log_to_db(battle_details, blessings):
                         if not victim_id:
                             logger.warning(f"受害者 {detail['victim_name']} 在数据库中不存在")
             
-            # 确保所有战斗记录已提交
-            db.session.commit()
-            logger.info(f"战斗记录处理完成：成功 {battle_success_count}，错误 {battle_error_count}，缺少玩家 {battle_missing_player_count}，跳过 {battle_skip_count}")
-            
-            # 处理祝福记录
-            blessing_success_count = 0
-            blessing_error_count = 0
-            blessing_missing_player_count = 0
-            blessing_skip_count = 0
-            
-            # 收集所有祝福时间戳
-            blessing_timestamps = {blessing['timestamp'] for blessing in blessings}
-            existing_blessing_records = BattleRecord.query.filter(
-                BattleRecord.publish_at.in_(blessing_timestamps),
-                BattleRecord.remark > 0
-            ).all()
-            existing_blessing_timestamps = {record.publish_at for record in existing_blessing_records}
-            
-            logger.info(f"检查到 {len(existing_blessing_timestamps)} 条已存在的祝福记录时间戳")
-            
-            # 处理祝福记录
-            player_blessings = {}
-            for blessing_data in blessings:
-                # 检查祝福记录是否已存在
-                if blessing_data['timestamp'] in existing_blessing_timestamps:
-                    blessing_skip_count += 1
-                    if blessing_skip_count <= 5:
-                        logger.debug(f"跳过已存在的祝福记录: {blessing_data['player_name']} 在 {blessing_data['timestamp']}")
-                    continue
-                    
-                player_id = existing_players.get(blessing_data['player_name'])
-                if player_id:
-                    if player_id not in player_blessings:
-                        player_blessings[player_id] = {
-                            'count': 1,
-                            'timestamp': blessing_data['timestamp']
-                        }
-                    else:
-                        player_blessings[player_id]['count'] += 1
-                        if blessing_data['timestamp'] > player_blessings[player_id]['timestamp']:
-                            player_blessings[player_id]['timestamp'] = blessing_data['timestamp']
-                else:
-                    blessing_missing_player_count += 1
-                    if blessing_missing_player_count <= 5:
-                        logger.warning(f"祝福接收者 {blessing_data['player_name']} 在数据库中不存在")
-            
-            # 保存祝福记录
-            logger.debug(f"开始处理 {len(player_blessings)} 名玩家的祝福记录")
-            
-            # 根据玩家ID查询已有战绩记录，如果有则更新，没有则创建
-            for player_id, blessing_info in player_blessings.items():
-                try:
-                    # 查询该玩家是否已有战绩记录（击杀记录中创建的）
-                    player_record = BattleRecord.query.filter_by(create_by=player_id).first()
-                    
-                    if player_record:
-                        # 更新现有记录的祝福次数
-                        player_record.remark = blessing_info['count']
-                        if blessing_info['timestamp'] > player_record.publish_at:
-                            player_record.publish_at = blessing_info['timestamp']
-                        player_record = BattleRecord(
-                            remark=blessing_info['count'],
-                            publish_at=blessing_info['timestamp'],
-                            create_by=player_id
-                        )
-                        db.session.add(player_record)
-                    
-                    blessing_success_count += 1
-                    
-                except Exception as e:
-                    blessing_error_count += 1
-                    logger.error(f"处理玩家ID {player_id} 的祝福记录时出错: {str(e)}", exc_info=True)
-            
-            # 提交所有祝福记录
+            # Final commit after processing all battle records
             try:
                 db.session.commit()
-                logger.info(f"祝福记录处理完成：成功 {blessing_success_count}，错误 {blessing_error_count}，缺少玩家 {blessing_missing_player_count}")
-                
-                # 生成战绩报告SQL - 使用关联查询统计击杀和死亡次数
-                battle_report_sql = """
-                WITH player_stats AS (
-                    SELECT 
-                        p.id,
-                        p.name,
-                        p.job,
-                        p.god,
-                        -- 统计击杀次数(通过win字段关联)
-                        COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) as kills,
-                        -- 统计死亡次数(通过lost字段关联)
-                        COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) as deaths,
-                        -- 统计祝福次数(只有win的玩家才会有祝福)
-                        SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as blessings,
-                        -- 获取最后战斗位置和时间
-                        MAX(br.position) as last_position,
-                        MAX(br.publish_at) as last_battle_time
-                    FROM 
-                        person p
-                    LEFT JOIN 
-                        battle_record br ON br.win = p.name OR br.lost = p.name
-                    WHERE 1=1
-                    GROUP BY 
-                        p.id, p.name, p.job, p.god
-                )
-                SELECT 
-                    id as player_id,
-                    name as player_name,
-                    job as player_job,
-                    god as player_god,
-                    kills,
-                    deaths,
-                    blessings,
-                    CASE WHEN deaths > 0 
-                         THEN ROUND(CAST(kills AS FLOAT) / deaths, 2) 
-                         ELSE kills END as kd_ratio,
-                    (kills * 3 + blessings - deaths) as score,
-                    last_position,
-                    last_battle_time
-                FROM 
-                    player_stats
-                ORDER BY 
-                    score DESC, kills DESC, deaths ASC;
-                """
-                
-                logger.info("生成战绩报告SQL:")
-                logger.info(battle_report_sql)
-                
-                # 计算总体处理时间
-                end_time = datetime.now()
-                process_time = (end_time - start_time).total_seconds()
-                
-                logger.info(f"战斗日志保存完成，总处理时间: {process_time:.2f} 秒")
-                
-                # 返回处理结果
-                return True, f"处理完成：{battle_success_count} 条战斗记录，{blessing_success_count} 条祝福记录"
-                
+                logger.info(f"战斗记录处理完成：成功插入 {battle_success_count} 条新记录，跳过 {battle_skip_count} 条重复记录。")
             except Exception as e:
-                # 发生错误时回滚事务
                 db.session.rollback()
-                logger.error(f"保存祝福记录到数据库时发生错误: {str(e)}", exc_info=True)
-                return False, f"保存祝福记录时出错: {str(e)}"
+                logger.error(f"提交战斗记录时出错: {str(e)}", exc_info=True)
+                return False, f"提交战斗记录时出错: {str(e)}"
+            
+            # 生成战绩报告SQL (remains the same)
+            battle_report_sql = """
+            WITH player_stats AS (
+                SELECT 
+                    p.id,
+                    p.name,
+                    p.job,
+                    p.god,
+                    -- 统计击杀次数(通过win字段关联)
+                    COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) as kills,
+                    -- 统计死亡次数(通过lost字段关联)
+                    COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) as deaths,
+                    -- 统计祝福次数(只有win的玩家才会有祝福)
+                    SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as blessings,
+                    -- 获取最后战斗位置和时间
+                    MAX(br.position) as last_position,
+                    MAX(br.publish_at) as last_battle_time
+                FROM 
+                    person p
+                LEFT JOIN 
+                    battle_record br ON br.win = p.name OR br.lost = p.name
+                WHERE 1=1
+                GROUP BY 
+                    p.id, p.name, p.job, p.god
+            )
+            SELECT 
+                id as player_id,
+                name as player_name,
+                job as player_job,
+                god as player_god,
+                kills,
+                deaths,
+                blessings,
+                CASE WHEN deaths > 0 
+                     THEN ROUND(CAST(kills AS FLOAT) / deaths, 2) 
+                     ELSE kills END as kd_ratio,
+                (kills * 3 + blessings - deaths) as score,
+                last_position,
+                last_battle_time
+            FROM 
+                player_stats
+            ORDER BY 
+                score DESC, kills DESC, deaths ASC;
+            """
+            
+            logger.info("生成战绩报告SQL:")
+            logger.info(battle_report_sql)
+            
+            # 计算总体处理时间
+            end_time = datetime.now()
+            process_time = (end_time - start_time).total_seconds()
+            
+            logger.info(f"战斗日志保存完成，总处理时间: {process_time:.2f} 秒")
+            
+            # 返回处理结果
+            return True, f"处理完成：{battle_success_count} 条战斗记录，{blessing_success_count} 条祝福记录"
             
         except Exception as e:
             # 发生错误时回滚事务
