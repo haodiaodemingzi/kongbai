@@ -19,19 +19,22 @@ def get_faction_stats(date_range=None):
         date_range: 日期范围，可选值：today, yesterday, week, month, three_months
     """
     try:
-        # 构建日期筛选条件
-        date_condition = ""
+        # 构建日期筛选条件的 *基础部分* (不含别名)
+        base_date_condition = ""
         if date_range:
             if date_range == 'today':
-                date_condition = "AND DATE(br.publish_at) = CURDATE()"
+                base_date_condition = "AND DATE(publish_at) = CURDATE()"
             elif date_range == 'yesterday':
-                date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+                base_date_condition = "AND DATE(publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
             elif date_range == 'week':
-                date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+                base_date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
             elif date_range == 'month':
-                date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
+                base_date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
             elif date_range == 'three_months':
-                date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+                base_date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+
+        # 在需要的地方动态替换别名
+        death_date_condition = base_date_condition.replace('publish_at', 'br.publish_at') if base_date_condition else ''
 
         # 获取死亡榜前三
         death_query = text(f"""
@@ -41,7 +44,7 @@ def get_faction_stats(date_range=None):
                 COUNT(*) as deaths
             FROM battle_record br
             JOIN person p ON br.lost = p.name
-            WHERE 1=1 {date_condition}
+            WHERE 1=1 {death_date_condition}
             GROUP BY p.name, p.god
             ORDER BY deaths DESC
             LIMIT 3 
@@ -63,7 +66,13 @@ def get_faction_stats(date_range=None):
         for faction in factions:
             logger.debug(f"获取 {faction} 势力的统计数据")
             
-            # 基础统计查询
+            # 为子查询动态生成带别名的日期条件
+            date_cond_br2 = base_date_condition.replace('publish_at', 'br2.publish_at') if base_date_condition else ''
+            date_cond_br3 = base_date_condition.replace('publish_at', 'br3.publish_at') if base_date_condition else ''
+            date_cond_br4 = base_date_condition.replace('publish_at', 'br4.publish_at') if base_date_condition else '' # For blessings count
+            date_cond_exists = base_date_condition.replace('publish_at', 'br_exists.publish_at') if base_date_condition else '' # For EXISTS clause
+            
+            # 基础统计查询 - 再次修正版
             stats_query = text(f"""
                 WITH player_stats AS (
                     SELECT 
@@ -74,66 +83,89 @@ def get_faction_stats(date_range=None):
                             SELECT COUNT(*) 
                             FROM battle_record br2 
                             WHERE br2.win = p.name
-                            {date_condition}
+                            {date_cond_br2}
                         ) as kills,
                         (
                             SELECT COUNT(*) 
                             FROM battle_record br3 
                             WHERE br3.lost = p.name
-                            {date_condition}
+                            {date_cond_br3}
                         ) as deaths,
                         (
-                            SELECT sum(remark)
-                            FROM battle_record br3
-                            WHERE br3.win = p.name
-                            {date_condition}
+                            -- Count remarks = '1'
+                            SELECT COALESCE(SUM(CASE WHEN br4.remark = '1' THEN 1 ELSE 0 END), 0)
+                            FROM battle_record br4
+                            WHERE br4.win = p.name
+                            {date_cond_br4}
                         ) as blessings,
                         (
-                            SELECT COUNT(*) 
-                            FROM battle_record br2 
-                            WHERE br2.win = p.name
-                            {date_condition}
-                        ) * 3 - (
-                            SELECT COUNT(*) 
-                            FROM battle_record br3 
-                            WHERE br3.lost = p.name
-                            {date_condition}
+                            -- Score calculation: kills * 3 + blessings - deaths
+                            (
+                                SELECT COUNT(*) 
+                                FROM battle_record br2 
+                                WHERE br2.win = p.name
+                                {date_cond_br2}
+                            ) * 3 + 
+                            (
+                                SELECT COALESCE(SUM(CASE WHEN br4.remark = '1' THEN 1 ELSE 0 END), 0)
+                                FROM battle_record br4
+                                WHERE br4.win = p.name
+                                {date_cond_br4}
+                            ) - 
+                            (
+                                SELECT COUNT(*) 
+                                FROM battle_record br3 
+                                WHERE br3.lost = p.name
+                                {date_cond_br3}
+                            )
                         ) as score
                     FROM person p
                     WHERE p.god = :faction
+                      AND p.deleted_at IS NULL
+                      -- Correctly apply date condition within EXISTS
+                      AND EXISTS (
+                          SELECT 1 
+                          FROM battle_record br_exists 
+                          WHERE (br_exists.win = p.name OR br_exists.lost = p.name)
+                          {date_cond_exists} -- Apply date condition on br_exists here
+                      )
                 )
-                SELECT
-                    COUNT(DISTINCT id) as player_count,
-                    COALESCE(SUM(kills), 0) as total_kills,
-                    COALESCE(SUM(deaths), 0) as total_deaths,
-                    COALESCE(SUM(blessings), 0) as total_blessings,
+                SELECT 
+                    -- Count distinct players included in player_stats CTE
+                    COUNT(DISTINCT ps.id) as player_count, 
+                    COALESCE(SUM(ps.kills), 0) as total_kills,
+                    COALESCE(SUM(ps.deaths), 0) as total_deaths,
+                    COALESCE(SUM(ps.blessings), 0) as total_blessings,
                     (
-                        SELECT name 
-                        FROM player_stats 
-                        ORDER BY kills DESC, deaths ASC 
+                        SELECT ps_sub.name 
+                        FROM player_stats ps_sub
+                        WHERE ps_sub.kills > 0 -- Ensure killer has kills
+                        ORDER BY ps_sub.kills DESC, ps_sub.deaths ASC 
                         LIMIT 1
                     ) as top_killer_name,
                     (
-                        SELECT kills 
-                        FROM player_stats 
-                        ORDER BY kills DESC, deaths ASC 
+                        SELECT ps_sub.kills 
+                        FROM player_stats ps_sub
+                        WHERE ps_sub.kills > 0
+                        ORDER BY ps_sub.kills DESC, ps_sub.deaths ASC 
                         LIMIT 1
                     ) as top_killer_kills,
                     (
-                        SELECT name 
-                        FROM player_stats 
-                        ORDER BY score DESC, kills DESC, deaths ASC 
+                        SELECT ps_sub.name 
+                        FROM player_stats ps_sub 
+                        ORDER BY ps_sub.score DESC, ps_sub.kills DESC, ps_sub.deaths ASC 
                         LIMIT 1
                     ) as top_scorer_name,
                     (
-                        SELECT score 
-                        FROM player_stats 
-                        ORDER BY score DESC, kills DESC, deaths ASC 
+                        SELECT ps_sub.score 
+                        FROM player_stats ps_sub 
+                        ORDER BY ps_sub.score DESC, ps_sub.kills DESC, ps_sub.deaths ASC 
                         LIMIT 1
                     ) as top_scorer_score
-                FROM player_stats
+                FROM player_stats ps
             """)
             
+            # Remove date_range from params here as it's only used conceptually for the condition string
             result = db.session.execute(stats_query, {'faction': faction}).fetchone()
             
             # 构建统计数据字典
