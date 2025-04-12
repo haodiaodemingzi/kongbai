@@ -359,6 +359,12 @@
                     <option value="湿婆" {% if god == '湿婆' %}selected{% endif %}>湿婆</option>
                     <option value="比湿奴" {% if god == '比湿奴' %}selected{% endif %}>比湿奴</option>
                 </select>
+                <select name="job" class="search-select">
+                    <option value="" {% if not job %}selected{% endif %}>全部职业</option>
+                    {% for j in available_jobs %}
+                    <option value="{{ j }}" {% if job == j %}selected{% endif %}>{{ j }}</option>
+                    {% endfor %}
+                </select>
                 <button type="submit" class="btn btn-search">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -414,13 +420,13 @@
 
         {% if pagination.pages > 1 %}
         <div class="pagination-container">
-            <a href="{{ url_for('person.person_list', page=1, search=search, god=god) }}"
+            <a href="{{ url_for('person.person_list', page=1, search=search, god=god, job=job) }}"
                class="page-button" {% if pagination.page == 1 %}disabled{% endif %}>
                 首页
             </a>
             
             {% if pagination.has_prev %}
-            <a href="{{ url_for('person.person_list', page=pagination.prev_num, search=search, god=god) }}" 
+            <a href="{{ url_for('person.person_list', page=pagination.prev_num, search=search, god=god, job=job) }}" 
                class="page-button">
                 上一页
             </a>
@@ -433,7 +439,7 @@
             </span>
             
             {% if pagination.has_next %}
-            <a href="{{ url_for('person.person_list', page=pagination.next_num, search=search, god=god) }}"
+            <a href="{{ url_for('person.person_list', page=pagination.next_num, search=search, god=god, job=job) }}"
                class="page-button">
                 下一页
             </a>
@@ -441,7 +447,7 @@
             <button class="page-button" disabled>下一页</button>
             {% endif %}
             
-            <a href="{{ url_for('person.person_list', page=pagination.pages, search=search, god=god) }}"
+            <a href="{{ url_for('person.person_list', page=pagination.pages, search=search, god=god, job=job) }}"
                class="page-button" {% if pagination.page == pagination.pages %}disabled{% endif %}>
                 末页
             </a>

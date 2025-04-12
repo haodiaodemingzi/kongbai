@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 from app.models.player import Person
 from app.extensions import db
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, distinct
 from datetime import datetime
 import json
 
@@ -13,6 +13,7 @@ def person_list():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     god = request.args.get('god', '')
+    job = request.args.get('job', '')
     
     per_page = 10
     query = Person.query.filter_by(deleted_at=None)
@@ -32,6 +33,10 @@ def person_list():
     if god:
         conditions.append(Person.god == god)
     
+    # 新增职业筛选条件
+    if job:
+        conditions.append(Person.job == job)
+    
     # 应用所有条件
     if conditions:
         query = query.filter(and_(*conditions))
@@ -40,11 +45,17 @@ def person_list():
         page=page, per_page=per_page, error_out=False
     )
     
+    # 获取所有不重复的职业用于筛选器
+    jobs_query = db.session.query(distinct(Person.job)).filter(Person.deleted_at.is_(None), Person.job.isnot(None)).order_by(Person.job)
+    available_jobs = [j[0] for j in jobs_query.all() if j[0]] # Filter out None/empty jobs
+    
     return render_template('person/list.html', 
                          persons=pagination.items, 
                          pagination=pagination,
                          search=search,
-                         god=god)
+                         selected_god=god,
+                         selected_job=job,
+                         available_jobs=available_jobs)
 
 @bp.route('/person/add', methods=['GET', 'POST'])
 def person_add():
