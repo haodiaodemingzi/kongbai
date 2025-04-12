@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <!-- Date Filter Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white py-2">
+            <h4 class="m-0">筛选日期</h4>
+        </div>
+        <div class="card-body py-3">
+            <form class="row g-2 justify-content-center" id="filter-form" method="get">
+                <div class="col-lg-6 col-md-8 col-12">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <!-- Use type="date" -->
+                                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date or '' }}" placeholder="开始日期">
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                <!-- Use type="date" -->
+                                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date or '' }}" placeholder="结束日期">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> 查询
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+             <p class="text-muted text-center mt-2 mb-0 small">统计指定日期范围内，每晚 20:00 至 22:00 参与PK的玩家数据。</p>
+        </div>
+    </div>
+
+    <!-- Summary Table -->
+    <div class="card shadow-sm">
+         <div class="card-header bg-light py-2">
+            <h4 class="m-0 mb-2">参与玩家汇总 <span class="badge bg-secondary ms-2">{{ summary_data|length }} 人/组</span></h4>
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <small class="text-muted me-3">统计周期：{{ period_total_days }} 天</small>
+                {# 使用新的 format_large_number 过滤器 #}
+                <small class="text-muted me-3">奖金总和：<span class="fw-bold">{{ total_reward_all | format_large_number }}</span></small>
+                <small class="text-muted">
+                    全勤 ({{ period_total_days }} 天) 名单 ({{ full_attendance_list|length }} 位):
+                    <span class="fw-bold">
+                        {% if full_attendance_list %}
+                            {{ full_attendance_list | join(', ') }}
+                        {% else %}
+                            无
+                        {% endif %}
+                    </span>
+                </small>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="pk-summary-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>玩家名</th>
+                            <th>神</th>
+                            <th>职业</th>
+                            <th class="text-center">参与天数</th>
+                            <th class="text-center">总祝福</th>
+                            <th class="text-end">总奖励</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in summary_data %}
+                        <tr data-player-id="{{ player.id }}">
+                            <td class="fw-bold">{{ player.name }}</td>
+                            <td>{{ player.god or '-' }}</td>
+                            <td>{{ player.job or '-' }}</td>
+                            <td class="text-center">{{ player.participation_days }}</td>
+                            <td class="text-center {% if player.total_blessings > 0 %}text-success fw-bold{% endif %}">{{ player.total_blessings }}</td>
+                            {# 应用新的 format_large_number 过滤器到个人奖励 #}
+                            <td class="text-end text-primary fw-bold">{{ player.reward | format_large_number }}</td>
+                            <td class="text-center">
+                                <!-- Modified Button to trigger Modal -->
+                                <button class="btn btn-sm btn-outline-info view-details-btn"
+                                        data-id="{{ player.id }}"
+                                        data-name="{{ player.name }}"
+                                        data-god="{{ player.god }}"
+                                        data-is-group="{{ player.is_group|lower }}" {# Pass is_group flag #}
+                                        data-start-date="{{ start_date }}"
+                                        data-end-date="{{ end_date }}"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#participationDetailsModal"
+                                        title="查看每日参与详情">
+                                    <i class="fas fa-calendar-alt"></i> 详情
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted p-4">
+                                <i class="fas fa-info-circle me-2"></i> 在选定日期范围内，没有找到符合条件的 PK 参与记录。
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participation Details Modal -->
+    <div class="modal fade" id="participationDetailsModal" tabindex="-1" aria-labelledby="participationDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="participationDetailsModalLabel">参与详情</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="participationDetailsModalBody">
+            <!-- Content will be loaded here -->
+            <p class="text-center text-muted my-3">请稍候...</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips (if any were kept) - Check if still needed
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]:not([data-bs-target])')); // Only init tooltips not for modal
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    const detailsModal = new bootstrap.Modal(document.getElementById('participationDetailsModal'));
+    const modalTitle = document.getElementById('participationDetailsModalLabel');
+    const modalBody = document.getElementById('participationDetailsModalBody');
+
+    // Event listener for when the modal is about to be shown
+    document.getElementById('participationDetailsModal').addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget; // Button that triggered the modal
+
+        // Extract data from data-* attributes
+        const itemId = button.getAttribute('data-id');
+        const itemName = button.getAttribute('data-name');
+        const itemGod = button.getAttribute('data-god');
+        const isGroup = button.getAttribute('data-is-group') === 'true';
+        const startDate = button.getAttribute('data-start-date');
+        const endDate = button.getAttribute('data-end-date');
+
+        // Update the modal's title
+        modalTitle.textContent = `${itemName} - 参与详情`;
+
+        // Show loading state in modal body
+        modalBody.innerHTML = '<p class=\"text-center text-muted my-3\"><i class=\"fas fa-spinner fa-spin me-2\"></i>加载中...</p>';
+
+        if (isGroup) {
+            // If it's a group, display a message (API doesn't support group date details yet)
+             modalBody.innerHTML = '<p class=\"text-center text-muted my-3\"><i class=\"fas fa-info-circle me-2\"></i>分组的详细参与日期列表暂不可用。</p>';
+        } else {
+            // If it's an individual player, fetch participation dates
+            // Add the /battle prefix to the API URL
+            const apiUrl = `/battle/api/pk_participation_details?player_id=${itemId}&god=${encodeURIComponent(itemGod)}&start_date=${startDate}&end_date=${endDate}`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.error || `HTTP error! status: ${response.status}`) });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.details && data.details.length > 0) {
+                        let detailsHtml = '<p>该玩家在以下日期参与了晚间 (20:00-22:00) PK：</p><ul class=\"list-group list-group-flush\">';
+                        data.details.forEach(date => {
+                            detailsHtml += `<li class=\"list-group-item py-1\">${date}</li>`; // Reduced padding
+                        });
+                        detailsHtml += '</ul>';
+                        modalBody.innerHTML = detailsHtml;
+                    } else {
+                         modalBody.innerHTML = '<p class=\"text-center text-muted my-3\"><i class=\"fas fa-info-circle me-2\"></i>在此时间段内没有找到该玩家的参与记录。</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching participation details:', error);
+                    modalBody.innerHTML = `<div class=\"alert alert-danger\" role=\"alert\"><i class=\"fas fa-exclamation-triangle me-2\"></i>获取详情失败: ${error.message}</div>`;
+                });
+        }
+    });
+
+    // Optional: Clear modal content when hidden to prevent showing old data briefly
+    document.getElementById('participationDetailsModal').addEventListener('hidden.bs.modal', function (event) {
+        modalBody.innerHTML = '<p class=\"text-center text-muted my-3\">请稍候...</p>'; // Reset to loading or empty
+        modalTitle.textContent = '参与详情'; // Reset title
+    });
+
+});
+</script>
+{% endblock %}

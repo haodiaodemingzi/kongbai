@@ -6,8 +6,44 @@ from app.extensions import db
 from app.utils.logger import get_logger
 import time
 from sqlalchemy import text
+import locale # 确保导入了 locale
+import math
 
 logger = get_logger()
+
+def format_large_number(value):
+    """Jinja filter to format large numbers: multiply by 10, use '亿' as unit."""
+    try:
+        value = float(value)
+        if value == 0:
+            return "0"
+        # Multiply by 10, then divide by 100 million (亿)
+        result = (value * 10) / 100_000_000/100
+
+        # Format with 2 decimal places, remove .00 if it's an integer result
+        formatted_str = f"{result:.2f}"
+        if formatted_str.endswith('.00'):
+            formatted_str = formatted_str[:-3]
+
+        return f"{formatted_str} 亿"
+    except (ValueError, TypeError):
+        return value # Return original value if conversion fails
+
+def format_reward(value):
+    """Jinja filter to format large numbers into 'X 亿'."""
+    try:
+        value = int(value)
+        if value == 0:
+            return "0"
+        billions = value / 1_000_000_000
+        # Format with appropriate precision, removing trailing .0 if it's an integer
+        if billions == int(billions):
+                return f"{int(billions)} 亿"
+        else:
+                # Keep one decimal place if needed, adjust as necessary
+                return f"{billions:.1f} 亿"
+    except (ValueError, TypeError):
+        return value # Return original value if conversion fails
 
 def create_app(config_class=Config):
     """创建并配置Flask应用程序"""
@@ -23,6 +59,8 @@ def create_app(config_class=Config):
     # 注册自定义过滤器
     from app.utils.filters import chart_data
     app.jinja_env.filters['chart_data'] = chart_data
+    # 注册新的过滤器
+    app.jinja_env.filters['format_large_number'] = format_large_number
     
     # 启用更详细的日志
     if app.debug:
@@ -73,6 +111,8 @@ def create_app(config_class=Config):
             return super().default(obj)
     
     app.json_encoder = CustomJSONEncoder
+        # 在 app = Flask(...) 之后
+    app.jinja_env.filters['format_reward'] = format_reward
     logger.info("已注册自定义JSON编码器，支持Decimal类型")
     
     app.register_blueprint(auth_bp, url_prefix='/auth')

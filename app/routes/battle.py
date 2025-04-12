@@ -15,8 +15,8 @@ from app.utils.data_service import get_player_rankings, get_battle_details_by_pl
 from app.config import Config
 from app.utils.logger import get_logger
 from app.utils.battle_report import generate_battle_report, export_battle_sql
-from datetime import datetime, date
-from sqlalchemy import text
+from datetime import datetime, date, time, timedelta
+from sqlalchemy import text, func, distinct, cast, String, DATE, TIME, Integer, or_, case
 from app.utils.auth import login_required
 
 logger = get_logger()
@@ -121,17 +121,33 @@ def rankings():
     """玩家排名页面，考虑玩家分组情况"""
     logger.info("访问玩家排名页面")
     
-    # 获取筛选参数
-    faction = request.args.get('faction')
-    job = request.args.get('job')  # 新增职业筛选参数
-    if job == 'all' or job == '':
-        job = None
-    if faction == 'all' or faction == '':
-        faction = None
-
+    # --- Modified Filter Logic --- 
+    raw_faction = request.args.get('faction')
+    raw_job = request.args.get('job')
     time_range = request.args.get('time_range', 'all')
-    show_grouped = request.args.get('show_grouped', 'true') == 'true'  # 新增参数：是否按分组统计
-    logger.debug(f"排名筛选参数: faction={faction}, job={job}, time_range={time_range}, show_grouped={show_grouped}")
+    show_grouped = request.args.get('show_grouped', 'true') == 'true'
+
+    # Determine faction for query and template
+    if raw_faction == 'all' or raw_faction == '':
+        query_faction = None
+        selected_faction = None # For template button state
+    elif raw_faction is None: # First load or no faction specified
+        query_faction = '比湿奴' # Default query to 比湿奴
+        selected_faction = '比湿奴' # Default button selection to 比湿奴
+    else: # Specific faction selected
+        query_faction = raw_faction
+        selected_faction = raw_faction
+
+    # Determine job for query and template
+    if raw_job == 'all' or raw_job == '' or raw_job is None:
+        query_job = None
+        selected_job = None
+    else:
+        query_job = raw_job
+        selected_job = raw_job
+    # --- End Modified Filter Logic --- 
+
+    logger.debug(f"排名筛选参数: faction={selected_faction}, job={selected_job}, time_range={time_range}, show_grouped={show_grouped}")
     
     try:
         # 根据是否需要按分组统计选择不同的查询
@@ -240,10 +256,10 @@ def rankings():
                 ORDER BY score DESC, kills DESC, deaths ASC
             """)
         
-        # 执行查询
+        # 执行查询 (Use query_faction and query_job)
         result = db.session.execute(query, {
-            'faction': faction,
-            'job': job
+            'faction': query_faction,
+            'job': query_job
         })
         
         # 转换结果为列表
@@ -275,14 +291,15 @@ def rankings():
         jobs = [row[0] for row in db.session.execute(jobs_query)]
         logger.debug(f"获取到 {len(jobs)} 个职业分类")
         
-        # 获取统计数据
-        total_players, total_kills, total_deaths, total_score = get_statistics(faction=faction)
+        # 获取统计数据 (Use query_faction)
+        total_players, total_kills, total_deaths, total_score = get_statistics(faction=query_faction)
         
+        # Pass selected_faction and selected_job to template
         return render_template('rankings.html', 
                               players=player_rankings, 
                               jobs=jobs,
-                              selected_job=job,
-                              selected_faction=faction,
+                              selected_job=selected_job,
+                              selected_faction=selected_faction,
                               show_grouped=show_grouped,
                               selected_time=time_range,
                               total_players=total_players,
@@ -292,11 +309,12 @@ def rankings():
     except Exception as e:
         logger.error(f"玩家排名页面渲染出错: {str(e)}", exc_info=True)
         flash('获取排名数据时出错', 'error')
+        # Pass selected_faction and selected_job even on error
         return render_template('rankings.html', 
                              players=[], 
                              jobs=[],
-                             selected_job=job,
-                             selected_faction=faction,
+                             selected_job=selected_job,
+                             selected_faction=selected_faction,
                              show_grouped=show_grouped,
                              selected_time=time_range,
                              total_players=0,
@@ -1100,3 +1118,271 @@ def group_details():
     except Exception as e:
         logger.error(f"获取分组详情出错: {str(e)}", exc_info=True)
         return jsonify({'error': f'获取分组详情时出错: {str(e)}'}), 500 
+
+@battle_bp.route('/pk_participation')
+@login_required
+def pk_participation():
+    """显示玩家晚间PK参与次数和奖励"""
+    # 添加分组显示参数
+    show_grouped = request.args.get("show_grouped", "true") == "true"
+    logger.info("访问晚间PK参与统计页面")
+
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    # --- Default Date Logic ---
+    now = datetime.now()
+    start_date = None
+    end_date = None
+
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('开始日期格式不正确', 'error')
+            start_date_str = None
+    if not start_date_str:
+        start_date = now.date()
+        start_date_str = start_date.strftime('%Y-%m-%d')
+
+    if end_date_str:
+        try:
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            flash('结束日期格式不正确', 'error')
+            end_date_str = None
+    if not end_date_str:
+        end_date = now.date()
+        end_date_str = end_date.strftime('%Y-%m-%d')
+    # --- End Default Date Logic ---
+
+    # 使用确切的时间范围
+    start_datetime = datetime.combine(start_date, time(20, 0, 0))
+    end_datetime = datetime.combine(end_date, time(21, 59, 59))
+
+    summary_data = []
+    try:
+        # --- 1. Database Query for Raw Participation Data (No blessing info needed here) ---
+        # 查询参与PK的比湿奴玩家的基本信息和不重复的参与日期
+        query_participation = text("""
+            SELECT DISTINCT
+                p.id AS person_id,
+                p.name AS person_name,
+                p.god,
+                p.job,
+                p.player_group_id,
+                pg.group_name,
+                DATE(br.publish_at) as participation_date
+            FROM person p
+            JOIN battle_record br ON p.name IN (br.win, br.lost)
+            LEFT JOIN player_group pg ON p.player_group_id = pg.id
+            WHERE p.deleted_at IS NULL
+              AND p.god = '比湿奴'
+              AND br.publish_at >= :start_datetime
+              AND br.publish_at <= :end_datetime
+              -- 时间范围已由 start_datetime 和 end_datetime 控制
+            ORDER BY p.player_group_id, p.id, participation_date
+        """)
+
+        results = db.session.execute(query_participation, {
+            'start_datetime': start_datetime,
+            'end_datetime': end_datetime
+        }).fetchall()
+
+        # --- 2. Process Results and Aggregate basic info (No blessing count here) ---
+        group_aggregates = {}
+        individual_aggregates = {}
+
+        for row in results:
+            person_id, person_name, god, job, player_group_id, group_name, participation_date = row
+            # logger.debug(f"Processing participation: {person_name}, Date: {participation_date}") # Optional debug
+
+            if player_group_id:
+                group_key = player_group_id
+                if group_key not in group_aggregates:
+                    group_aggregates[group_key] = {
+                        'name': group_name or f'分组 {group_key}',
+                        'god': god,
+                        'members': [], # Store member details {id, name, job}
+                        'jobs': set(),
+                        'participation_dates': set()
+                    }
+                group_aggregates[group_key]['participation_dates'].add(participation_date)
+                # Store unique members and their jobs
+                member_ids = {m['id'] for m in group_aggregates[group_key]['members']}
+                if person_id not in member_ids:
+                     group_aggregates[group_key]['members'].append({'id': person_id, 'name': person_name, 'job': job})
+                     group_aggregates[group_key]['jobs'].add(job)
+            else:
+                # Individual players
+                if person_id not in individual_aggregates:
+                    individual_aggregates[person_id] = {
+                        'id': person_id,
+                        'name': person_name,
+                        'god': god,
+                        'job': job,
+                        'participation_dates': set()
+                    }
+                individual_aggregates[person_id]['participation_dates'].add(participation_date)
+
+
+        # --- 3. Calculate Statistics and Prepare Final Summary Data (Query blessing count here) ---
+        final_summary_data = []
+        total_reward_all = 0
+        period_total_days = (end_date - start_date).days + 1
+        full_attendance_list = []
+
+        # Base SQL for counting blessings in the time range where remark='1'
+        query_blessing_count_base = """
+            SELECT COUNT(*)
+            FROM battle_record br
+            WHERE br.remark = '1'
+              AND br.publish_at >= :start_datetime
+              AND br.publish_at <= :end_datetime
+              AND {win_condition}
+        """
+        query_params_blessing = {
+            'start_datetime': start_datetime,
+            'end_datetime': end_datetime
+        }
+
+
+        # Process aggregated groups
+        for group_key, data in group_aggregates.items():
+            participation_days = len(data['participation_dates'])
+            group_job = '奶' if '奶' in data['jobs'] else (list(data['jobs'])[0] if data['jobs'] else '未知')
+            member_names = [m['name'] for m in data['members']]
+
+            # Get blessing count for the group
+            blessing_count = 0
+            if member_names: # Only query if group has members
+                win_condition = "br.win IN :member_names"
+                query_blessing_sql = query_blessing_count_base.format(win_condition=win_condition)
+                # Create a copy of params for this specific query to avoid modification issues
+                current_params = query_params_blessing.copy()
+                current_params['member_names'] = tuple(member_names) # Use tuple for IN clause
+                blessing_count = db.session.execute(text(query_blessing_sql), current_params).scalar() or 0
+                logger.debug(f"Group '{data['name']}' blessing count: {blessing_count} for members: {member_names}") # Debug log
+
+            base_reward_per_day = 20_000_000_000 if group_job == '奶' else 10_000_000_000
+            total_base_reward = base_reward_per_day * participation_days
+            blessing_bonus = 10_000_000_000 if blessing_count > 0 else 0
+            total_reward = total_base_reward + blessing_bonus
+            total_reward_all += total_reward
+
+            if participation_days == period_total_days:
+                full_attendance_list.append(data['name'] + " (组)")
+
+            final_summary_data.append({
+                'id': group_key,
+                'name': data['name'],
+                'god': data['god'],
+                'job': group_job,
+                'participation_days': participation_days,
+                'total_blessings': blessing_count, # Use the queried count
+                'reward': total_reward,
+                'is_group': True
+            })
+
+        # Process individual players
+        for player_id, data in individual_aggregates.items():
+            participation_days = len(data['participation_dates'])
+            job = data['job'] or '未知'
+            player_name = data['name']
+
+            # Get blessing count for the individual
+            win_condition = "br.win = :player_name"
+            query_blessing_sql = query_blessing_count_base.format(win_condition=win_condition)
+            # Create a copy of params
+            current_params = query_params_blessing.copy()
+            current_params['player_name'] = player_name
+            blessing_count = db.session.execute(text(query_blessing_sql), current_params).scalar() or 0
+            logger.debug(f"Individual '{player_name}' blessing count: {blessing_count}") # Debug log
+
+            base_reward_per_day = 20_000_000_000 if job == '奶' else 10_000_000_000
+            total_base_reward = base_reward_per_day * participation_days
+            blessing_bonus = 10_000_000_000 if blessing_count > 0 else 0
+            total_reward = total_base_reward + blessing_bonus
+            total_reward_all += total_reward
+
+            if participation_days == period_total_days:
+                full_attendance_list.append(data['name'])
+
+            final_summary_data.append({
+                'id': player_id,
+                'name': data['name'],
+                'god': data['god'],
+                'job': job,
+                'participation_days': participation_days,
+                'total_blessings': blessing_count, # Use the queried count
+                'reward': total_reward,
+                'is_group': False
+            })
+
+        # --- Sort the final list ---
+        final_summary_data.sort(key=lambda x: (-x['participation_days'], x['name']))
+        summary_data = final_summary_data
+
+    except Exception as e:
+        logger.error(f"获取PK参与统计时出错: {str(e)}", exc_info=True)
+        flash('获取PK参与统计数据时出错', 'error')
+        summary_data = [] # Ensure it's empty on error
+        total_reward_all = 0 # Reset on error
+        period_total_days = 0 # Reset on error
+        full_attendance_list = [] # Reset on error
+
+    # 渲染模板时传递所有需要的数据
+    return render_template('battle/pk_participation.html',
+                           summary_data=summary_data,
+                           start_date=start_date_str,
+                           end_date=end_date_str,
+                           show_grouped=show_grouped,
+                           total_reward_all=total_reward_all, # 添加总奖励
+                           period_total_days=period_total_days, # 添加周期天数
+                           full_attendance_list=full_attendance_list) # 添加全勤列表
+
+@battle_bp.route('/api/pk_participation_details')
+@login_required # Assuming details also require login
+def pk_participation_details_api():
+    player_id = request.args.get('player_id', type=int)
+    god = request.args.get('god')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
+    if not all([player_id, god, start_date_str, end_date_str]):
+        return jsonify({"error": "Missing required parameters"}), 400
+
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        start_datetime = datetime.combine(start_date, datetime.min.time())
+        end_datetime_next_day = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
+
+        # Query distinct participation dates
+        participation_dates = (
+            db.session.query(
+                distinct(cast(BattleRecord.publish_at, DATE)).label('participation_date')
+            )
+            .join(Person, or_(Person.name == BattleRecord.win, Person.name == BattleRecord.lost))
+            .filter(
+                Person.id == player_id,
+                Person.god == god, # Also filter by god for consistency?
+                BattleRecord.publish_at >= start_datetime,
+                BattleRecord.publish_at < end_datetime_next_day,
+                cast(BattleRecord.publish_at, TIME) >= time(20, 0, 0),
+                cast(BattleRecord.publish_at, TIME) <= time(21, 59, 59)
+            )
+            .order_by(cast(BattleRecord.publish_at, DATE).desc())
+            .all()
+        )
+
+        # Convert date objects to strings
+        details = [d.participation_date.strftime('%Y-%m-%d') for d in participation_dates]
+
+        return jsonify({"details": details})
+
+    except ValueError:
+        return jsonify({"error": "Invalid date format"}), 400
+    except Exception as e:
+        logger.error(f"获取PK参与详情API出错: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to fetch participation details"}), 500 

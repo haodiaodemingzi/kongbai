@@ -4,20 +4,6 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="text-center mb-4">玩家战绩排名</h1>
-    
-    <!-- 上传文件按钮 -->
-    <div class="text-center mb-4">
-        <a href="{{ url_for('battle.upload_file') }}" class="btn btn-primary">
-            <i class="fas fa-upload"></i> 上传战斗日志
-        </a>
-        {% if players %}
-        <a href="{{ url_for('battle.export_json', faction=selected_faction) }}" class="btn btn-primary ms-2">
-            <i class="fas fa-file-download"></i> 导出JSON
-        </a>
-        {% endif %}
-    </div>
-    
     <!-- 筛选条件统一卡片 -->
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-primary text-white py-2">
@@ -32,14 +18,28 @@
                             <div class="col-md-6">
                                 <div class="filter-section">
                                     <h5 class="filter-title"><i class="fas fa-shield-alt me-2"></i>按势力筛选</h5>
+                                    <!-- DEBUG: Value of selected_faction is [{{ selected_faction }}] -->
                                     <div class="btn-group w-100 flex-wrap faction-filter-group" role="group">
-                                        <button type="button" class="btn btn-sm filter-btn {% if not selected_faction %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="faction" data-value="">
+                                        {% if not selected_faction %}
+                                        <button type="button" class="btn btn-sm filter-btn btn-primary active" data-filter="faction" data-value="">
                                             全部
                                         </button>
-                                        {% for faction in ['梵天', '比湿奴', '湿婆'] %}
-                                        <button type="button" class="btn btn-sm filter-btn {% if selected_faction == faction %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="faction" data-value="{{ faction }}">
-                                            {{ faction }}
+                                        {% else %}
+                                        <button type="button" class="btn btn-sm filter-btn btn-outline-primary" data-filter="faction" data-value="">
+                                            全部
                                         </button>
+                                        {% endif %}
+                                        
+                                        {% for faction in ['梵天', '比湿奴', '湿婆'] %}
+                                            {% if selected_faction == faction %}
+                                            <button type="button" class="btn btn-sm filter-btn btn-primary active" data-filter="faction" data-value="{{ faction }}">
+                                                {{ faction }}
+                                            </button>
+                                            {% else %}
+                                            <button type="button" class="btn btn-sm filter-btn btn-outline-primary" data-filter="faction" data-value="{{ faction }}">
+                                                {{ faction }}
+                                            </button>
+                                            {% endif %}
                                         {% endfor %}
                                     </div>
                                 </div>

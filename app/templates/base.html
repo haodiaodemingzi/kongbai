@@ -421,6 +421,9 @@
                         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('reward.') %}active{% endif %}" 
                            href="{{ url_for('reward.rewards') }}"><i class="fas fa-medal"></i> 奖励统计</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('battle.pk_participation') }}">晚间PK统计</a>
+                    </li>
                 </ul>
                 {% if session.get('user_id') %}
                 <ul class="navbar-nav">
