@@ -100,9 +100,10 @@ def create_app(config_class=Config):
     from app.routes.player_group import bp as player_group_bp
     
     # 添加自定义JSON编码器，处理Decimal类型
-    import json
     from decimal import Decimal
-    
+    from simplejson import JSONEncoder
+    app.json_encoder = JSONEncoder
+
     app.jinja_env.filters['format_reward'] = format_reward
     logger.info("已注册自定义JSON编码器，支持Decimal类型")
     
