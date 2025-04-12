@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% block styles %}
 <style>
 .page-container {
     max-width: 1200px;
@@ -18,7 +18,7 @@
 }
 
 .page-title {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: #333;
     margin-bottom: 0.5rem;
@@ -26,22 +26,22 @@
 
 .search-container {
     background: #fff;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 0.75rem 1rem;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(233, 236, 239, 0.8);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.25rem;
+    border: 1px solid #e9ecef;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
 }
 
 .search-form {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     justify-content: flex-start;
     flex: 1;
@@ -50,82 +50,82 @@
 .search-input-container {
     position: relative;
     flex: 0 0 auto;
-    width: 220px;
+    width: 200px;
 }
 
 .search-icon {
     position: absolute;
-    left: 10px;
+    left: 8px;
     top: 50%;
     transform: translateY(-50%);
     color: #adb5bd;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     pointer-events: none;
 }
 
 .search-input {
     width: 100%;
-    padding: 0.55rem 0.75rem 0.55rem 2rem;
-    border-radius: 8px;
+    padding: 0.5rem 0.7rem 0.5rem 1.8rem;
+    border-radius: 6px;
     border: 1px solid #dee2e6;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     transition: all 0.2s ease;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
 }
 
 .search-select {
     flex: 0 0 auto;
-    width: 110px;
-    padding: 0.55rem 0.75rem;
-    border-radius: 8px;
+    width: 100px;
+    padding: 0.5rem 0.7rem;
+    border-radius: 6px;
     border: 1px solid #dee2e6;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     transition: all 0.2s ease;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
     background-repeat: no-repeat;
-    background-position: right 0.5rem center;
-    background-size: 16px 12px;
+    background-position: right 0.4rem center;
+    background-size: 14px 10px;
     appearance: none;
 }
 
 .btn-search {
-    padding: 0.55rem 1rem;
-    min-width: 120px;
-    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    min-width: auto;
+    border-radius: 6px;
     font-weight: 500;
-    font-size: 0.9rem;
-    background: linear-gradient(to right, #cb2d3e, #ef473a);
+    font-size: 0.875rem;
+    background: linear-gradient(to right, #0062cc, #007bff);
     color: white;
     border: none;
-    box-shadow: 0 2px 5px rgba(203, 45, 62, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     white-space: nowrap;
     cursor: pointer;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
 }
 
 .btn-search:hover {
-    background: linear-gradient(to right, #b82435, #d63a2f);
+    background: linear-gradient(to right, #0056b3, #0069d9);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(203, 45, 62, 0.4);
+    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.3);
 }
 
 .btn-search .btn-icon {
-    margin-right: 0.5rem;
-    width: 0.9rem;
-    height: 0.9rem;
+    margin-right: 0.4rem;
+    width: 0.85rem;
+    height: 0.85rem;
 }
 
 .table-container {
     background: #ffffff;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    margin-bottom: 1.5rem;
-    border: 1px solid #eaeaea;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.25rem;
+    border: 1px solid #e9ecef;
 }
 
 .data-table {
@@ -135,16 +135,17 @@
 }
 
 .table-header {
-    background: linear-gradient(to right, rgba(203, 45, 62, 0.05), rgba(239, 71, 58, 0.05));
+    background: linear-gradient(to right, rgba(0, 123, 255, 0.05), rgba(0, 98, 204, 0.05));
 }
 
 .table-header th {
-    color: #cb2d3e;
+    color: #0056b3;
     font-weight: 600;
     text-align: left;
-    padding: 1rem;
-    font-size: 0.9rem;
-    border-bottom: 2px solid rgba(203, 45, 62, 0.2);
+    padding: 0.75rem 0.9rem;
+    font-size: 0.85rem;
+    border-bottom: 2px solid rgba(0, 123, 255, 0.15);
+    white-space: nowrap;
 }
 
 .table-row {
@@ -152,24 +153,25 @@
 }
 
 .table-row:nth-child(even) {
-    background-color: rgba(248, 249, 250, 0.7);
+    background-color: #fbfdff;
 }
 
 .table-row:hover {
-    background-color: rgba(203, 45, 62, 0.05);
+    background-color: rgba(0, 123, 255, 0.04);
 }
 
 .table-cell {
-    padding: 0.85rem 1rem;
-    color: #444;
-    font-size: 0.9rem;
-    border-bottom: 1px solid #eaeaea;
+    padding: 0.6rem 0.9rem;
+    color: #495057;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #e9ecef;
     vertical-align: middle;
+    line-height: 1.4;
 }
 
 .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     justify-content: flex-end;
 }
 
@@ -177,10 +179,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem 0.85rem;
-    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    border-radius: 5px;
     font-weight: 500;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     transition: all 0.3s ease;
     cursor: pointer;
     border: none;
@@ -208,71 +210,41 @@
 .btn-edit {
     background-color: #17a2b8;
     color: white;
-    padding: 0.4rem 0.65rem;
-    font-size: 0.8rem;
-    box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
 }
 
 .btn-edit:hover {
     background-color: #138496;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(23, 162, 184, 0.4);
 }
 
 .btn-delete {
     background-color: #dc3545;
     color: white;
-    padding: 0.4rem 0.65rem;
-    font-size: 0.8rem;
-    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
 }
 
 .btn-delete:hover {
     background-color: #c82333;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(220, 53, 69, 0.4);
 }
 
 .pagination-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 1.5rem;
-    gap: 10px;
+    margin-top: 1.25rem;
+    gap: 8px;
 }
 
 .page-button {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 500;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    color: #555;
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    cursor: pointer;
-}
-
-.page-button:hover {
-    background: linear-gradient(to right, #cb2d3e, #ef473a);
-    color: white;
-    border-color: transparent;
-}
-
-.page-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background-color: #f8f9fa;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
 }
 
 .page-info {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+}
+
+.add-button-container .btn-primary {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
-    color: #666;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    font-weight: 500;
-    border: 1px solid #eaeaea;
 }
 
 @keyframes fadeIn {
@@ -326,43 +298,47 @@
     box-shadow: 0 0 0 3px rgba(203, 45, 62, 0.15);
 }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="page-container">
     <div class="content-wrapper animate-fade-in">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
             <h1 class="page-title">人员管理</h1>
-            <a href="{{ url_for('person.person_add') }}" class="btn btn-primary">
-                <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                添加人员
-            </a>
+            <div class="add-button-container">
+                 <a href="{{ url_for('person.person_add') }}" class="btn btn-primary">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    添加人员
+                </a>
+            </div>
         </div>
 
         <div class="search-container">
-            <form method="get" class="search-form">
+            <form method="get" class="search-form" action="{{ url_for('person.person_list') }}">
                 <div class="search-input-container">
-                    <input type="text" 
-                           name="search" 
-                           value="{{ search }}" 
-                           placeholder="搜索游戏ID/战盟/职业..." 
-                           class="search-input">
                     <span class="search-icon">
                         <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </span>
+                    <input type="text" 
+                           name="search" 
+                           value="{{ search or '' }}" 
+                           placeholder="搜索游戏ID/战盟/职业..." 
+                           class="search-input">
                 </div>
                 <select name="god" class="search-select">
-                    <option value="">全部主神</option>
-                    <option value="梵天" {% if god == '梵天' %}selected{% endif %}>梵天</option>
-                    <option value="湿婆" {% if god == '湿婆' %}selected{% endif %}>湿婆</option>
-                    <option value="比湿奴" {% if god == '比湿奴' %}selected{% endif %}>比湿奴</option>
+                    <option value="" {% if not selected_god %}selected{% endif %}>全部主神</option>
+                    <option value="梵天" {% if selected_god == '梵天' %}selected{% endif %}>梵天</option>
+                    <option value="湿婆" {% if selected_god == '湿婆' %}selected{% endif %}>湿婆</option>
+                    <option value="比湿奴" {% if selected_god == '比湿奴' %}selected{% endif %}>比湿奴</option>
                 </select>
                 <select name="job" class="search-select">
-                    <option value="" {% if not job %}selected{% endif %}>全部职业</option>
+                    <option value="" {% if not selected_job %}selected{% endif %}>全部职业</option>
                     {% for j in available_jobs %}
-                    <option value="{{ j }}" {% if job == j %}selected{% endif %}>{{ j }}</option>
+                    <option value="{{ j }}" {% if selected_job == j %}selected{% endif %}>{{ j }}</option>
                     {% endfor %}
                 </select>
                 <button type="submit" class="btn btn-search">
@@ -384,136 +360,105 @@
                             <th>战盟</th>
                             <th>职业</th>
                             <th>主神等级</th>
-                            <th style="width: 15%;">操作</th>
+                            <th class="text-end" style="width: 15%;">操作</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for person in persons %}
+                        {% if persons %}
+                            {% for person in persons %}
+                            <tr class="table-row">
+                                <td class="table-cell fw-bold">{{ person.name }}</td>
+                                <td class="table-cell">{{ person.god }}</td>
+                                <td class="table-cell">{{ person.union_name }}</td>
+                                <td class="table-cell">{{ person.job }}</td>
+                                <td class="table-cell">{{ person.level }}</td>
+                                <td class="table-cell text-end">
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('person.person_edit', id=person.id) }}" class="btn btn-edit" title="编辑">
+                                            <i class="fas fa-edit btn-icon"></i> 编辑
+                                        </a>
+                                        <button class="btn btn-delete delete-person-btn" data-id="{{ person.id }}" data-name="{{ person.name }}" title="删除">
+                                            <i class="fas fa-trash-alt btn-icon"></i> 删除
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
                         <tr class="table-row">
-                            <td class="table-cell">{{ person.name }}</td>
-                            <td class="table-cell">{{ person.god }}</td>
-                            <td class="table-cell">{{ person.union_name }}</td>
-                            <td class="table-cell">{{ person.job }}</td>
-                            <td class="table-cell">{{ person.level }}</td>
-                            <td class="table-cell">
-                                <div class="action-buttons">
-                                    <button type="button" 
-                                            data-action="edit"
-                                            data-url="{{ url_for('person.person_edit', id=person.id) }}"
-                                            class="btn btn-edit">
-                                        编辑
-                                    </button>
-                                    <button type="button" 
-                                            data-action="delete"
-                                            data-id="{{ person.id }}"
-                                            class="btn btn-delete">
-                                        删除
-                                    </button>
-                                </div>
+                            <td colspan="6" class="table-cell text-center text-muted p-4">
+                                <i class="fas fa-info-circle me-2"></i> 没有找到符合条件的人员。
                             </td>
                         </tr>
-                        {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        {% if pagination.pages > 1 %}
-        <div class="pagination-container">
-            <a href="{{ url_for('person.person_list', page=1, search=search, god=god, job=job) }}"
-               class="page-button" {% if pagination.page == 1 %}disabled{% endif %}>
-                首页
-            </a>
-            
-            {% if pagination.has_prev %}
-            <a href="{{ url_for('person.person_list', page=pagination.prev_num, search=search, god=god, job=job) }}" 
-               class="page-button">
-                上一页
-            </a>
-            {% else %}
-            <button class="page-button" disabled>上一页</button>
-            {% endif %}
-            
-            <span class="page-info">
-                第 {{ pagination.page }} 页，共 {{ pagination.pages }} 页
-            </span>
-            
-            {% if pagination.has_next %}
-            <a href="{{ url_for('person.person_list', page=pagination.next_num, search=search, god=god, job=job) }}"
-               class="page-button">
-                下一页
-            </a>
-            {% else %}
-            <button class="page-button" disabled>下一页</button>
-            {% endif %}
-            
-            <a href="{{ url_for('person.person_list', page=pagination.pages, search=search, god=god, job=job) }}"
-               class="page-button" {% if pagination.page == pagination.pages %}disabled{% endif %}>
-                末页
-            </a>
-        </div>
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Page navigation" class="pagination-container">
+            <ul class="pagination mb-0">
+                <li class="page-item {{ 'disabled' if not pagination.has_prev else '' }}">
+                    <a class="page-link page-button" href="{{ url_for('person.person_list', page=pagination.prev_num, search=search, god=selected_god, job=selected_job) if pagination.has_prev else '#' }}">上一页</a>
+                </li>
+                {% for page_num in pagination.iter_pages() %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+                            <a class="page-link page-button" href="{{ url_for('person.person_list', page=page_num, search=search, god=selected_god, job=selected_job) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link page-button">…</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if not pagination.has_next else '' }}">
+                    <a class="page-link page-button" href="{{ url_for('person.person_list', page=pagination.next_num, search=search, god=selected_god, job=selected_job) if pagination.has_next else '#' }}">下一页</a>
+                </li>
+            </ul>
+        </nav>
         {% endif %}
     </div>
 </div>
 
 <script>
-function deletePerson(id) {
-    if (confirm('确定要删除这个人员吗？')) {
-        fetch(`/person/delete/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.code === 0) {
-                const tr = event.target.closest('tr');
-                tr.style.transition = 'all 0.3s ease';
-                tr.style.transform = 'translateX(100%)';
-                tr.style.opacity = '0';
-                setTimeout(() => {
-                    location.reload();
-                }, 300);
-            } else {
-                alert(data.message || '删除失败');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('删除失败');
-        });
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    // 表格行动画效果
-    const rows = document.querySelectorAll('.table-row');
-    rows.forEach((row, index) => {
-        row.style.opacity = '0';
-        row.style.transform = 'translateY(15px)';
-        setTimeout(() => {
-            row.style.transition = 'all 0.3s ease';
-            row.style.opacity = '1';
-            row.style.transform = 'translateY(0)';
-        }, 50 + index * 30);
-    });
-    
-    // 编辑按钮事件
-    document.querySelectorAll('.btn-edit').forEach(button => {
-        button.addEventListener('click', function() {
-            const url = this.getAttribute('data-url');
-            window.location.href = url;
+    const deleteButtons = document.querySelectorAll('.delete-person-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const personId = this.dataset.id;
+            const personName = this.dataset.name;
+
+            if (confirm(`确定要删除人员【${personName}】吗？此操作不可撤销。`)) {
+                fetch(`/person/delete/${personId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 0) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('删除失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting person:', error);
+                    alert('删除过程中发生错误');
+                });
+            }
         });
     });
-    
-    // 删除按钮事件
-    document.querySelectorAll('.btn-delete').forEach(button => {
-        button.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            deletePerson(id);
+
+    document.querySelectorAll('.btn-edit').forEach(button => {
+        button.addEventListener('click', function(e) {
+            console.log('Edit button clicked for person');
         });
     });
 });
 </script>
+
 {% endblock %} 

@@ -1,4 +1,23 @@
 {% extends "base.html" %}
+
+{% block styles %}
+<style>
+    #pk-summary-table th,
+    #pk-summary-table td {
+        padding-top: 0.5rem;  /* 减少上下内边距 */
+        padding-bottom: 0.5rem;
+        padding-left: 0.75rem; /* 左右内边距可以稍微保持 */
+        padding-right: 0.75rem;
+        font-size: 0.875rem; /* 减小字体大小 */
+        vertical-align: middle; /* 确保内容垂直居中 */
+    }
+    #pk-summary-table .btn-sm {
+        padding: 0.2rem 0.4rem; /* 减小按钮内边距 */
+        font-size: 0.8rem;    /* 减小按钮字体大小 */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <!-- Date Filter Form -->

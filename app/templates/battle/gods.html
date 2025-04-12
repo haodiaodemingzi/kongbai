@@ -75,7 +75,7 @@
                         </div>
                         <div class="stat-item">
                             <div class="stat-value" style="color: #28a745;">{{ data.bless }}</div>
-                            <div class="stat-label">祝福</div>
+                            <div class="stat-label">爆灯</div>
                         </div>
                     </div>
                     
@@ -92,7 +92,7 @@
                             <div class="btn-group btn-group-sm" role="group">
                                 <button type="button" class="btn btn-outline-primary sort-btn active" data-sort="kills">击杀</button>
                                 <button type="button" class="btn btn-outline-primary sort-btn" data-sort="kd">K/D比</button>
-                                <button type="button" class="btn btn-outline-primary sort-btn" data-sort="bless">祝福</button>
+                                <button type="button" class="btn btn-outline-primary sort-btn" data-sort="bless">爆灯</button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -108,7 +108,7 @@
                                         </th>
                                         <th width="15%" class="text-center">击杀</th>
                                         <th width="15%" class="text-center">死亡</th>
-                                        <th width="15%" class="text-center">祝福</th>
+                                        <th width="15%" class="text-center">爆灯</th>
                                         {% if show_grouped %}
                                         <th width="15%" class="text-end">详情</th>
                                         {% endif %}
@@ -128,11 +128,13 @@
                                         </td>
                                         <td class="text-primary text-center fw-bold">{{ player.kills }}</td>
                                         <td class="text-danger text-center fw-bold">{{ player.deaths }}</td>
-                                        {% if player.bless|int > 0 %}
-                                        <td class="text-center fw-bold" style="color: #198754;">{{ player.bless }}</td>
-                                        {% else %}
-                                        <td class="text-center fw-bold" style="color: #6c757d;">{{ player.bless }}</td>
-                                        {% endif %}
+                                        <td class="text-center fw-bold">
+                                            {% if player.bless and player.bless|int > 0 %}
+                                                {% for _ in range(player.bless|int) %}🏮{% endfor %}
+                                            {% else %}
+                                                <span style="color: #6c757d;">0</span>
+                                            {% endif %}
+                                        </td>
                                         {% if show_grouped %}
                                         <td class="text-end">
                                             {% if player.is_group %}
@@ -616,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <th>神族</th>
                             <th>击杀</th>
                             <th>死亡</th>
-                            <th>祝福</th>
+                            <th>爆灯</th>
                         </tr>
                     </thead>
                     <tbody>
