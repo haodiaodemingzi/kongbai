@@ -1319,8 +1319,8 @@ def pk_participation():
                 'is_group': False
             })
 
-        # --- Sort the final list ---
-        final_summary_data.sort(key=lambda x: (-x['participation_days'], x['name']))
+        # --- Sort the final list by reward (desc), then participation days (desc), then name (asc) ---
+        final_summary_data.sort(key=lambda x: (-x['reward'], -x['participation_days'], x['name']))
         summary_data = final_summary_data
 
     except Exception as e:

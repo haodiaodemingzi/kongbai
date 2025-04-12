@@ -73,7 +73,14 @@
                     <tbody>
                         {% for player in summary_data %}
                         <tr data-player-id="{{ player.id }}">
-                            <td class="fw-bold">{{ player.name }}</td>
+                            <td class="fw-bold">
+                                {# Check if it's a group #}
+                                {% if player.is_group %}
+                                    _{{ player.name }} (多号)
+                                {% else %}
+                                    {{ player.name }}
+                                {% endif %}
+                            </td>
                             <td>{{ player.god or '-' }}</td>
                             <td>{{ player.job or '-' }}</td>
                             <td class="text-center">{{ player.participation_days }}</td>

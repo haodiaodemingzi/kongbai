@@ -102,16 +102,7 @@ def create_app(config_class=Config):
     # 添加自定义JSON编码器，处理Decimal类型
     import json
     from decimal import Decimal
-    from flask.json import JSONEncoder
     
-    class CustomJSONEncoder(JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, Decimal):
-                return float(obj)
-            return super().default(obj)
-    
-    app.json_encoder = CustomJSONEncoder
-        # 在 app = Flask(...) 之后
     app.jinja_env.filters['format_reward'] = format_reward
     logger.info("已注册自定义JSON编码器，支持Decimal类型")
     
