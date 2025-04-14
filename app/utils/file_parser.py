@@ -49,67 +49,76 @@ def parse_csv_file(file_path):
 
 
 def parse_text_file(file_path):
-    """解析战斗日志文本文件"""
-    logger.info(f"开始解析文件: {file_path}")
-    
-    # 检查文件是否存在
-    if not os.path.exists(file_path):
-        logger.error(f"文件不存在: {file_path}")
-        return False, "文件不存在", [], []
-    
-    # 检查文件大小
-    file_size = os.path.getsize(file_path)
-    logger.info(f"文件大小: {file_size} 字节")
-    if file_size == 0:
-        logger.warning(f"文件为空: {file_path}")
-        return False, "文件为空", [], []
-    
-    try:
-        # 尝试读取文件内容 (GBK编码)
-        with codecs.open(file_path, 'r', encoding='gbk') as file:
-            try:
+    """解析文本文件，尝试多种编码 (UTF-8, GBK)。"""
+    logger.info(f"尝试解析文件: {file_path}")
+    content = None
+    encoding_used = None
+    encodings_to_try = ['utf-8', 'gbk'] # 尝试的编码顺序
+
+    for encoding in encodings_to_try:
+        try:
+            # 尝试以当前编码读取文件内容
+            with codecs.open(file_path, 'r', encoding=encoding) as file:
                 content = file.read()
-                
-                # 打印前几行用于调试
-                lines = content.split('\n')
-                first_lines = lines[:5]
-                logger.debug(f"文件前{len(first_lines)}行内容:")
-                for i, line in enumerate(first_lines):
-                    logger.debug(f"行 {i+1}: {line}")
-                
-                logger.info(f"成功读取文件，共 {len(lines)} 行")
-                
-                # 解析战斗日志
-                battle_details, blessings = parse_battle_log(content)
-                
-                # 检查数据库连接
-                try:
-                    from app.models.player import Person
-                    # 检查数据库连接是否正常
-                    test_query = Person.query.limit(1).all()
-                    logger.debug(f"数据库连接测试: 成功读取 {len(test_query)} 条记录")
-                except Exception as e:
-                    logger.error(f"数据库连接测试失败: {str(e)}", exc_info=True)
-                    # 返回解析结果，但说明数据库连接失败
-                    return True, f"文件解析成功（{len(battle_details)}条击杀记录，{len(blessings)}条祝福记录），但数据库连接失败: {str(e)}", battle_details, blessings
-                
-                # 返回解析结果
-                return True, f"成功解析 {len(battle_details)} 条击杀记录和 {len(blessings)} 条祝福记录", battle_details, blessings
-            except UnicodeDecodeError as e:
-                logger.error(f"文件编码错误，尝试以GBK解码失败: {str(e)}")
-                # 尝试检测编码
-                try:
-                    with open(file_path, 'rb') as binary_file:
-                        raw_data = binary_file.read(1024)  # 读取前1024字节
-                        possible_encoding = chardet.detect(raw_data)
-                        logger.error(f"检测到可能的编码: {possible_encoding}")
-                        return False, f"文件编码错误，可能的编码为{possible_encoding.get('encoding', 'unknown')}，请转换为GBK编码", [], []
-                except Exception as detect_error:
-                    logger.error(f"尝试检测编码时出错: {str(detect_error)}")
-                return False, "文件编码错误，请确保使用GBK编码", [], []
+                encoding_used = encoding
+                logger.info(f"成功使用 {encoding} 编码读取文件")
+                break # 成功读取，跳出循环
+        except UnicodeDecodeError:
+            logger.warning(f"使用 {encoding} 编码打开文件失败，尝试下一种编码...")
+            continue # 继续尝试列表中的下一个编码
+        except Exception as e:
+            logger.error(f"尝试使用 {encoding} 编码读取时发生错误: {e}")
+            # 对于其他读取错误，可以选择继续或直接失败，这里选择继续
+            continue
+
+    # 如果所有尝试都失败了
+    if content is None:
+        logger.error(f"无法使用支持的编码 ({', '.join(encodings_to_try)}) 读取文件: {file_path}")
+        error_msg = f"无法识别的文件编码。请确保文件使用 UTF-8 或 GBK 编码。"
+        # 尝试检测编码作为提示
+        try:
+            with open(file_path, 'rb') as binary_file:
+                raw_data = binary_file.read(1024) # 读取前1024字节
+                detected = chardet.detect(raw_data)
+                if detected and detected['encoding']:
+                    logger.warning(f"检测到文件可能的编码: {detected['encoding']} (置信度: {detected['confidence']:.2f})")
+                    error_msg += f" (检测到可能的编码: {detected['encoding']})"
+        except Exception as detect_error:
+            logger.error(f"尝试检测编码时出错: {detect_error}")
+            
+        return False, error_msg, [], []
+
+    # --- 如果成功读取文件内容，则继续执行后续逻辑 --- 
+    try:
+        # 打印前几行用于调试
+        lines = content.split('\n')
+        first_lines = lines[:5]
+        logger.debug(f"文件前{len(first_lines)}行内容 (使用 {encoding_used} 编码):")
+        for i, line in enumerate(first_lines):
+            logger.debug(f"行 {i+1}: {line.strip()}")
+        
+        logger.info(f"成功读取文件 (使用 {encoding_used} 编码)，共 {len(lines)} 行")
+        
+        # 解析战斗日志
+        battle_details, blessings = parse_battle_log(content)
+        logger.info(f"解析完成: {len(battle_details)} 条击杀, {len(blessings)} 条祝福")
+        
+        # 检查数据库连接
+        try:
+            # 检查数据库连接是否正常
+            test_query = Person.query.limit(1).all()
+            logger.debug(f"数据库连接测试: 成功读取 {len(test_query)} 条记录")
+        except Exception as e:
+            logger.error(f"数据库连接测试失败: {str(e)}", exc_info=True)
+            # 返回解析结果，但说明数据库连接失败
+            return True, f"文件解析成功（{len(battle_details)}条击杀，{len(blessings)}条祝福），但数据库连接失败: {str(e)}", battle_details, blessings
+        
+        # 返回解析结果
+        return True, f"成功解析 {len(battle_details)} 条击杀记录和 {len(blessings)} 条祝福记录 (使用 {encoding_used} 编码)", battle_details, blessings
+        
     except Exception as e:
-        logger.error(f"解析文件时出错: {str(e)}", exc_info=True)
-        return False, f"解析文件时出错: {str(e)}", [], []
+        logger.error(f"处理文件内容时出错 (编码: {encoding_used}): {str(e)}", exc_info=True)
+        return False, f"处理文件内容时出错: {str(e)}", [], []
 
 
 def parse_battle_log(log_content):
