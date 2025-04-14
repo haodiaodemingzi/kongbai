@@ -36,7 +36,7 @@ def get_faction_stats(date_range=None):
         # 在需要的地方动态替换别名
         death_date_condition = base_date_condition.replace('publish_at', 'br.publish_at') if base_date_condition else ''
 
-        # 获取死亡榜前三
+        # 获取死亡榜前十
         death_query = text(f"""
             SELECT 
                 p.name,
@@ -47,7 +47,7 @@ def get_faction_stats(date_range=None):
             WHERE 1=1 {death_date_condition}
             GROUP BY p.name, p.god
             ORDER BY deaths DESC
-            LIMIT 5 
+            LIMIT 10 
         """)
         death_result = db.session.execute(death_query)
         top_deaths = [
@@ -58,8 +58,59 @@ def get_faction_stats(date_range=None):
             }
             for row in death_result
         ]
-        logger.debug(f"获取到死亡榜前三: {top_deaths}")
+        logger.debug(f"获取到死亡榜前十: {top_deaths}")
 
+        # 获取击杀榜前十（所有势力）
+        killer_query = text(f"""
+            SELECT 
+                p.name,
+                p.god as faction,
+                COUNT(*) as kills
+            FROM battle_record br
+            JOIN person p ON br.win = p.name
+            WHERE 1=1 {death_date_condition.replace('br.publish_at', 'br.publish_at')}
+            GROUP BY p.name, p.god
+            ORDER BY kills DESC
+            LIMIT 10
+        """)
+        killer_result = db.session.execute(killer_query)
+        top_killers = [
+            {
+                'name': row.name,
+                'faction': row.faction,
+                'kills': row.kills
+            }
+            for row in killer_result
+        ]
+        logger.debug(f"获取到击杀榜前十: {top_killers}")
+
+        # 获取得分榜前十（所有势力）
+        scorer_query = text(f"""
+            SELECT 
+                p.name,
+                p.god as faction,
+                (COUNT(CASE WHEN br.win = p.name THEN 1 END) * 3 - 
+                 COUNT(CASE WHEN br.lost = p.name THEN 1 END) +
+                 SUM(CASE WHEN br.win = p.name AND br.remark = '1' THEN 1 ELSE 0 END)) as score
+            FROM person p
+            JOIN battle_record br ON (br.win = p.name OR br.lost = p.name)
+            WHERE 1=1 {death_date_condition.replace('br.publish_at', 'br.publish_at')}
+            GROUP BY p.name, p.god
+            HAVING score > 0
+            ORDER BY score DESC
+            LIMIT 10
+        """)
+        scorer_result = db.session.execute(scorer_query)
+        top_scorers = [
+            {
+                'name': row.name,
+                'faction': row.faction,
+                'score': row.score
+            }
+            for row in scorer_result
+        ]
+        logger.debug(f"获取到得分榜前十: {top_scorers}")
+        
         faction_stats = []
         factions = ['梵天', '比湿奴', '湿婆']
         
@@ -189,11 +240,11 @@ def get_faction_stats(date_range=None):
             faction_stats.append((faction, stats))
             
         logger.info(f"返回 {len(faction_stats)} 个势力的统计数据")
-        return faction_stats, top_deaths
+        return faction_stats, top_deaths, top_killers, top_scorers
         
     except Exception as e:
         logger.error(f"获取势力统计数据时出错: {str(e)}", exc_info=True)
-        return [], []
+        return [], [], [], []
 
 def get_player_rankings(faction=None, time_range=None):
     """

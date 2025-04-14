@@ -24,7 +24,7 @@ def index():
         date_range = request.args.get('date_range', 'all')
         
         # 获取势力统计数据
-        faction_stats, top_deaths = get_faction_stats(date_range)
+        faction_stats, top_deaths, top_killers, top_scorers = get_faction_stats(date_range)
         
         # 获取势力人数统计
         faction_statistics = get_faction_statistics()
@@ -78,29 +78,7 @@ def index():
             '湿婆': '#9966ff'
         }
         
-        # 获取击杀榜前三
-        top_killers = []
-        for faction, stats in faction_stats:
-            if stats['top_killer']['name']:
-                top_killers.append({
-                    'name': stats['top_killer']['name'],
-                    'faction': faction,
-                    'kills': stats['top_killer']['kills']
-                })
-        top_killers.sort(key=lambda x: (-x['kills']))
-        top_killers = top_killers[:5]
-        
-        # 获取得分榜前三
-        top_scorers = []
-        for faction, stats in faction_stats:
-            if stats['top_scorer']['name']:
-                top_scorers.append({
-                    'name': stats['top_scorer']['name'],
-                    'faction': faction,
-                    'score': stats['top_scorer']['score']
-                })
-        top_scorers.sort(key=lambda x: (-x['score']))
-        top_scorers = top_scorers[:5]
+        # 不再需要从各个势力收集top_killers和top_scorers
 
         return render_template('home/index.html',
                             chart_data=chart_data,
