@@ -88,7 +88,7 @@ def index():
                     'kills': stats['top_killer']['kills']
                 })
         top_killers.sort(key=lambda x: (-x['kills']))
-        top_killers = top_killers[:3]
+        top_killers = top_killers[:5]
         
         # 获取得分榜前三
         top_scorers = []
@@ -100,7 +100,7 @@ def index():
                     'score': stats['top_scorer']['score']
                 })
         top_scorers.sort(key=lambda x: (-x['score']))
-        top_scorers = top_scorers[:3]
+        top_scorers = top_scorers[:5]
 
         return render_template('home/index.html',
                             chart_data=chart_data,
