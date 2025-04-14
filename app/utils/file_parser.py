@@ -53,7 +53,8 @@ def parse_text_file(file_path):
     logger.info(f"尝试解析文件: {file_path}")
     content = None
     encoding_used = None
-    encodings_to_try = ['utf-8', 'gb2312', 'gbk'] 
+    #encodings_to_try = ['utf-8', 'gb2312', 'gbk'] 
+    encodings_to_try = ['gbk', 'gb2312', 'utf-8']
 
     for encoding in encodings_to_try:
         try:
