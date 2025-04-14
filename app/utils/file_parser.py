@@ -14,6 +14,7 @@ from app import db
 from app.utils.logger import get_logger
 import chardet
 from app.utils.transaction_helper import retry_on_deadlock
+import io
 
 logger = get_logger()
 
@@ -49,53 +50,96 @@ def parse_csv_file(file_path):
 
 
 def parse_text_file(file_path):
-    """解析文本文件，尝试多种编码 (UTF-8, GB2312, GBK)。"""
+    """解析文本文件，先尝试chardet检测编码，然后尝试解码。"""
     logger.info(f"尝试解析文件: {file_path}")
     content = None
     encoding_used = None
-    #encodings_to_try = ['utf-8', 'gb2312', 'gbk'] 
-    encodings_to_try = ['gbk', 'gb2312', 'utf-8']
+    detected_encoding = None
+    detected_confidence = 0
+    # 预设编码列表，作为 chardet 检测失败或结果不可信时的后备
+    fallback_encodings = ['gbk', 'gb2312', 'utf-8']
 
+    # --- 1. 使用 chardet 检测编码 --- 
+    try:
+        # 读取文件开头一部分用于检测 (例如 32KB)
+        # 使用 io.open 更灵活，可以处理二进制
+        with io.open(file_path, "rb") as f:
+            raw_data = f.read(32 * 1024) # Read first 32KB
+            if not raw_data:
+                 logger.warning(f"文件为空: {file_path}")
+                 return False, "文件为空", [], []
+                 
+            detection = chardet.detect(raw_data)
+            detected_encoding = detection.get('encoding')
+            detected_confidence = detection.get('confidence', 0)
+            logger.info(f"Chardet 检测结果: encoding='{detected_encoding}', confidence={detected_confidence:.2f}")
+
+    except FileNotFoundError:
+        logger.error(f"文件不存在: {file_path}")
+        return False, "文件不存在", [], []
+    except Exception as e:
+        logger.error(f"读取文件进行编码检测时出错: {e}", exc_info=True)
+        # 检测失败，我们将直接使用 fallback 列表
+        detected_encoding = None 
+
+    # --- 2. 确定尝试解码的顺序 --- 
+    encodings_to_try = []
+    # 如果 chardet 检测到结果且置信度较高 (例如 > 0.9)，优先尝试它
+    # 特别关注中文相关的编码
+    if detected_encoding and detected_confidence > 0.9:
+        # 标准化常见的中文编码名称
+        normalized_encoding = detected_encoding.lower()
+        if normalized_encoding in ['gb2312', 'gbk', 'gb18030']:
+           # 如果是GB系列，将GBK放在首位尝试（兼容性好），然后是检测到的，再是GB2312
+           encodings_to_try.extend(['gbk', normalized_encoding, 'gb2312'])
+        elif normalized_encoding == 'utf-8':
+            encodings_to_try.append('utf-8')
+        else:
+           # 对于其他高置信度的编码，也加入尝试列表
+            encodings_to_try.append(detected_encoding) 
+            
+    # 添加后备编码（确保不重复）
+    for enc in fallback_encodings:
+        if enc not in encodings_to_try:
+            encodings_to_try.append(enc)
+            
+    logger.info(f"最终尝试解码顺序: {encodings_to_try}")
+
+    # --- 3. 依次尝试解码 --- 
     for encoding in encodings_to_try:
         try:
-            # 尝试以当前编码读取文件内容，并添加错误处理策略
-            # 对 gb2312 和 gbk 添加 errors='replace'
-            errors_policy = 'replace' if encoding in ['gb2312', 'gbk'] else 'strict'
+            # 对非 UTF-8 编码使用 errors='replace' 策略
+            errors_policy = 'replace' if encoding != 'utf-8' else 'strict'
             with codecs.open(file_path, 'r', encoding=encoding, errors=errors_policy) as file:
                 content = file.read()
             
             encoding_used = encoding
             logger.info(f"成功使用 {encoding} 编码读取文件 (errors='{errors_policy}')")
-            # 如果读取成功，检查内容中是否包含替换字符 '' (U+FFFD)，如果包含，可能表示原始文件有问题
+            
+            # 检查是否有替换字符 (表明原始数据可能有问题)
             if errors_policy == 'replace' and '\ufffd' in content:
                  logger.warning(f"文件在使用 {encoding} (errors='replace') 读取时检测到替换字符 ('\uFFFD')，原始文件可能包含无法解码的字节。")
-            break # 成功读取，跳出循环
-        # 即使加了replace，某些极端情况或IO错误仍可能发生
-        except UnicodeDecodeError: # 理论上加了 errors='replace' 后，gbk/gb2312 不应再抛此错误，但保留以防万一
-            logger.warning(f"使用 {encoding} 编码 (errors='{errors_policy}') 打开文件时仍发生 UnicodeDecodeError，尝试下一种编码...")
-        except Exception as e:
-            logger.error(f"尝试使用 {encoding} 编码 (errors='{errors_policy}') 读取时发生错误: {e}", exc_info=True)
-            # 对于其他读取错误，可以选择继续或直接失败，这里选择继续
-            continue
-
-    # 如果所有尝试都失败了
-    if content is None:
-        logger.error(f"无法使用支持的编码 ({', '.join(encodings_to_try)}) 读取文件: {file_path}")
-        error_msg = f"无法识别的文件编码。请确保文件使用 UTF-8, GB2312 或 GBK 编码。"
-        # 尝试检测编码作为提示
-        try:
-            with open(file_path, 'rb') as binary_file:
-                raw_data = binary_file.read(1024) # 读取前1024字节
-                detected = chardet.detect(raw_data)
-                if detected and detected['encoding']:
-                    logger.warning(f"检测到文件可能的编码: {detected['encoding']} (置信度: {detected['confidence']:.2f})")
-                    error_msg += f" (检测到可能的编码: {detected['encoding']})"
-        except Exception as detect_error:
-            logger.error(f"尝试检测编码时出错: {detect_error}")
             
+            break # 成功读取，跳出循环
+            
+        except UnicodeDecodeError:
+            logger.warning(f"使用 {encoding} 编码 (errors='{errors_policy}') 打开文件时发生 UnicodeDecodeError，尝试下一种编码...")
+        except LookupError: # 处理 Python 不支持的编码名称
+            logger.warning(f"Python 不支持编码 '{encoding}'，跳过尝试...")
+        except Exception as e:
+            logger.error(f"尝试使用 {encoding} 编码 (errors='{errors_policy}') 读取时发生一般错误: {e}", exc_info=True)
+            # 对于其他读取错误，继续尝试下一种编码
+            
+    # --- 4. 处理解码结果 --- 
+    if content is None:
+        logger.error(f"无法使用尝试的所有编码 ({', '.join(encodings_to_try)}) 读取文件: {file_path}")
+        # 最终错误消息可以结合 chardet 的原始检测结果
+        error_msg = f"无法识别或解码文件编码。尝试列表: {encodings_to_try}。"
+        if detected_encoding:
+             error_msg += f" (Chardet 最初检测为: {detected_encoding}, 置信度: {detected_confidence:.2f})"
         return False, error_msg, [], []
 
-    # --- 如果成功读取文件内容，则继续执行后续逻辑 --- 
+    # --- 5. 如果成功读取文件内容，则继续执行后续逻辑 --- 
     try:
         # 打印前几行用于调试
         lines = content.split('\n')
