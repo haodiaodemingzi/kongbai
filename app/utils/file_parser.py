@@ -313,6 +313,7 @@ def save_battle_log_to_db(battle_details, blessings):
             logger.debug(f"开始处理 {len(battle_details)} 条击杀记录")
             
             battle_success_count = 0
+            blessing_success_count = 0 # Initialize blessing counter
             battle_error_count = 0
             battle_missing_player_count = 0
             battle_skip_count = 0
