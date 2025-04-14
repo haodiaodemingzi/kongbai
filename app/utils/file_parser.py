@@ -49,11 +49,11 @@ def parse_csv_file(file_path):
 
 
 def parse_text_file(file_path):
-    """解析文本文件，尝试多种编码 (UTF-8, GBK)。"""
+    """解析文本文件，尝试多种编码 (UTF-8, GB2312, GBK)。"""
     logger.info(f"尝试解析文件: {file_path}")
     content = None
     encoding_used = None
-    encodings_to_try = ['utf-8', 'gbk'] # 尝试的编码顺序
+    encodings_to_try = ['gb2312', 'utf-8', 'gbk'] 
 
     for encoding in encodings_to_try:
         try:
@@ -74,7 +74,7 @@ def parse_text_file(file_path):
     # 如果所有尝试都失败了
     if content is None:
         logger.error(f"无法使用支持的编码 ({', '.join(encodings_to_try)}) 读取文件: {file_path}")
-        error_msg = f"无法识别的文件编码。请确保文件使用 UTF-8 或 GBK 编码。"
+        error_msg = f"无法识别的文件编码。请确保文件使用 UTF-8, GB2312 或 GBK 编码。"
         # 尝试检测编码作为提示
         try:
             with open(file_path, 'rb') as binary_file:
