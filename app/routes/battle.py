@@ -180,8 +180,8 @@ def rankings():
                         pd.group_key,
                         pd.player_name,
                         -- 统一使用第一个遇到的job和faction作为分组的job和faction
-                        ANY_VALUE(pd.job) AS job,
-                        ANY_VALUE(pd.faction) AS faction,
+                        pd.job AS job,
+                        pd.faction AS faction,
                         COUNT(DISTINCT CASE WHEN br.win = pd.name THEN br.id END) AS kills,
                         COUNT(DISTINCT CASE WHEN br.lost = pd.name THEN br.id END) AS deaths,
                         SUM(CASE WHEN br.win = pd.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS blessings,
