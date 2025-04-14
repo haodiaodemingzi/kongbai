@@ -269,6 +269,7 @@ def save_battle_log_to_db(battle_details, blessings):
     logger.info(f"开始保存战斗日志到数据库: {len(battle_details)}条击杀记录, {len(blessings)}条祝福记录")
     
     try:
+        start_time = datetime.now() # Record start time
         # 获取所有玩家名称
         all_player_names = set()
         for detail in battle_details:
