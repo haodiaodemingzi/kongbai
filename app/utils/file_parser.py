@@ -53,21 +53,27 @@ def parse_text_file(file_path):
     logger.info(f"尝试解析文件: {file_path}")
     content = None
     encoding_used = None
-    encodings_to_try = ['gb2312', 'utf-8', 'gbk'] 
+    encodings_to_try = ['utf-8', 'gb2312', 'gbk'] 
 
     for encoding in encodings_to_try:
         try:
-            # 尝试以当前编码读取文件内容
-            with codecs.open(file_path, 'r', encoding=encoding) as file:
+            # 尝试以当前编码读取文件内容，并添加错误处理策略
+            # 对 gb2312 和 gbk 添加 errors='replace'
+            errors_policy = 'replace' if encoding in ['gb2312', 'gbk'] else 'strict'
+            with codecs.open(file_path, 'r', encoding=encoding, errors=errors_policy) as file:
                 content = file.read()
-                encoding_used = encoding
-                logger.info(f"成功使用 {encoding} 编码读取文件")
-                break # 成功读取，跳出循环
-        except UnicodeDecodeError:
-            logger.warning(f"使用 {encoding} 编码打开文件失败，尝试下一种编码...")
-            continue # 继续尝试列表中的下一个编码
+            
+            encoding_used = encoding
+            logger.info(f"成功使用 {encoding} 编码读取文件 (errors='{errors_policy}')")
+            # 如果读取成功，检查内容中是否包含替换字符 '' (U+FFFD)，如果包含，可能表示原始文件有问题
+            if errors_policy == 'replace' and '\ufffd' in content:
+                 logger.warning(f"文件在使用 {encoding} (errors='replace') 读取时检测到替换字符 ('\uFFFD')，原始文件可能包含无法解码的字节。")
+            break # 成功读取，跳出循环
+        # 即使加了replace，某些极端情况或IO错误仍可能发生
+        except UnicodeDecodeError: # 理论上加了 errors='replace' 后，gbk/gb2312 不应再抛此错误，但保留以防万一
+            logger.warning(f"使用 {encoding} 编码 (errors='{errors_policy}') 打开文件时仍发生 UnicodeDecodeError，尝试下一种编码...")
         except Exception as e:
-            logger.error(f"尝试使用 {encoding} 编码读取时发生错误: {e}")
+            logger.error(f"尝试使用 {encoding} 编码 (errors='{errors_policy}') 读取时发生错误: {e}", exc_info=True)
             # 对于其他读取错误，可以选择继续或直接失败，这里选择继续
             continue
 
