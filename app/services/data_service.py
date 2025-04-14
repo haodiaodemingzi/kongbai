@@ -47,7 +47,7 @@ def get_faction_stats(date_range=None):
             WHERE 1=1 {death_date_condition}
             GROUP BY p.name, p.god
             ORDER BY deaths DESC
-            LIMIT 3 
+            LIMIT 5 
         """)
         death_result = db.session.execute(death_query)
         top_deaths = [

@@ -41,7 +41,7 @@ def get_faction_stats():
         player_deaths
     ORDER BY 
         deaths DESC
-    LIMIT 3
+    LIMIT 5
     """
     
     top_deaths = []
