@@ -124,7 +124,7 @@ def rankings():
     # --- Modified Filter Logic --- 
     raw_faction = request.args.get('faction')
     raw_job = request.args.get('job')
-    time_range = request.args.get('time_range', 'all')
+    time_range = request.args.get('time_range', 'today')  # 默认为today
     show_grouped = request.args.get('show_grouped', 'true') == 'true'
 
     # Determine faction for query and template
@@ -145,6 +145,21 @@ def rankings():
     else:
         query_job = raw_job
         selected_job = raw_job
+        
+    # 确定时间筛选条件
+    date_condition = ""
+    if time_range == 'today':
+        date_condition = "AND DATE(br.publish_at) = CURDATE()"
+    elif time_range == 'yesterday':
+        date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+    elif time_range == 'week':
+        date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+    elif time_range == 'month':
+        date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+    elif time_range == 'three_months':
+        date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)"
+    # 如果是'all'则不添加时间筛选
+    
     # --- End Modified Filter Logic --- 
 
     logger.debug(f"排名筛选参数: faction={selected_faction}, job={selected_job}, time_range={time_range}, show_grouped={show_grouped}")
@@ -153,7 +168,7 @@ def rankings():
         # 根据是否需要按分组统计选择不同的查询
         if show_grouped:
             # 按照玩家分组进行统计的查询
-            query = text("""
+            query_text = """
                 WITH player_distinct AS (
                     -- 获取所有有效的玩家ID，并关联其分组信息
                     SELECT 
@@ -196,6 +211,8 @@ def rankings():
                         player_distinct pd
                     LEFT JOIN 
                         battle_record br ON pd.name IN (br.win, br.lost)
+                    WHERE 1=1
+                        {date_condition}
                     GROUP BY 
                         pd.group_key, pd.player_name
                     HAVING 
@@ -215,10 +232,13 @@ def rankings():
                     group_battle_stats
                 ORDER BY 
                     score DESC, kills DESC, deaths ASC
-            """)
+            """
+            # 使用format方法插入日期条件
+            query_text = query_text.format(date_condition=date_condition)
+            query = text(query_text)
         else:
             # 原始查询（不考虑玩家分组）
-            query = text("""
+            query_text = """
                 WITH player_stats AS (
                     SELECT 
                         p.id,
@@ -237,8 +257,9 @@ def rankings():
                     FROM person p
                     LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
                     WHERE p.deleted_at IS NULL
-                    AND (:faction IS NULL OR p.god = :faction)
-                    AND (:job IS NULL OR p.job = :job)
+                        AND (:faction IS NULL OR p.god = :faction)
+                        AND (:job IS NULL OR p.job = :job)
+                        {date_condition}
                     GROUP BY p.id, p.name, p.job, p.god
                     HAVING kills > 0 OR deaths > 0
                 )
@@ -254,7 +275,10 @@ def rankings():
                     (kills * 3 + blessings - deaths) as score
                 FROM player_stats
                 ORDER BY score DESC, kills DESC, deaths ASC
-            """)
+            """
+            # 使用format方法插入日期条件
+            query_text = query_text.format(date_condition=date_condition)
+            query = text(query_text)
         
         # 执行查询 (Use query_faction and query_job)
         result = db.session.execute(query, {

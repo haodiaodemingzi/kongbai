@@ -70,7 +70,7 @@ def create_app(config_class=Config):
     # 配置数据库连接
     if app.debug:
         # 开发模式使用固定数据库
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://cheetah:cheetah@192.168.123.144:3306/oneapi?charset=utf8mb4'
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root123@localhost:3308/oneapi?charset=utf8mb4'
         logger.info("开发模式：使用192.168.123.144数据库")
     else:
         # 生产模式优先使用环境变量中的数据库配置

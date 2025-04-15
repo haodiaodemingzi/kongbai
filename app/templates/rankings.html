@@ -50,17 +50,23 @@
                                 <div class="filter-section">
                                     <h5 class="filter-title"><i class="fas fa-calendar-alt me-2"></i>时间范围</h5>
                                     <div class="btn-group w-100 flex-wrap time-filter-group" role="group">
-                                        <button type="button" class="btn btn-sm filter-btn {% if not selected_time or selected_time == 'all' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="all">
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'all' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="all">
                                             全部
                                         </button>
-                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'today' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="today">
+                                        <button type="button" class="btn btn-sm filter-btn {% if not selected_time or selected_time == 'today' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="today">
                                             今天
+                                        </button>
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'yesterday' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="yesterday">
+                                            昨天
                                         </button>
                                         <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'week' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="week">
                                             7天
                                         </button>
                                         <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'month' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="month">
                                             30天
+                                        </button>
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'three_months' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="three_months">
+                                            90天
                                         </button>
                                     </div>
                                 </div>
@@ -71,7 +77,7 @@
                 
                 <!-- 隐藏字段用于表单提交 -->
                 <input type="hidden" id="faction" name="faction" value="{{ selected_faction or '' }}">
-                <input type="hidden" id="time_range" name="time_range" value="{{ selected_time or 'all' }}">
+                <input type="hidden" id="time_range" name="time_range" value="{{ selected_time or 'today' }}">
                 <input type="hidden" id="show_grouped" name="show_grouped" value="false">
                 <input type="hidden" id="job" name="job" value="{{ selected_job or '' }}">
             </form>
@@ -89,7 +95,7 @@
                 <div class="btn-group job-filter-group">
                     <button type="button" class="btn btn-light job-btn {% if not selected_job %}active{% endif %}" data-job="all">全部职业</button>
                     {% for job in jobs %}
-                        {% if job and not job|string|trim|first|int == job|string|trim|first %}
+                        {% if job in ['狂', '法师', '金刚', '奶', '弓', '刺客', '护法'] %}
                         <button type="button" class="btn btn-light job-btn {% if selected_job == job %}active{% endif %}" data-job="{{ job }}">{{ job }}</button>
                         {% endif %}
                     {% endfor %}
