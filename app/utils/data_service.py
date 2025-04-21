@@ -310,7 +310,7 @@ def get_player_rankings(faction=None, limit=30):
         return []
 
 
-def get_battle_details_by_player(person_id):
+def get_battle_details_by_player(person_id, start_date=None, end_date=None):
     """获取指定玩家的战斗明细"""
     logger.info(f"获取玩家ID {person_id} 的战斗明细")
     
@@ -347,6 +347,9 @@ def get_battle_details_by_player(person_id):
                 battle_record br ON br.win = p.name OR br.lost = p.name
             WHERE 
                 p.id = :person_id
+                -- 添加时间过滤条件
+                AND (:start_date IS NULL OR br.publish_at >= :start_date)
+                AND (:end_date IS NULL OR br.publish_at <= :end_date)
             GROUP BY 
                 p.id, p.name, p.job, p.god
         )
@@ -369,7 +372,7 @@ def get_battle_details_by_player(person_id):
             player_battle_stats
         """
         
-        result = db.session.execute(text(sql), {"person_id": person_id}).first()
+        result = db.session.execute(text(sql), {"person_id": person_id, "start_date": start_date, "end_date": end_date}).first()
         
         # 如果没有战绩记录，返回基本信息
         if not result:
@@ -422,12 +425,15 @@ def get_battle_details_by_player(person_id):
             battle_record br 
         WHERE 
             br.win = :player_name OR br.lost = :player_name
+            -- 添加时间过滤条件
+            AND (:start_date IS NULL OR br.publish_at >= :start_date)
+            AND (:end_date IS NULL OR br.publish_at <= :end_date)
         ORDER BY 
             br.publish_at DESC 
         LIMIT 50
         """
         
-        recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player.name}).fetchall()
+        recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
         
         # 添加近期战斗记录
         player_details['recent_battles'] = [{
@@ -453,6 +459,9 @@ def get_battle_details_by_player(person_id):
             person v ON br.lost = v.name  -- 被击杀者关联
         WHERE 
             br.win = :player_name  -- 当前玩家是胜利者(击杀者)
+            -- 添加时间过滤条件
+            AND (:start_date IS NULL OR br.publish_at >= :start_date)
+            AND (:end_date IS NULL OR br.publish_at <= :end_date)
         GROUP BY 
             v.id, v.name, v.job, v.god
         ORDER BY 
@@ -460,7 +469,7 @@ def get_battle_details_by_player(person_id):
         LIMIT 20
         """
         
-        kills_details = db.session.execute(text(kills_details_sql), {"player_name": player.name}).fetchall()
+        kills_details = db.session.execute(text(kills_details_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
         
         # 添加击杀详情
         player_details['kills_details'] = [{
@@ -485,6 +494,9 @@ def get_battle_details_by_player(person_id):
             person k ON br.win = k.name  -- 击杀者关联
         WHERE 
             br.lost = :player_name  -- 当前玩家是失败者(被击杀者)
+            -- 添加时间过滤条件
+            AND (:start_date IS NULL OR br.publish_at >= :start_date)
+            AND (:end_date IS NULL OR br.publish_at <= :end_date)
         GROUP BY 
             k.id, k.name, k.job, k.god
         ORDER BY 
@@ -492,7 +504,7 @@ def get_battle_details_by_player(person_id):
         LIMIT 20
         """
         
-        deaths_details = db.session.execute(text(deaths_details_sql), {"player_name": player.name}).fetchall()
+        deaths_details = db.session.execute(text(deaths_details_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
         
         # 添加死亡详情
         player_details['deaths_details'] = [{

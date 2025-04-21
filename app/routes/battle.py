@@ -350,18 +350,27 @@ def rankings():
 @battle_bp.route('/player/<int:person_id>')
 def player_details(person_id):
     """玩家详情页"""
+    # 接收时间参数
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+
     try:
-        player_details = get_battle_details_by_player(person_id)
+        # 将时间参数转换为日期对象
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else None
+
+        # 获取玩家战斗明细，传递时间参数
+        player_details = get_battle_details_by_player(person_id, start_date, end_date)
         if not player_details:
             flash('找不到该玩家', 'danger')
             return redirect(url_for('battle.rankings'))
-        
+
         # 确保kills_details和deaths_details字段存在，如果没有则提供空列表
         if 'kills_details' not in player_details:
             player_details['kills_details'] = []
         if 'deaths_details' not in player_details:
             player_details['deaths_details'] = []
-            
+
         return render_template('player_details.html', player=player_details)
     except Exception as e:
         logger.error(f"查看玩家 {person_id} 详情时出错: {str(e)}", exc_info=True)
