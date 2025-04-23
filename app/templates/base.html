@@ -427,7 +427,13 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('battle.pk_') %}active{% endif %}" 
                            href="{{ url_for('battle.pk_participation') }}">
-                           <i class="fas fa-fist-raised"></i> 晚间PK统计
+                           <i class="fas fa-fist-raised"></i> 夜场PK
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint == 'battle.rankings_card' %}active{% endif %}" 
+                           href="{{ url_for('battle.rankings_card') }}">
+                           <i class="fas fa-trophy"></i> 排行榜
                         </a>
                     </li>
                 </ul>

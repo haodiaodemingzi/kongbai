@@ -10,6 +10,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.utils import secure_filename
 from app import db
 from app.models.player import Person, BattleRecord
+from app.models.rankings import Rankings
 from app.utils.file_parser import parse_text_file, save_battle_log_to_db
 from app.utils.data_service import get_player_rankings, get_battle_details_by_player, export_data_to_json, get_statistics
 from app.config import Config
@@ -18,6 +19,8 @@ from app.utils.battle_report import generate_battle_report, export_battle_sql
 from datetime import datetime, date, time, timedelta
 from sqlalchemy import text, func, distinct, cast, String, DATE, TIME, Integer, or_, case
 from app.utils.auth import login_required
+import json
+from app.utils.web_scraper import get_rankings_by_scraper
 
 logger = get_logger()
 
@@ -1419,3 +1422,157 @@ def pk_participation_details_api():
     except Exception as e:
         logger.error(f"获取PK参与详情API出错: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to fetch participation details"}), 500 
+
+@battle_bp.route('/rankings_card')
+@login_required
+def rankings_card():
+    """排行榜数据卡片查询页面"""
+    logger.info("访问排行榜数据卡片查询页面")
+    
+    # 获取URL参数
+    url = request.args.get('url', 'http://fqa.173mz.com/a/a.asp?b=100&id=12')
+    category = request.args.get('category', '虎威主神排行榜')
+    
+    # 使用爬虫获取数据
+    logger.debug(f"使用爬虫从 {url} 获取排行榜数据")
+    try:
+        # 获取爬虫数据
+        ranking_data = get_rankings_by_scraper(url=url, category=category)
+        
+        # 确保数据包含所需的字段
+        if ranking_data and 'brahma_players' not in ranking_data and 'players' in ranking_data:
+            # 如果爬虫返回的数据没有按神分类，手动分类
+            players = ranking_data.get('players', [])
+            
+            # 按神分类玩家
+            brahma_players = []
+            vishnu_players = []
+            shiva_players = []
+            
+            for player in players:
+                if player.get('god') == "梵天":
+                    brahma_players.append(player)
+                elif player.get('god') == "比湿奴":
+                    vishnu_players.append(player)
+                elif player.get('god') == "湿婆":
+                    shiva_players.append(player)
+            
+            # 添加到结果中
+            ranking_data['brahma_players'] = brahma_players
+            ranking_data['vishnu_players'] = vishnu_players
+            ranking_data['shiva_players'] = shiva_players
+        
+        # 检查是否有错误且没有数据
+        if "error" in ranking_data and not (ranking_data.get('all_players') or ranking_data.get('brahma_players')):
+            flash(f"获取排行榜数据失败: {ranking_data['error']}", 'error')
+            ranking_data = None
+    except Exception as e:
+        logger.error(f"获取排行榜数据时出错: {str(e)}", exc_info=True)
+        flash(f"获取排行榜数据时出错: {str(e)}", 'error')
+        ranking_data = None
+    
+    # 固定类别选项，因为我们现在使用爬虫
+    categories = ['虎威主神排行榜', '积分排行榜', '杀人排行榜', '死亡排行榜']
+    
+    return render_template('battle/rankings_card.html', 
+                           categories=categories,
+                           category=category,
+                           url=url,
+                           ranking_data=ranking_data)
+
+@battle_bp.route('/api/rankings')
+@login_required
+def get_rankings():
+    """获取排行榜数据API"""
+    url = request.args.get('url', 'http://fqa.173mz.com/a/a.asp?b=100&id=12')
+    category = request.args.get('category', '虎威主神排行榜')
+    
+    try:
+        # 使用爬虫获取数据
+        ranking_data = get_rankings_by_scraper(url=url, category=category)
+        
+        # 检查是否有错误
+        if "error" in ranking_data:
+            return jsonify({'error': ranking_data['error']}), 500
+        
+        # 返回排行榜数据
+        return jsonify(ranking_data)
+    except Exception as e:
+        logger.error(f"获取排行榜数据时出错: {str(e)}", exc_info=True)
+        return jsonify({'error': f'获取排行榜数据失败: {str(e)}'}), 500
+
+@battle_bp.route('/api/rankings/categories')
+@login_required
+def get_ranking_categories():
+    """获取所有排行榜类别API"""
+    try:
+        # 获取所有排行榜类别
+        categories = db.session.query(Rankings.category).distinct().all()
+        categories = [c[0] for c in categories]
+        
+        return jsonify({'categories': categories})
+    except Exception as e:
+        logger.error(f"获取排行榜类别时出错: {str(e)}", exc_info=True)
+        return jsonify({'error': f'获取排行榜类别失败: {str(e)}'}), 500
+
+@battle_bp.route('/rankings_admin', methods=['GET', 'POST'])
+@login_required
+def rankings_admin():
+    """排行榜数据管理页面"""
+    if request.method == 'POST':
+        try:
+            # 从请求中获取数据
+            category = request.form.get('category')
+            update_time = request.form.get('update_time')
+            players_data = request.form.get('players_data')
+            
+            if not category or not players_data:
+                flash('类别和玩家数据不能为空', 'error')
+                return redirect(url_for('battle.rankings_admin'))
+            
+            # 尝试解析 players_data
+            try:
+                players_json = json.loads(players_data)
+            except json.JSONDecodeError:
+                flash('玩家数据格式错误，必须是有效的 JSON 格式', 'error')
+                return redirect(url_for('battle.rankings_admin'))
+            
+            # 创建或更新排行榜数据
+            ranking = Rankings.create_or_update(
+                category=category,
+                players_data=players_json,
+                update_time=update_time
+            )
+            
+            flash(f'排行榜数据已成功保存，ID: {ranking.id}', 'success')
+            return redirect(url_for('battle.rankings_admin'))
+        except Exception as e:
+            logger.error(f"保存排行榜数据时出错: {str(e)}", exc_info=True)
+            flash(f'保存排行榜数据时出错: {str(e)}', 'error')
+            return redirect(url_for('battle.rankings_admin'))
+    
+    # GET 请求，显示管理页面
+    # 获取所有排行榜记录
+    rankings = Rankings.query.order_by(Rankings.updated_at.desc()).all()
+    rankings = [r.to_dict() for r in rankings]
+    
+    return render_template('battle/rankings_admin.html', 
+                          rankings=rankings,
+                          now=datetime.now())
+
+@battle_bp.route('/api/rankings/<int:ranking_id>', methods=['DELETE'])
+@login_required
+def delete_ranking(ranking_id):
+    """删除排行榜数据API"""
+    try:
+        ranking = Rankings.query.get(ranking_id)
+        if not ranking:
+            return jsonify({'error': f'未找到 ID 为 {ranking_id} 的排行榜数据'}), 404
+        
+        db.session.delete(ranking)
+        db.session.commit()
+        
+        return jsonify({'message': f'ID 为 {ranking_id} 的排行榜数据已成功删除'})
+    except Exception as e:
+        logger.error(f"删除排行榜数据时出错: {str(e)}", exc_info=True)
+        return jsonify({'error': f'删除排行榜数据失败: {str(e)}'}), 500 

@@ -9,3 +9,5 @@ openpyxl==3.1.2
 Werkzeug==2.2.3
 chardet==5.2.0
 # 仅在导出MySQL数据时需要
+requests>=2.28.0
+beautifulsoup4>=4.11.1

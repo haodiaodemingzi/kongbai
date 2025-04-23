@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}排行榜数据管理{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">排行榜数据管理</h3>
+                    <a href="{{ url_for('battle.rankings_card') }}" class="btn btn-outline-primary">返回查询</a>
+                </div>
+                <div class="card-body">
+                    <!-- 添加/编辑表单 -->
+                    <form method="post" action="{{ url_for('battle.rankings_admin') }}" class="mb-4">
+                        <h4 class="mb-3">创建新排行榜数据</h4>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">排行榜类别</label>
+                                <input type="text" class="form-control" id="category" name="category" required>
+                                <div class="form-text">例如: PVP排行, 积分排行, 奶妈排行等</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="update_time" class="form-label">更新时间</label>
+                                <input type="text" class="form-control" id="update_time" name="update_time" 
+                                       value="{{ now.strftime('%Y-%m-%d %H:%M:%S') }}" required>
+                                <div class="form-text">格式: YYYY-MM-DD HH:MM:SS</div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="players_data" class="form-label">玩家数据 (JSON格式)</label>
+                                <textarea class="form-control" id="players_data" name="players_data" rows="10" required></textarea>
+                                <div class="form-text">
+                                    JSON数组格式，例如:
+                                    <pre><code>[
+    {"name": "玩家1", "score": 100, "kills": 10, "deaths": 5},
+    {"name": "玩家2", "score": 90, "kills": 9, "deaths": 4}
+]</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">保存数据</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <hr>
+
+                    <!-- 数据列表 -->
+                    <h4 class="mb-3">排行榜数据列表</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>类别</th>
+                                    <th>更新时间</th>
+                                    <th>创建时间</th>
+                                    <th>玩家数量</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ranking in rankings %}
+                                <tr>
+                                    <td>{{ ranking.id }}</td>
+                                    <td>{{ ranking.category }}</td>
+                                    <td>{{ ranking.update_time }}</td>
+                                    <td>{{ ranking.created_at }}</td>
+                                    <td>{{ ranking.players|length }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info view-btn" data-id="{{ ranking.id }}" 
+                                                data-category="{{ ranking.category }}" 
+                                                data-update-time="{{ ranking.update_time }}"
+                                                data-players="{{ ranking.players|tojson }}">
+                                            查看
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-btn" data-id="{{ ranking.id }}">删除</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 查看数据弹窗 -->
+<div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewModalLabel">查看排行榜数据</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>类别:</strong> <span id="modal-category"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>更新时间:</strong> <span id="modal-update-time"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>玩家数据:</strong>
+                    <pre><code id="modal-players" class="json"></code></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="copy-data-btn">复制数据</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认删除弹窗 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                确定要删除这条排行榜数据吗？此操作不可撤销。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 默认当前时间
+        const now = new Date();
+        const formattedDate = now.toISOString().slice(0, 19).replace('T', ' ');
+        $('#update_time').val(formattedDate);
+
+        // 查看按钮点击事件
+        $('.view-btn').click(function() {
+            const category = $(this).data('category');
+            const updateTime = $(this).data('update-time');
+            const players = $(this).data('players');
+
+            $('#modal-category').text(category);
+            $('#modal-update-time').text(updateTime);
+            $('#modal-players').text(JSON.stringify(players, null, 2));
+
+            $('#viewModal').modal('show');
+        });
+
+        // 复制数据按钮点击事件
+        $('#copy-data-btn').click(function() {
+            const playersData = $('#modal-players').text();
+            
+            // 创建临时textarea元素
+            const textarea = document.createElement('textarea');
+            textarea.value = playersData;
+            document.body.appendChild(textarea);
+            
+            // 选择并复制文本
+            textarea.select();
+            document.execCommand('copy');
+            
+            // 删除临时元素
+            document.body.removeChild(textarea);
+            
+            // 显示复制成功提示
+            alert('数据已复制到剪贴板');
+        });
+
+        // 删除按钮点击事件
+        let deleteId = null;
+        $('.delete-btn').click(function() {
+            deleteId = $(this).data('id');
+            $('#deleteModal').modal('show');
+        });
+
+        // 确认删除按钮点击事件
+        $('#confirm-delete-btn').click(function() {
+            if (deleteId) {
+                $.ajax({
+                    url: `/api/rankings/${deleteId}`,
+                    type: 'DELETE',
+                    success: function(result) {
+                        $('#deleteModal').modal('hide');
+                        // 刷新页面
+                        location.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        alert('删除失败: ' + error);
+                        $('#deleteModal').modal('hide');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %} 

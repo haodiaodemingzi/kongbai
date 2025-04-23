@@ -11,40 +11,6 @@ import math
 
 logger = get_logger()
 
-def format_large_number(value):
-    """Jinja filter to format large numbers: multiply by 10, use '亿' as unit."""
-    try:
-        value = float(value)
-        if value == 0:
-            return "0"
-        # Multiply by 10, then divide by 100 million (亿)
-        result = (value * 10) / 100_000_000/100
-
-        # Format with 2 decimal places, remove .00 if it's an integer result
-        formatted_str = f"{result:.2f}"
-        if formatted_str.endswith('.00'):
-            formatted_str = formatted_str[:-3]
-
-        return f"{formatted_str} 亿"
-    except (ValueError, TypeError):
-        return value # Return original value if conversion fails
-
-def format_reward(value):
-    """Jinja filter to format large numbers into 'X 亿'."""
-    try:
-        value = int(value)
-        if value == 0:
-            return "0"
-        billions = value / 1_000_000_000
-        # Format with appropriate precision, removing trailing .0 if it's an integer
-        if billions == int(billions):
-                return f"{int(billions)} 亿"
-        else:
-                # Keep one decimal place if needed, adjust as necessary
-                return f"{billions:.1f} 亿"
-    except (ValueError, TypeError):
-        return value # Return original value if conversion fails
-
 def create_app(config_class=Config):
     """创建并配置Flask应用程序"""
     logger.info("开始创建Flask应用程序")
@@ -59,8 +25,77 @@ def create_app(config_class=Config):
     # 注册自定义过滤器
     from app.utils.filters import chart_data
     app.jinja_env.filters['chart_data'] = chart_data
-    # 注册新的过滤器
-    app.jinja_env.filters['format_large_number'] = format_large_number
+    
+    # 自定义Jinja过滤器
+    @app.template_filter('format_large_number')
+    def format_large_number(value):
+        """Jinja filter to format large numbers: multiply by 10, use '亿' as unit."""
+        try:
+            value = float(value)
+            if value == 0:
+                return "0"
+            # Multiply by 10, then divide by 100 million (亿)
+            result = (value * 10) / 100_000_000/100
+
+            # Format with 2 decimal places, remove .00 if it's an integer result
+            formatted_str = f"{result:.2f}"
+            if formatted_str.endswith('.00'):
+                formatted_str = formatted_str[:-3]
+
+            return f"{formatted_str} 亿"
+        except (ValueError, TypeError):
+            return value # Return original value if conversion fails
+    
+    @app.template_filter('format_reward')
+    def format_reward(value):
+        """Jinja filter to format large numbers into 'X 亿'."""
+        try:
+            value = int(value)
+            if value == 0:
+                return "0"
+            billions = value / 1_000_000_000
+            # Format with appropriate precision, removing trailing .0 if it's an integer
+            if billions == int(billions):
+                    return f"{int(billions)} 亿"
+            else:
+                    # Keep one decimal place if needed, adjust as necessary
+                    return f"{billions:.1f} 亿"
+        except (ValueError, TypeError):
+            return value # Return original value if conversion fails
+    
+    @app.template_filter('get_rank_level')
+    def get_rank_level(rank):
+        """根据排名返回对应的级别"""
+        try:
+            rank = int(rank)
+            if rank == 1:
+                return "马哈拉迦 1 级"
+            elif 2 <= rank <= 3:
+                return "马哈拉迦 2 级"
+            elif 4 <= rank <= 6:
+                return "马哈拉迦 3 级"
+            elif 7 <= rank <= 11:
+                return "阿瓦塔尔 1 级"
+            elif 12 <= rank <= 18:
+                return "阿瓦塔尔 2 级"
+            elif 19 <= rank <= 28:
+                return "阿瓦塔尔 3 级"
+            elif 29 <= rank <= 43:
+                return "婆罗门 1 级"
+            elif 44 <= rank <= 63:
+                return "婆罗门 2 级"
+            elif 64 <= rank <= 88:
+                return "婆罗门 3 级"
+            elif 89 <= rank <= 118:
+                return "刹帝利 1 级"
+            elif 119 <= rank <= 168:
+                return "刹帝利 2 级"
+            elif 169 <= rank <= 248:
+                return "刹帝利 3 级"
+            else:
+                return "未知级别"
+        except (ValueError, TypeError):
+            return "未知级别"
     
     # 启用更详细的日志
     if app.debug:
@@ -104,7 +139,6 @@ def create_app(config_class=Config):
     from simplejson import JSONEncoder
     app.json_encoder = JSONEncoder
 
-    app.jinja_env.filters['format_reward'] = format_reward
     logger.info("已注册自定义JSON编码器，支持Decimal类型")
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -190,4 +224,5 @@ def create_app(config_class=Config):
     
     logger.info(f"应用程序已启动，环境: {app.config.get('ENV', 'production')}, 调试模式: {app.debug}")
     logger.info(f"应用程序配置: UPLOAD_FOLDER={app.config.get('UPLOAD_FOLDER')}, MAX_CONTENT_LENGTH={app.config.get('MAX_CONTENT_LENGTH', '未设置')}")
+    
     return app

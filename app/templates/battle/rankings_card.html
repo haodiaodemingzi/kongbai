@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}排行榜数据卡片{% endblock %}
+
+{% block styles %}
+<style>
+    .god-card {
+        margin-bottom: 20px;
+    }
+    
+    .god-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 5px;
+        vertical-align: middle;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .brahma-icon {
+        background-color: #FFD700; /* 金色 */
+    }
+    
+    .vishnu-icon {
+        background-color: #FF6347; /* 红色 */
+    }
+    
+    .shiva-icon {
+        background-color: #4169E1; /* 蓝色 */
+    }
+    
+    .card-header-god {
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 添加级别相关样式 */
+    .level-badge {
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+    
+    .level-maharaja {
+        background-color: #FFD700; /* 金色 */
+        color: #000;
+    }
+    
+    .level-avatar {
+        background-color: #9C27B0; /* 紫色 */
+        color: #fff;
+    }
+    
+    .level-brahmin {
+        background-color: #4CAF50; /* 绿色 */
+        color: #fff;
+    }
+    
+    .level-kshatriya {
+        background-color: #2196F3; /* 蓝色 */
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">排行榜数据查询</h3>
+                </div>
+                <div class="card-body">
+                    {% if ranking_data %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4>{{ ranking_data.category }}</h4>
+                                    <small class="text-muted">更新时间: {{ ranking_data.update_time }}</small>
+                                </div>
+                                {% if "error_info" in ranking_data %}
+                                <div class="badge bg-warning text-dark">
+                                    <i class="fas fa-exclamation-triangle"></i> 使用备用数据
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- 梵天排名卡片 -->
+                        <div class="col-md-4">
+                            <div class="card god-card">
+                                <div class="card-header card-header-god">
+                                    <span class="god-icon brahma-icon"></span>
+                                    <span>梵天 <span class="badge bg-primary">{{ ranking_data.brahma_players|length }}</span></span>
+                                </div>
+                                <div class="card-body">
+                                    {% if ranking_data.brahma_players %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>排名</th>
+                                                    <th>玩家名</th>
+                                                    <th>级别</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for player in ranking_data.brahma_players %}
+                                                <tr>
+                                                    <td>{{ player.rank }}</td>
+                                                    <td>{{ player.name }}</td>
+                                                    <td>
+                                                        {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
+                                                        {% if '马哈拉迦' in level %}
+                                                        <span class="badge level-badge level-maharaja">{{ level }}</span>
+                                                        {% elif '阿瓦塔尔' in level %}
+                                                        <span class="badge level-badge level-avatar">{{ level }}</span>
+                                                        {% elif '婆罗门' in level %}
+                                                        <span class="badge level-badge level-brahmin">{{ level }}</span>
+                                                        {% elif '刹帝利' in level %}
+                                                        <span class="badge level-badge level-kshatriya">{{ level }}</span>
+                                                        {% else %}
+                                                        <span class="badge level-badge bg-secondary">{{ level }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-info">
+                                        未找到梵天排名数据
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 比湿奴排名卡片 -->
+                        <div class="col-md-4">
+                            <div class="card god-card">
+                                <div class="card-header card-header-god">
+                                    <span class="god-icon vishnu-icon"></span>
+                                    <span>比湿奴 <span class="badge bg-primary">{{ ranking_data.vishnu_players|length }}</span></span>
+                                </div>
+                                <div class="card-body">
+                                    {% if ranking_data.vishnu_players %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>排名</th>
+                                                    <th>玩家名</th>
+                                                    <th>级别</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for player in ranking_data.vishnu_players %}
+                                                <tr>
+                                                    <td>{{ player.rank }}</td>
+                                                    <td>{{ player.name }}</td>
+                                                    <td>
+                                                        {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
+                                                        {% if '马哈拉迦' in level %}
+                                                        <span class="badge level-badge level-maharaja">{{ level }}</span>
+                                                        {% elif '阿瓦塔尔' in level %}
+                                                        <span class="badge level-badge level-avatar">{{ level }}</span>
+                                                        {% elif '婆罗门' in level %}
+                                                        <span class="badge level-badge level-brahmin">{{ level }}</span>
+                                                        {% elif '刹帝利' in level %}
+                                                        <span class="badge level-badge level-kshatriya">{{ level }}</span>
+                                                        {% else %}
+                                                        <span class="badge level-badge bg-secondary">{{ level }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-info">
+                                        未找到比湿奴排名数据
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 湿婆排名卡片 -->
+                        <div class="col-md-4">
+                            <div class="card god-card">
+                                <div class="card-header card-header-god">
+                                    <span class="god-icon shiva-icon"></span>
+                                    <span>湿婆 <span class="badge bg-primary">{{ ranking_data.shiva_players|length }}</span></span>
+                                </div>
+                                <div class="card-body">
+                                    {% if ranking_data.shiva_players %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>排名</th>
+                                                    <th>玩家名</th>
+                                                    <th>级别</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for player in ranking_data.shiva_players %}
+                                                <tr>
+                                                    <td>{{ player.rank }}</td>
+                                                    <td>{{ player.name }}</td>
+                                                    <td>
+                                                        {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
+                                                        {% if '马哈拉迦' in level %}
+                                                        <span class="badge level-badge level-maharaja">{{ level }}</span>
+                                                        {% elif '阿瓦塔尔' in level %}
+                                                        <span class="badge level-badge level-avatar">{{ level }}</span>
+                                                        {% elif '婆罗门' in level %}
+                                                        <span class="badge level-badge level-brahmin">{{ level }}</span>
+                                                        {% elif '刹帝利' in level %}
+                                                        <span class="badge level-badge level-kshatriya">{{ level }}</span>
+                                                        {% else %}
+                                                        <span class="badge level-badge bg-secondary">{{ level }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-info">
+                                        未找到湿婆排名数据
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif category %}
+                    <div class="alert alert-warning">
+                        未找到类别为 "{{ category }}" 的排行榜数据
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // 如果没有选择类别，禁用查询按钮
+        $("#category").change(function() {
+            if ($(this).val() === "") {
+                $("button[type='submit']").prop("disabled", true);
+            } else {
+                $("button[type='submit']").prop("disabled", false);
+            }
+        });
+        
+        // 页面加载时检查
+        if ($("#category").val() === "") {
+            $("button[type='submit']").prop("disabled", true);
+        }
+    });
+</script>
+{% endblock %} 
