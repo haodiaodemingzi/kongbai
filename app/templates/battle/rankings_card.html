@@ -59,6 +59,51 @@
         background-color: #2196F3; /* 蓝色 */
         color: #fff;
     }
+    
+    /* 职业标签样式 */
+    .job-badge {
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+    
+    .job-狂 {
+        background-color: #e74c3c; /* 红色 */
+        color: white;
+    }
+    
+    .job-法师 {
+        background-color: #9b59b6; /* 紫色 */
+        color: white;
+    }
+    
+    .job-金刚 {
+        background-color: #f39c12; /* 橙色 */
+        color: white;
+    }
+    
+    .job-奶 {
+        background-color: #2ecc71; /* 绿色 */
+        color: white;
+    }
+    
+    .job-弓 {
+        background-color: #3498db; /* 蓝色 */
+        color: white;
+    }
+    
+    .job-刺客 {
+        background-color: #0ff1c0; /* 青色 */
+        color: rgb(223, 234, 219);
+    }
+    .job-刺 {
+        background-color: #6e7283; /* 青色 */
+        color: rgb(217, 174, 174);
+    }
+    
+    .job-护法 {
+        background-color: #34495e; /* 深蓝色 */
+        color: white;
+    }
 </style>
 {% endblock %}
 
@@ -102,8 +147,9 @@
                                         <table class="table table-striped table-hover">
                                             <thead>
                                                 <tr>
-                                                    <th>排名</th>
+                                                    <th>#</th>
                                                     <th>玩家名</th>
+                                                    <th>职业</th>
                                                     <th>级别</th>
                                                 </tr>
                                             </thead>
@@ -112,6 +158,13 @@
                                                 <tr>
                                                     <td>{{ player.rank }}</td>
                                                     <td>{{ player.name }}</td>
+                                                    <td>
+                                                        {% if player.job and player.job != "未知" %}
+                                                        <span class="badge job-badge job-{{ player.job }}">{{ player.job }}</span>
+                                                        {% else %}
+                                                        <span class="badge job-badge bg-secondary">未知</span>
+                                                        {% endif %}
+                                                    </td>
                                                     <td>
                                                         {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
                                                         {% if '马哈拉迦' in level %}
@@ -153,8 +206,9 @@
                                         <table class="table table-striped table-hover">
                                             <thead>
                                                 <tr>
-                                                    <th>排名</th>
+                                                    <th>#</th>
                                                     <th>玩家名</th>
+                                                    <th>职业</th>
                                                     <th>级别</th>
                                                 </tr>
                                             </thead>
@@ -163,6 +217,13 @@
                                                 <tr>
                                                     <td>{{ player.rank }}</td>
                                                     <td>{{ player.name }}</td>
+                                                    <td>
+                                                        {% if player.job and player.job != "未知" %}
+                                                        <span class="badge job-badge job-{{ player.job }}">{{ player.job }}</span>
+                                                        {% else %}
+                                                        <span class="badge job-badge bg-secondary">未知</span>
+                                                        {% endif %}
+                                                    </td>
                                                     <td>
                                                         {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
                                                         {% if '马哈拉迦' in level %}
@@ -204,8 +265,9 @@
                                         <table class="table table-striped table-hover">
                                             <thead>
                                                 <tr>
-                                                    <th>排名</th>
+                                                    <th>#</th>
                                                     <th>玩家名</th>
+                                                    <th>职业</th>
                                                     <th>级别</th>
                                                 </tr>
                                             </thead>
@@ -214,6 +276,13 @@
                                                 <tr>
                                                     <td>{{ player.rank }}</td>
                                                     <td>{{ player.name }}</td>
+                                                    <td>
+                                                        {% if player.job and player.job != "未知" %}
+                                                        <span class="badge job-badge job-{{ player.job }}">{{ player.job }}</span>
+                                                        {% else %}
+                                                        <span class="badge job-badge bg-secondary">未知</span>
+                                                        {% endif %}
+                                                    </td>
                                                     <td>
                                                         {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
                                                         {% if '马哈拉迦' in level %}

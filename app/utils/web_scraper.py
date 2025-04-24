@@ -211,19 +211,56 @@ def get_rankings_by_scraper(url=None, category="虎威主神排行榜"):
             "players": []
         }
     
-    # 为所有玩家添加级别信息
-    for player in result["all_players"]:
-        player["level"] = get_rank_level(player["rank"])
-    
-    # 为各神分类的玩家添加级别信息
-    for player in result["brahma_players"]:
-        player["level"] = get_rank_level(player["rank"])
-    
-    for player in result["vishnu_players"]:
-        player["level"] = get_rank_level(player["rank"])
-    
-    for player in result["shiva_players"]:
-        player["level"] = get_rank_level(player["rank"])
+    # 从数据库获取玩家职业信息
+    try:
+        from app.models.player import Person
+        from app import db
+        
+        # 获取所有玩家的名字列表
+        player_names = [p["name"] for p in result["all_players"]]
+        
+        # 查询数据库获取这些玩家的信息
+        players_in_db = Person.query.filter(Person.name.in_(player_names)).all()
+        
+        # 创建一个玩家名到职业的映射
+        player_job_map = {p.name: p.job for p in players_in_db}
+        
+        # 更新爬虫返回的玩家数据，添加职业信息
+        for player in result["all_players"]:
+            # 添加级别信息
+            player["level"] = get_rank_level(player["rank"])
+            
+            # 添加职业信息 - 如果数据库中存在该玩家
+            player["job"] = player_job_map.get(player["name"], "未知")
+            
+        # 为各神分类的玩家同样添加职业和级别信息
+        for player in result["brahma_players"]:
+            player["level"] = get_rank_level(player["rank"])
+            player["job"] = player_job_map.get(player["name"], "未知")
+        
+        for player in result["vishnu_players"]:
+            player["level"] = get_rank_level(player["rank"])
+            player["job"] = player_job_map.get(player["name"], "未知")
+        
+        for player in result["shiva_players"]:
+            player["level"] = get_rank_level(player["rank"])
+            player["job"] = player_job_map.get(player["name"], "未知")
+        
+        logger.info(f"成功从数据库匹配了 {len(player_job_map)} 名玩家的职业信息")
+    except Exception as e:
+        logger.error(f"获取玩家职业信息时出错: {str(e)}", exc_info=True)
+        # 发生错误时，仍然添加级别信息但不添加职业信息
+        for player in result["all_players"]:
+            player["level"] = get_rank_level(player["rank"])
+        
+        for player in result["brahma_players"]:
+            player["level"] = get_rank_level(player["rank"])
+        
+        for player in result["vishnu_players"]:
+            player["level"] = get_rank_level(player["rank"])
+        
+        for player in result["shiva_players"]:
+            player["level"] = get_rank_level(player["rank"])
     
     # 构建最终数据
     return {

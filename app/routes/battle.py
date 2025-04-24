@@ -1488,7 +1488,7 @@ def get_rankings():
     category = request.args.get('category', '虎威主神排行榜')
     
     try:
-        # 使用爬虫获取数据
+        # 使用爬虫获取数据，同时会查询数据库获取职业信息
         ranking_data = get_rankings_by_scraper(url=url, category=category)
         
         # 检查是否有错误
