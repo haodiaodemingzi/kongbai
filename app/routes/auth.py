@@ -74,7 +74,7 @@ def login():
         if username == 'admin' and password == 'admin123':
             session['user_id'] = username
             session.pop('captcha', None)  # 清除验证码
-            return redirect(url_for('home.index'))
+            return redirect(url_for('battle.gods_ranking'))
             # 验证验证码
             '''
             if captcha == session.get('captcha', ''):
