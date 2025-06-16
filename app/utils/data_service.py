@@ -310,7 +310,7 @@ def get_player_rankings(faction=None, limit=30):
         return []
 
 
-def get_battle_details_by_player(person_id, start_date=None, end_date=None):
+def get_battle_details_by_player(person_id, start_date=None, end_date=None, date_condition=""):
     """获取指定玩家的战斗明细"""
     logger.info(f"获取玩家ID {person_id} 的战斗明细")
     
@@ -348,8 +348,7 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
             WHERE 
                 p.id = :person_id
                 -- 添加时间过滤条件
-                AND (:start_date IS NULL OR br.publish_at >= :start_date)
-                AND (:end_date IS NULL OR br.publish_at <= :end_date)
+                {date_condition}
             GROUP BY 
                 p.id, p.name, p.job, p.god
         )
@@ -372,7 +371,21 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
             player_battle_stats
         """
         
-        result = db.session.execute(text(sql), {"person_id": person_id, "start_date": start_date, "end_date": end_date}).first()
+        # 替换日期条件
+        sql = sql.format(date_condition=date_condition)
+        
+        # 如果传入了具体的日期但没有传入date_condition，则使用旧的方式添加日期条件
+        if not date_condition and (start_date or end_date):
+            old_condition = """
+                -- 添加时间过滤条件
+                AND (:start_date IS NULL OR br.publish_at >= :start_date)
+                AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            """
+            sql = sql.replace("{date_condition}", old_condition)
+            result = db.session.execute(text(sql), {"person_id": person_id, "start_date": start_date, "end_date": end_date}).first()
+        else:
+            # 使用新的date_condition参数
+            result = db.session.execute(text(sql), {"person_id": person_id}).first()
         
         # 如果没有战绩记录，返回基本信息
         if not result:
@@ -426,14 +439,27 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
         WHERE 
             br.win = :player_name OR br.lost = :player_name
             -- 添加时间过滤条件
-            AND (:start_date IS NULL OR br.publish_at >= :start_date)
-            AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            {date_condition}
         ORDER BY 
             br.publish_at DESC 
         LIMIT 50
         """
         
-        recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
+        # 替换日期条件
+        recent_battles_sql = recent_battles_sql.format(date_condition=date_condition)
+        
+        # 如果传入了具体的日期但没有传入date_condition，则使用旧的方式添加日期条件
+        if not date_condition and (start_date or end_date):
+            old_condition = """
+            -- 添加时间过滤条件
+            AND (:start_date IS NULL OR br.publish_at >= :start_date)
+            AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            """
+            recent_battles_sql = recent_battles_sql.replace("{date_condition}", old_condition)
+            recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
+        else:
+            # 使用新的date_condition参数
+            recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player.name}).fetchall()
         
         # 添加近期战斗记录
         player_details['recent_battles'] = [{
@@ -460,8 +486,7 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
         WHERE 
             br.win = :player_name  -- 当前玩家是胜利者(击杀者)
             -- 添加时间过滤条件
-            AND (:start_date IS NULL OR br.publish_at >= :start_date)
-            AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            {date_condition}
         GROUP BY 
             v.id, v.name, v.job, v.god
         ORDER BY 
@@ -469,7 +494,21 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
         LIMIT 20
         """
         
-        kills_details = db.session.execute(text(kills_details_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
+        # 替换日期条件
+        kills_details_sql = kills_details_sql.format(date_condition=date_condition)
+        
+        # 如果传入了具体的日期但没有传入date_condition，则使用旧的方式添加日期条件
+        if not date_condition and (start_date or end_date):
+            old_condition = """
+            -- 添加时间过滤条件
+            AND (:start_date IS NULL OR br.publish_at >= :start_date)
+            AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            """
+            kills_details_sql = kills_details_sql.replace("{date_condition}", old_condition)
+            kills_details = db.session.execute(text(kills_details_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
+        else:
+            # 使用新的date_condition参数
+            kills_details = db.session.execute(text(kills_details_sql), {"player_name": player.name}).fetchall()
         
         # 添加击杀详情
         player_details['kills_details'] = [{
@@ -495,8 +534,7 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
         WHERE 
             br.lost = :player_name  -- 当前玩家是失败者(被击杀者)
             -- 添加时间过滤条件
-            AND (:start_date IS NULL OR br.publish_at >= :start_date)
-            AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            {date_condition}
         GROUP BY 
             k.id, k.name, k.job, k.god
         ORDER BY 
@@ -504,7 +542,21 @@ def get_battle_details_by_player(person_id, start_date=None, end_date=None):
         LIMIT 20
         """
         
-        deaths_details = db.session.execute(text(deaths_details_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
+        # 替换日期条件
+        deaths_details_sql = deaths_details_sql.format(date_condition=date_condition)
+        
+        # 如果传入了具体的日期但没有传入date_condition，则使用旧的方式添加日期条件
+        if not date_condition and (start_date or end_date):
+            old_condition = """
+            -- 添加时间过滤条件
+            AND (:start_date IS NULL OR br.publish_at >= :start_date)
+            AND (:end_date IS NULL OR br.publish_at <= :end_date)
+            """
+            deaths_details_sql = deaths_details_sql.replace("{date_condition}", old_condition)
+            deaths_details = db.session.execute(text(deaths_details_sql), {"player_name": player.name, "start_date": start_date, "end_date": end_date}).fetchall()
+        else:
+            # 使用新的date_condition参数
+            deaths_details = db.session.execute(text(deaths_details_sql), {"player_name": player.name}).fetchall()
         
         # 添加死亡详情
         player_details['deaths_details'] = [{

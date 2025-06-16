@@ -197,7 +197,7 @@
     </div>
 
     <div class="text-center mt-4">
-        <a href="{{ url_for('battle.rankings') }}" class="btn btn-primary">
+        <a href="{{ url_for('battle.rankings') }}{% if start_date and end_date %}?start_datetime={{ start_date }}&end_datetime={{ end_date }}{% elif time_range %}?time_range={{ time_range }}{% endif %}" class="btn btn-primary">
             <i class="fas fa-arrow-left"></i> 返回排行榜
         </a>
     </div>

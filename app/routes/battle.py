@@ -21,6 +21,7 @@ from sqlalchemy import text, func, distinct, cast, String, DATE, TIME, Integer, 
 from app.utils.auth import login_required
 import json
 from app.utils.web_scraper import get_rankings_by_scraper
+from dateutil import parser
 
 logger = get_logger()
 
@@ -129,6 +130,10 @@ def rankings():
     raw_job = request.args.get('job')
     time_range = request.args.get('time_range', 'today')  # 默认为today
     show_grouped = request.args.get('show_grouped', 'true') == 'true'
+    
+    # 获取自定义时间范围参数
+    start_datetime = request.args.get('start_datetime')
+    end_datetime = request.args.get('end_datetime')
 
     # Determine faction for query and template
     if raw_faction == 'all' or raw_faction == '':
@@ -151,7 +156,12 @@ def rankings():
         
     # 确定时间筛选条件
     date_condition = ""
-    if time_range == 'today':
+    # 如果提供了具体的开始和结束日期，优先使用
+    if start_datetime and end_datetime:
+        date_condition = f"AND br.publish_at BETWEEN '{start_datetime}' AND '{end_datetime}'"
+        # 在这种情况下，不使用预设时间范围
+        time_range = None
+    elif time_range == 'today':
         date_condition = "AND DATE(br.publish_at) = CURDATE()"
     elif time_range == 'yesterday':
         date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
@@ -165,7 +175,7 @@ def rankings():
     
     # --- End Modified Filter Logic --- 
 
-    logger.debug(f"排名筛选参数: faction={selected_faction}, job={selected_job}, time_range={time_range}, show_grouped={show_grouped}")
+    logger.debug(f"排名筛选参数: faction={selected_faction}, job={selected_job}, time_range={time_range}, start_datetime={start_datetime}, end_datetime={end_datetime}, show_grouped={show_grouped}")
     
     try:
         # 根据是否需要按分组统计选择不同的查询
@@ -329,6 +339,8 @@ def rankings():
                               selected_faction=selected_faction,
                               show_grouped=show_grouped,
                               selected_time=time_range,
+                              start_date=start_datetime,
+                              end_date=end_datetime,
                               total_players=total_players,
                               total_kills=total_kills,
                               total_deaths=total_deaths,
@@ -344,6 +356,8 @@ def rankings():
                              selected_faction=selected_faction,
                              show_grouped=show_grouped,
                              selected_time=time_range,
+                             start_date=start_datetime,
+                             end_date=end_datetime,
                              total_players=0,
                              total_kills=0,
                              total_deaths=0,
@@ -352,29 +366,62 @@ def rankings():
 
 @battle_bp.route('/player/<int:person_id>')
 def player_details(person_id):
-    """玩家详情页"""
-    # 接收时间参数
-    start_date_str = request.args.get('start_date')
-    end_date_str = request.args.get('end_date')
-
+    """玩家详细信息页面"""
+    logger.info(f"访问玩家ID={person_id}的详细信息页面")
+    
+    # 获取日期参数
+    time_range = request.args.get('time_range')
+    start_date = request.args.get('start_datetime')
+    end_date = request.args.get('end_datetime')
+    
+    date_condition = ""
+    # 如果提供了具体的开始和结束日期，优先使用
+    if start_date and end_date:
+        try:
+            # 格式化日期字符串以防SQL注入并确保格式正确
+            start_datetime = parser.parse(start_date)
+            end_datetime = parser.parse(end_date)
+            date_condition = f"AND br.publish_at BETWEEN '{start_datetime:%Y-%m-%d %H:%M:%S}' AND '{end_datetime:%Y-%m-%d %H:%M:%S}'"
+            # 为模板保存格式化后的日期字符串
+            start_date = start_datetime.strftime('%Y-%m-%dT%H:%M')
+            end_date = end_datetime.strftime('%Y-%m-%dT%H:%M')
+        except (ValueError, TypeError) as e:
+            logger.error(f"日期解析错误: {str(e)}")
+            # 重置为默认值
+            start_date = None
+            end_date = None
+            date_condition = ""
+    # 如果没有明确的日期参数但有时间范围，根据时间范围设置日期条件
+    elif time_range:
+        now = datetime.now()
+        if time_range == 'today':
+            date_condition = f"AND DATE(br.publish_at) = '{now:%Y-%m-%d}'"
+        elif time_range == 'yesterday':
+            yesterday = now - timedelta(days=1)
+            date_condition = f"AND DATE(br.publish_at) = '{yesterday:%Y-%m-%d}'"
+        elif time_range == 'week':
+            week_ago = now - timedelta(days=7)
+            date_condition = f"AND br.publish_at >= '{week_ago:%Y-%m-%d}'"
+        elif time_range == 'month':
+            month_ago = now - timedelta(days=30)
+            date_condition = f"AND br.publish_at >= '{month_ago:%Y-%m-%d}'"
+        elif time_range == 'three_months':
+            three_months_ago = now - timedelta(days=90)
+            date_condition = f"AND br.publish_at >= '{three_months_ago:%Y-%m-%d}'"
+    
     try:
-        # 将时间参数转换为日期对象
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else None
-
         # 获取玩家战斗明细，传递时间参数
-        player_details = get_battle_details_by_player(person_id, start_date, end_date)
+        player_details = get_battle_details_by_player(person_id, date_condition=date_condition)
+        
         if not player_details:
-            flash('找不到该玩家', 'danger')
+            flash('未找到该玩家的详细信息', 'warning')
             return redirect(url_for('battle.rankings'))
-
-        # 确保kills_details和deaths_details字段存在，如果没有则提供空列表
-        if 'kills_details' not in player_details:
-            player_details['kills_details'] = []
-        if 'deaths_details' not in player_details:
-            player_details['deaths_details'] = []
-
-        return render_template('player_details.html', player=player_details)
+        
+        return render_template('player_details.html', 
+                             player=player_details,
+                             start_date=start_date,
+                             end_date=end_date,
+                             time_range=time_range)
     except Exception as e:
         logger.error(f"查看玩家 {person_id} 详情时出错: {str(e)}", exc_info=True)
         flash(f'加载玩家详情时出错: {str(e)}', 'danger')

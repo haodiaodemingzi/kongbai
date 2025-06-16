@@ -252,7 +252,7 @@
                         {% for player in players %}
                         <tr data-job="{{ player.job|default('未知', true) }}">
                             <td>{{ loop.index }}</td>
-                            <td><a href="{{ url_for('battle.player_details', person_id=player.id) }}">{{ player.name|default('未知', true) }}</a></td>
+                            <td><a href="{{ url_for('battle.player_details', person_id=player.id) }}{% if start_date and end_date %}?start_datetime={{ start_date }}&end_datetime={{ end_date }}{% elif selected_time %}?time_range={{ selected_time }}{% endif %}">{{ player.name|default('未知', true) }}</a></td>
                             <td>{{ player.job|default('未知', true) }}</td>
                             <td>{{ player.faction|default('未知', true) }}</td>
                             <td class="text-primary fw-bold">{{ player.kills|int }}</td>
@@ -261,7 +261,7 @@
                             <td>{{ player.blessings|int }}</td>
                             <td class="font-weight-bold">{{ player.score|int }}</td>
                             <td>
-                                <a href="{{ url_for('battle.player_details', person_id=player.id) }}" class="btn btn-sm btn-primary">
+                                <a href="{{ url_for('battle.player_details', person_id=player.id) }}{% if start_date and end_date %}?start_datetime={{ start_date }}&end_datetime={{ end_date }}{% elif selected_time %}?time_range={{ selected_time }}{% endif %}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-search"></i>
                                 </a>
                             </td>
