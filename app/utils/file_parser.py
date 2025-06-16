@@ -350,12 +350,13 @@ def save_battle_log_to_db(battle_details, blessings):
                                 position=f"{detail['x_coord']},{detail['y_coord']}",
                                 remark=0,  # 祝福数初始为0，后续处理祝福时更新
                                 publish_at=detail['timestamp'],
-                                create_by=killer_id  # 记录创建者为击杀者
+                                create_by=detail['killer_name']  # 记录创建者为击杀者
                             )
                             db.session.add(battle_record)
                             
                             # 保存到字典中以便后续查找
-                            key = (detail['killer_name'], detail['timestamp'].date())
+                            date_str = detail['timestamp'].date().strftime('%Y-%m-%d')
+                            key = (detail['killer_name'], date_str)
                             if key not in battle_records_for_blessing:
                                 battle_records_for_blessing[key] = []
                             battle_records_for_blessing[key].append(battle_record)
@@ -369,7 +370,8 @@ def save_battle_log_to_db(battle_details, blessings):
                             
                         else:
                             # 记录已存在，也保存到字典中以便更新祝福
-                            key = (detail['killer_name'], detail['timestamp'].date())
+                            date_str = detail['timestamp'].date().strftime('%Y-%m-%d')
+                            key = (detail['killer_name'], date_str)
                             if key not in battle_records_for_blessing:
                                 battle_records_for_blessing[key] = []
                             battle_records_for_blessing[key].append(exists)
@@ -383,14 +385,7 @@ def save_battle_log_to_db(battle_details, blessings):
                         battle_error_count += 1
                         logger.error(f"处理战斗记录时出错: {str(e)}, 详情: {detail}", exc_info=True)
                         db.session.rollback()
-                else:
-                    battle_missing_player_count += 1
-                    if battle_missing_player_count <= 5:
-                        if not killer_id:
-                            logger.warning(f"击杀者 {detail['killer_name']} 在数据库中不存在")
-                        if not victim_id:
-                            logger.warning(f"受害者 {detail['victim_name']} 在数据库中不存在")
-            
+                
             # 中间提交一次
             try:
                 db.session.commit()
@@ -410,27 +405,37 @@ def save_battle_log_to_db(battle_details, blessings):
                 player_name = blessing['player_name']
                 blessing_date = blessing['timestamp'].date()
                 
+                # 将日期对象格式化为字符串作为键
+                date_str = blessing_date.strftime('%Y-%m-%d')
+                
                 # 查找该玩家当天的战斗记录
-                key = (player_name, blessing_date)
+                key = (player_name, date_str)
                 if key in battle_records_for_blessing and battle_records_for_blessing[key]:
-                    # 找到最接近祝福时间的战斗记录
-                    # 简化：使用当天的第一条战斗记录
-                    battle_record = battle_records_for_blessing[key][0]
+                    # 遍历当天该玩家的所有战斗记录，找到时间戳匹配的记录
+                    found_matching_record = False
+                    for battle_record in battle_records_for_blessing[key]:
+                        # 检查时间戳是否匹配
+                        if battle_record.publish_at == blessing['timestamp']:
+                            try:
+                                # 更新祝福标记 - 设置为1
+                                battle_record.remark = 1
+                                blessing_success_count += 1
+                                if blessing_success_count <= 10:
+                                    logger.debug(f"更新战斗记录祝福标记: 玩家='{player_name}', 祝福='{blessing['blessing_name']}', 时间='{blessing['timestamp']}', 祝福值设置为1")
+                                found_matching_record = True
+                                break  # 找到匹配记录后跳出循环
+                            except Exception as e:
+                                blessing_error_count += 1
+                                logger.error(f"更新祝福记录时出错: {str(e)}, 详情: {blessing}", exc_info=True)
                     
-                    try:
-                        # 更新祝福标记
-                        battle_record.remark = '1'
-                        blessing_success_count += 1
-                        if blessing_success_count <= 10:
-                            logger.debug(f"更新战斗记录祝福标记: 玩家='{player_name}', 祝福='{blessing['blessing_name']}', 时间='{blessing['timestamp']}'")
-                    except Exception as e:
-                        blessing_error_count += 1
-                        logger.error(f"更新祝福记录时出错: {str(e)}, 详情: {blessing}", exc_info=True)
+                    # 如果没有找到时间戳完全匹配的记录，记录警告信息
+                    if not found_matching_record:
+                        logger.warning(f"玩家 {player_name} 的祝福记录 (时间: {blessing['timestamp']}) 没有找到完全匹配的战斗记录")
                 else:
-                    # 没有找到匹配的战斗记录
+                    # 没有找到当天的战斗记录
                     blessing_missing_player_count += 1
                     if blessing_missing_player_count <= 5:
-                        logger.warning(f"玩家 {player_name} 的祝福记录没有找到匹配的战斗记录，日期: {blessing_date}")
+                        logger.warning(f"玩家 {player_name} 的祝福记录没有找到匹配的战斗记录，日期: {date_str}")
                 
                 # 每50条提交一次
                 if (idx + 1) % 50 == 0 or idx == len(blessings) - 1:
