@@ -335,6 +335,30 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
+    // 如果URL中没有指定日期参数，自动设置为最近7天
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('start_datetime') && !urlParams.has('end_datetime')) {
+        // 计算最近7天的日期范围
+        const now = new Date();
+        const end = new Date(now);
+        end.setHours(23, 59, 0, 0);
+        
+        const start = new Date(now);
+        start.setDate(start.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
+        
+        // 格式化为datetime-local输入框需要的格式 (YYYY-MM-DDThh:mm)
+        const startFormatted = start.toISOString().slice(0, 16);
+        const endFormatted = end.toISOString().slice(0, 16);
+        
+        // 设置输入框的值
+        document.getElementById('start_datetime').value = startFormatted;
+        document.getElementById('end_datetime').value = endFormatted;
+        
+        // 提交表单以应用日期筛选
+        document.getElementById('filter-form').submit();
+    }
+    
     // 处理筛选按钮点击事件
     document.querySelectorAll('.filter-btn').forEach(function(button) {
         button.addEventListener('click', function(e) {
@@ -407,7 +431,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadFilterStates();
     
     // 检查URL参数，激活相应的按钮
-    const urlParams = new URLSearchParams(window.location.search);
     const sortParam = urlParams.get('sort');
     
     if (sortParam) {
