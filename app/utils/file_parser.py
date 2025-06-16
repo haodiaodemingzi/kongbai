@@ -350,7 +350,6 @@ def save_battle_log_to_db(battle_details, blessings):
                                 position=f"{detail['x_coord']},{detail['y_coord']}",
                                 remark=0,  # 祝福数初始为0，后续处理祝福时更新
                                 publish_at=detail['timestamp'],
-                                create_by=detail['killer_name']  # 记录创建者为击杀者
                             )
                             db.session.add(battle_record)
                             
