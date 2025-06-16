@@ -21,7 +21,9 @@ def index():
     """首页仪表盘"""
     try:
         # 获取日期范围参数
-        date_range = request.args.get('date_range', 'all')
+        date_range = request.args.get('date_range', 'week')
+        if date_range == 'all':
+            date_range = 'week'
         
         # 获取势力统计数据
         faction_stats, top_deaths, top_killers, top_scorers = get_faction_stats(date_range)
