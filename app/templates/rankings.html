@@ -65,8 +65,8 @@
                                         <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'month' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="month">
                                             30天
                                         </button>
-                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'three_months' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="three_months">
-                                            90天
+                                        <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'all' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="all">
+                                            1年
                                         </button>
                                     </div>
                                 </div>
@@ -104,29 +104,6 @@
         </div>
         <div class="card-body">
             <!-- 统计信息 -->
-            <div class="mb-3 d-flex justify-content-between flex-wrap">
-                <div class="card bg-light mb-2" style="min-width: 200px;">
-                    <div class="card-body py-2">
-                        <p class="mb-0"><strong>总玩家数:</strong> {{ total_players }}</p>
-                    </div>
-                </div>
-                <div class="card bg-light mb-2" style="min-width: 200px;">
-                    <div class="card-body py-2">
-                        <p class="mb-0"><strong>总击杀数:</strong> {{ total_kills }}</p>
-                    </div>
-                </div>
-                <div class="card bg-light mb-2" style="min-width: 200px;">
-                    <div class="card-body py-2">
-                        <p class="mb-0"><strong>总死亡数:</strong> {{ total_deaths }}</p>
-                    </div>
-                </div>
-                <div class="card bg-light mb-2" style="min-width: 200px;">
-                    <div class="card-body py-2">
-                        <p class="mb-0"><strong>总得分:</strong> {{ total_score }}</p>
-                    </div>
-                </div>
-            </div>
-
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     // 处理筛选按钮点击事件
