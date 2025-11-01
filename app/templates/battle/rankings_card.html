@@ -67,22 +67,22 @@
     }
     
     .job-狂 {
-        background-color: #e74c3c; /* 红色 */
+        background-color: #3498db; /* 蓝色 */
         color: white;
     }
     
     .job-法师 {
-        background-color: #9b59b6; /* 紫色 */
+        background-color: #3498db; /* 蓝色 */
         color: white;
     }
     
     .job-金刚 {
-        background-color: #f39c12; /* 橙色 */
+        background-color: #3498db; /* 蓝色 */
         color: white;
     }
     
     .job-奶 {
-        background-color: #2ecc71; /* 绿色 */
+        background-color: #3498db; /* 蓝色 */
         color: white;
     }
     
@@ -92,16 +92,16 @@
     }
     
     .job-刺客 {
-        background-color: #0ff1c0; /* 青色 */
-        color: rgb(223, 234, 219);
+        background-color: hsl(55, 25%, 18%); /* 蓝色 */
+        color: white;
     }
     .job-刺 {
-        background-color: #6e7283; /* 青色 */
-        color: rgb(217, 174, 174);
+        background-color: hsl(55, 25%, 18%); /* 蓝色 */
+        color: white;
     }
     
     .job-护法 {
-        background-color: #34495e; /* 深蓝色 */
+        background-color: #3498db; /* 蓝色 */
         color: white;
     }
 </style>
@@ -158,22 +158,16 @@
                                                 <tr>
                                                     <td>{{ player.rank }}</td>
                                                     <td>{{ player.name }}</td>
-                                                    <td>
-                                                        {% if player.job and player.job != "未知" %}
-                                                        <span class="badge job-badge job-{{ player.job }}">{{ player.job }}</span>
-                                                        {% else %}
-                                                        <span class="badge job-badge bg-secondary">未知</span>
-                                                        {% endif %}
-                                                    </td>
+                                                    <td>{{ player.job }}</td>
                                                     <td>
                                                         {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
-                                                        {% if '马哈拉迦' in level %}
+                                                        {% if '马' in level %}
                                                         <span class="badge level-badge level-maharaja">{{ level }}</span>
-                                                        {% elif '阿瓦塔尔' in level %}
+                                                        {% elif '阿' in level %}
                                                         <span class="badge level-badge level-avatar">{{ level }}</span>
-                                                        {% elif '婆罗门' in level %}
+                                                        {% elif '婆' in level %}
                                                         <span class="badge level-badge level-brahmin">{{ level }}</span>
-                                                        {% elif '刹帝利' in level %}
+                                                        {% elif '刹' in level %}
                                                         <span class="badge level-badge level-kshatriya">{{ level }}</span>
                                                         {% else %}
                                                         <span class="badge level-badge bg-secondary">{{ level }}</span>
@@ -218,21 +212,17 @@
                                                     <td>{{ player.rank }}</td>
                                                     <td>{{ player.name }}</td>
                                                     <td>
-                                                        {% if player.job and player.job != "未知" %}
-                                                        <span class="badge job-badge job-{{ player.job }}">{{ player.job }}</span>
-                                                        {% else %}
-                                                        <span class="badge job-badge bg-secondary">未知</span>
-                                                        {% endif %}
+                                                        {{ player.job }}
                                                     </td>
                                                     <td>
                                                         {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
-                                                        {% if '马哈拉迦' in level %}
+                                                        {% if '马' in level %}
                                                         <span class="badge level-badge level-maharaja">{{ level }}</span>
-                                                        {% elif '阿瓦塔尔' in level %}
+                                                        {% elif '阿' in level %}
                                                         <span class="badge level-badge level-avatar">{{ level }}</span>
-                                                        {% elif '婆罗门' in level %}
+                                                        {% elif '婆' in level %}
                                                         <span class="badge level-badge level-brahmin">{{ level }}</span>
-                                                        {% elif '刹帝利' in level %}
+                                                        {% elif '刹' in level %}
                                                         <span class="badge level-badge level-kshatriya">{{ level }}</span>
                                                         {% else %}
                                                         <span class="badge level-badge bg-secondary">{{ level }}</span>
@@ -277,21 +267,17 @@
                                                     <td>{{ player.rank }}</td>
                                                     <td>{{ player.name }}</td>
                                                     <td>
-                                                        {% if player.job and player.job != "未知" %}
-                                                        <span class="badge job-badge job-{{ player.job }}">{{ player.job }}</span>
-                                                        {% else %}
-                                                        <span class="badge job-badge bg-secondary">未知</span>
-                                                        {% endif %}
+                                                        {{ player.job }}
                                                     </td>
                                                     <td>
                                                         {% set level = player.level if player.level is defined else player.rank|get_rank_level %}
-                                                        {% if '马哈拉迦' in level %}
+                                                        {% if '马' in level %}
                                                         <span class="badge level-badge level-maharaja">{{ level }}</span>
-                                                        {% elif '阿瓦塔尔' in level %}
+                                                        {% elif '阿' in level %}
                                                         <span class="badge level-badge level-avatar">{{ level }}</span>
-                                                        {% elif '婆罗门' in level %}
+                                                        {% elif '婆' in level %}
                                                         <span class="badge level-badge level-brahmin">{{ level }}</span>
-                                                        {% elif '刹帝利' in level %}
+                                                        {% elif '刹' in level %}
                                                         <span class="badge level-badge level-kshatriya">{{ level }}</span>
                                                         {% else %}
                                                         <span class="badge level-badge bg-secondary">{{ level }}</span>

@@ -157,33 +157,33 @@ def get_rank_level(rank):
     try:
         rank = int(rank)
         if rank == 1:
-            return "马哈拉迦 1 级"
+            return "马1"
         elif 2 <= rank <= 3:
-            return "马哈拉迦 2 级"
+            return "马2"
         elif 4 <= rank <= 6:
-            return "马哈拉迦 3 级"
+            return "马3"
         elif 7 <= rank <= 11:
-            return "阿瓦塔尔 1 级"
+            return "阿1"
         elif 12 <= rank <= 18:
-            return "阿瓦塔尔 2 级"
+            return "阿2"
         elif 19 <= rank <= 28:
-            return "阿瓦塔尔 3 级"
+            return "阿3"
         elif 29 <= rank <= 43:
-            return "婆罗门 1 级"
+            return "婆1"
         elif 44 <= rank <= 63:
-            return "婆罗门 2 级"
+            return "婆2"
         elif 64 <= rank <= 88:
-            return "婆罗门 3 级"
+            return "婆3"
         elif 89 <= rank <= 118:
-            return "刹帝利 1 级"
+            return "刹1"
         elif 119 <= rank <= 168:
-            return "刹帝利 2 级"
+            return "刹2"
         elif 169 <= rank <= 248:
-            return "刹帝利 3 级"
+            return "刹3"
         else:
-            return "未知级别"
+            return "未知"
     except (ValueError, TypeError):
-        return "未知级别"
+        return "未知"
 
 def get_rankings_by_scraper(url=None, category="虎威主神排行榜"):
     """

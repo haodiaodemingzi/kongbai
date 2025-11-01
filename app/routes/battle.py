@@ -926,39 +926,63 @@ def gods_ranking():
     
     try:
         for god in gods:
-            # 构建日期条件
+            # 构建日期条件（用于CTE中的battle_record表）
             date_condition = ""
             query_params = {'god': god}
             
             if start_datetime:
-                date_condition += " AND br.publish_at >= :start_datetime"
+                date_condition += " AND publish_at >= :start_datetime"
                 query_params['start_datetime'] = start_datetime
             if end_datetime:
-                date_condition += " AND br.publish_at <= :end_datetime"
+                date_condition += " AND publish_at <= :end_datetime"
                 query_params['end_datetime'] = end_datetime
             
             # 根据是否需要按玩家分组进行统计选择不同的查询
             if show_grouped:
-                # 使用玩家分组的查询 - 修正版：先计算个人战绩再按组聚合
+                # 使用玩家分组的查询 - 优化版：先过滤battle_record并聚合，充分利用索引
                 query = text(f"""
-                    WITH player_battle_stats AS (
-                        -- 1. 计算每个玩家在时间范围内的独立战绩 (使用 win/lost 列)
+                    WITH filtered_battle_records AS (
+                        -- 1. 先过滤battle_record表（利用 publish_at 和 deleted_at 索引）
+                        SELECT win, lost, remark
+                        FROM battle_record
+                        WHERE deleted_at IS NULL
+                          {date_condition}
+                    ),
+                    win_stats AS (
+                        -- 2. 统计每个玩家的击杀记录（利用 win 索引）
+                        SELECT 
+                            win as player_name,
+                            COUNT(*) as kills,
+                            SUM(COALESCE(remark, 0)) as bless
+                        FROM filtered_battle_records
+                        WHERE win IS NOT NULL
+                        GROUP BY win
+                    ),
+                    lost_stats AS (
+                        -- 3. 统计每个玩家的死亡记录（利用 lost 索引）
+                        SELECT 
+                            lost as player_name,
+                            COUNT(*) as deaths
+                        FROM filtered_battle_records
+                        WHERE lost IS NOT NULL
+                        GROUP BY lost
+                    ),
+                    player_battle_stats AS (
+                        -- 4. 将统计数据与玩家表JOIN（使用等值JOIN，可以走索引）
                         SELECT
-                            p.id, -- Include player ID
+                            p.id,
                             p.name,
-                            SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) as kills,
-                            SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) as deaths,
-                            SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as bless
+                            COALESCE(ws.kills, 0) as kills,
+                            COALESCE(ls.deaths, 0) as deaths,
+                            COALESCE(ws.bless, 0) as bless
                         FROM person p
-                        LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
-                            -- Apply date condition here if needed, but simpler outside JOIN now
+                        LEFT JOIN win_stats ws ON p.name = ws.player_name
+                        LEFT JOIN lost_stats ls ON p.name = ls.player_name
                         WHERE p.god = :god
                           AND p.deleted_at IS NULL
-                          {date_condition} -- Apply date condition in WHERE clause
-                        GROUP BY p.id, p.name -- Group by ID and Name
-                        HAVING SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) > 0
-                            OR SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) > 0
-                            OR SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) > 0
+                          AND (COALESCE(ws.kills, 0) > 0 
+                               OR COALESCE(ls.deaths, 0) > 0 
+                               OR COALESCE(ws.bless, 0) > 0)
                     ),
                     player_distinct AS (
                         -- 2. 获取所有有效的玩家ID，并关联其分组信息 (与之前类似)
@@ -1004,26 +1028,50 @@ def gods_ranking():
                         kills DESC, deaths ASC, bless DESC
                 """)
             else:
-                # 原始查询（不考虑玩家分组） - 修正版: 使用 ID 计算战绩
+                # 原始查询（不考虑玩家分组） - 优化版: 先过滤battle_record并聚合，充分利用索引
                 query = text(f"""
-                    WITH player_stats AS (
+                    WITH filtered_battle_records AS (
+                        -- 1. 先过滤battle_record表（利用 publish_at 和 deleted_at 索引）
+                        SELECT win, lost, remark
+                        FROM battle_record
+                        WHERE deleted_at IS NULL
+                          {date_condition}
+                    ),
+                    win_stats AS (
+                        -- 2. 统计每个玩家的击杀记录（利用 win 索引）
                         SELECT 
-                            p.id, -- Include ID
+                            win as player_name,
+                            COUNT(*) as kills,
+                            SUM(COALESCE(remark, 0)) as bless
+                        FROM filtered_battle_records
+                        WHERE win IS NOT NULL
+                        GROUP BY win
+                    ),
+                    lost_stats AS (
+                        -- 3. 统计每个玩家的死亡记录（利用 lost 索引）
+                        SELECT 
+                            lost as player_name,
+                            COUNT(*) as deaths
+                        FROM filtered_battle_records
+                        WHERE lost IS NOT NULL
+                        GROUP BY lost
+                    ),
+                    player_stats AS (
+                        -- 4. 将统计数据与玩家表JOIN（使用等值JOIN，可以走索引）
+                        SELECT 
+                            p.id,
                             CONCAT(p.name, '(', IFNULL(p.job, '无'), ')') AS name,
-                            SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) as kills, -- Use p.name
-                            SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) as deaths, -- Use p.name
-                            SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as bless -- Use p.name
+                            COALESCE(ws.kills, 0) as kills,
+                            COALESCE(ls.deaths, 0) as deaths,
+                            COALESCE(ws.bless, 0) as bless
                         FROM person p
-                        LEFT JOIN battle_record br ON p.name IN (br.win, br.lost)
-                            -- Apply date condition here if needed, but simpler outside JOIN now
-                            # AND (1=1 {date_condition.replace('br.', 'br.')})
+                        LEFT JOIN win_stats ws ON p.name = ws.player_name
+                        LEFT JOIN lost_stats ls ON p.name = ls.player_name
                         WHERE p.god = :god
                           AND p.deleted_at IS NULL
-                          {date_condition} -- Apply date condition in WHERE clause
-                        GROUP BY p.id, p.name -- Group by ID and Name
-                        HAVING SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) > 0 -- Use p.name
-                            OR SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) > 0 -- Use p.name
-                            OR SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) > 0 -- Use p.name
+                          AND (COALESCE(ws.kills, 0) > 0 
+                               OR COALESCE(ls.deaths, 0) > 0 
+                               OR COALESCE(ws.bless, 0) > 0)
                     )
                     SELECT 
                         name,
