@@ -124,20 +124,28 @@
                     <option value="比湿奴" {% if person.god == '比湿奴' %}selected{% endif %}>比湿奴</option>
                 </select>
             </div>
-
             <div class="form-group">
                 <label class="form-label" for="union_name">战盟</label>
-                <input type="text" id="union_name" name="union_name" class="form-input" value="{{ person.union_name }}" required>
+                <select id="union_name" name="union_name" class="form-select" required>
+                    <option value="">请选择战盟</option>
+                    <option value="梵天战盟" {% if person.union_name == '梵天战盟' %}selected{% endif %}>梵天战盟</option>
+                    <option value="逍遥战盟" {% if person.union_name == '逍遥战盟' %}selected{% endif %}>逍遥战盟</option>
+                    <option value="蓝神战盟" {% if person.union_name == '蓝神战盟' %}selected{% endif %}>蓝神战盟</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="job">职业</label>
-                <input type="text" id="job" name="job" class="form-input" value="{{ person.job }}" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="level">主神等级</label>
-                <input type="number" id="level" name="level" class="form-input" value="{{ person.level }}" required>
+                <select id="job" name="job" class="form-select" required>
+                    <option value="">请选择职业</option>
+                    <option value="狂" {% if person.job == '狂' %}selected{% endif %}>狂</option>
+                    <option value="奶" {% if person.job == '奶' %}selected{% endif %}>奶</option>
+                    <option value="金刚" {% if person.job == '金刚' %}selected{% endif %}>金刚</option>
+                    <option value="护法" {% if person.job == '护法' %}selected{% endif %}>护法</option>
+                    <option value="法师" {% if person.job == '法师' %}selected{% endif %}>法师</option>
+                    <option value="弓" {% if person.job == '弓' %}selected{% endif %}>弓</option>
+                    <option value="刺客" {% if person.job == '刺客' %}selected{% endif %}>刺客</option>
+                </select>
             </div>
 
             <div class="flex gap-4">
@@ -161,7 +169,6 @@ document.getElementById('editForm').addEventListener('submit', function(e) {
         god: document.getElementById('god').value,
         union_name: document.getElementById('union_name').value,
         job: document.getElementById('job').value,
-        level: document.getElementById('level').value
     };
 
     fetch('{{ url_for("person.person_edit", id=person.id) }}', {

@@ -1009,7 +1009,7 @@ def gods_ranking():
                     WITH player_stats AS (
                         SELECT 
                             p.id, -- Include ID
-                            p.name,
+                            CONCAT(p.name, '(', IFNULL(p.job, '无'), ')') AS name,
                             SUM(CASE WHEN br.win = p.name THEN 1 ELSE 0 END) as kills, -- Use p.name
                             SUM(CASE WHEN br.lost = p.name THEN 1 ELSE 0 END) as deaths, -- Use p.name
                             SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as bless -- Use p.name

@@ -337,9 +337,13 @@
                 </select>
                 <select name="job" class="search-select">
                     <option value="" {% if not selected_job %}selected{% endif %}>全部职业</option>
-                    {% for j in available_jobs %}
-                    <option value="{{ j }}" {% if selected_job == j %}selected{% endif %}>{{ j }}</option>
-                    {% endfor %}
+                    <option value="法师" {% if selected_job == '法师' %}selected{% endif %}>法师</option>
+                    <option value="奶" {% if selected_job == '奶' %}selected{% endif %}>奶</option>
+                    <option value="狂" {% if selected_job == '狂' %}selected{% endif %}>狂</option>
+                    <option value="护法" {% if selected_job == '护法' %}selected{% endif %}>护法</option>
+                    <option value="金刚" {% if selected_job == '金刚' %}selected{% endif %}>金刚</option>
+                    <option value="刺客" {% if selected_job == '刺客' %}selected{% endif %}>刺客</option>
+                    <option value="弓" {% if selected_job == '弓' %}selected{% endif %}>弓</option>
                 </select>
                 <button type="submit" class="btn btn-search">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -371,7 +375,7 @@
                                 <td class="table-cell">{{ person.god }}</td>
                                 <td class="table-cell">{{ person.union_name }}</td>
                                 <td class="table-cell">{{ person.job }}</td>
-                                <td class="table-cell">{{ person.level }}</td>
+                                <td class="table-cell">{{ person.level }} </td>
                                 <td class="table-cell text-end">
                                     <div class="action-buttons">
                                         <a href="{{ url_for('person.person_edit', id=person.id) }}" class="btn btn-edit" title="编辑">

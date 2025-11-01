@@ -129,11 +129,11 @@
                                         <td class="text-primary text-center fw-bold">{{ player.kills }}</td>
                                         <td class="text-danger text-center fw-bold">{{ player.deaths }}</td>
                                         <td class="text-center fw-bold">
-                                            {% if player.bless and player.bless|int > 0 %}
-                                                {% for _ in range(player.bless|int) %}🏮{% endfor %}
-                                            {% else %}
-                                                <span style="color: #6c757d;">0</span>
-                                            {% endif %}
+                                        {% if player.bless and player.bless|int > 0 %}
+                                           🏮{{ player.bless|int }}  <!-- 这里修正了 -->
+                                        {% else %}
+                                           <span style="color: #6c757d;">0</span>
+                                        {% endif %}
                                         </td>
                                         {% if show_grouped %}
                                         <td class="text-end">
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
         end.setHours(23, 59, 0, 0);
         
         const start = new Date(now);
-        start.setDate(start.getDate() - 7);
+        start.setDate(start.getDate() - 1);
         start.setHours(0, 0, 0, 0);
         
         // 格式化为datetime-local输入框需要的格式 (YYYY-MM-DDThh:mm)

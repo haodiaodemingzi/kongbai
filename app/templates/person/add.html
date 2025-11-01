@@ -127,17 +127,37 @@
 
             <div class="form-group">
                 <label class="form-label" for="union_name">战盟</label>
-                <input type="text" id="union_name" name="union_name" class="form-input" required>
+                <select id="union_name" name="union_name" class="form-select" required>
+                    <option value="">请选择战盟</option>
+                    <option value="梵天战盟">梵天战盟</option>
+                    <option value="逍遥战盟">逍遥战盟</option>
+                    <option value="蓝神战盟">蓝神战盟</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="job">职业</label>
-                <input type="text" id="job" name="job" class="form-input" required>
+                <select id="job" name="job" class="form-select" required>
+                    <option value="">请选择职业</option>
+                    <option value="狂">狂</option>
+                    <option value="奶">奶</option>
+                    <option value="金刚">金刚</option>
+                    <option value="护法">护法</option>
+                    <option value="法师">法师</option>
+                    <option value="弓">弓</option>
+                    <option value="刺客">刺客</option>
+                </select>
             </div>
-
             <div class="form-group">
-                <label class="form-label" for="level">主神等级</label>
-                <input type="number" id="level" name="level" class="form-input" required>
+                <label class="form-label" for="level_type">主神级别</label>
+                <select id="level" name="level" class="form-select" required>
+                    <option value="0">请选择主神级别</option>
+                    <option value="1">马哈拉</option>
+                    <option value="2">阿尔瓦</option>
+                    <option value="3">婆罗门</option>
+                    <option value="4">刹帝利</option>
+                    <option value="5">狗狗级</option>
+                </select>
             </div>
 
             <div class="flex gap-4">
