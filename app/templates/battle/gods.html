@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.classList.add('active');
                 
                 // 执行排序
-                const godName = btn.closest('.card').querySelector('.card-title').textContent.trim();
+                const godName = btn.closest('.card').querySelector('.card-title').textContent;
                 const tableId = 'table-' + godName.replace(/\s+/g, '_');
                 const table = document.getElementById(tableId);
                 sortTable(table, sortParam);
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             
             // 获取要排序的表格
-            const godName = this.closest('.card').querySelector('.card-title').textContent.trim();
+            const godName = this.closest('.card').querySelector('.card-title').textContent;
             const tableId = 'table-' + godName.replace(/\s+/g, '_');
             const table = document.getElementById(tableId);
             

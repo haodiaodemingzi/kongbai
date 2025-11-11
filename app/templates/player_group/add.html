@@ -234,7 +234,7 @@
 
     // 玩家搜索过滤功能
     document.getElementById('player_search').addEventListener('input', function(e) {
-        const searchText = e.target.value.toLowerCase().trim();
+        const searchText = e.target.value.toLowerCase();
         const playerItems = document.querySelectorAll('.player-item');
         
         playerItems.forEach(item => {

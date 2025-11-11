@@ -507,4 +507,488 @@ def export_data_to_json(faction=None):
         
     except Exception as e:
         logger.error(f"导出数据时出错: {str(e)}", exc_info=True)
-        return "{}", "error.json" 
+        return "{}", "error.json"
+
+def get_daily_kills_by_player(date_range=None, limit=5):
+    """
+    获取每日击杀数据，按角色和日期分组（优化版：单次查询）
+    
+    Args:
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        limit: 返回前N个击杀最多的玩家
+    
+    Returns:
+        dict: {
+            'dates': ['2025-01-01', '2025-01-02', ...],
+            'players': [
+                {
+                    'name': '玩家名',
+                    'faction': '势力',
+                    'data': [10, 15, 20, ...]  # 每天的击杀数
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        # 构建日期筛选条件（基础部分，不含别名）
+        base_date_condition = ""
+        if date_range:
+            if date_range == 'today':
+                base_date_condition = "AND DATE(br.publish_at) = CURDATE()"
+            elif date_range == 'yesterday':
+                base_date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+            elif date_range == 'week':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif date_range == 'month':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
+            elif date_range == 'three_months':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+        
+        # 优化：使用单次查询获取所有数据
+        query = text(f"""
+            WITH filtered_records AS (
+                SELECT 
+                    br.win as player_name,
+                    DATE(br.publish_at) as date,
+                    p.god as faction
+                FROM battle_record br
+                JOIN person p ON br.win = p.name
+                WHERE br.deleted_at IS NULL
+                  AND p.deleted_at IS NULL
+                  AND br.win IS NOT NULL
+                  {base_date_condition}
+            ),
+            daily_stats AS (
+                SELECT 
+                    player_name,
+                    faction,
+                    date,
+                    COUNT(*) as kills
+                FROM filtered_records
+                GROUP BY player_name, faction, date
+            ),
+            total_stats AS (
+                SELECT 
+                    player_name,
+                    faction,
+                    SUM(kills) as total_kills
+                FROM daily_stats
+                GROUP BY player_name, faction
+            ),
+            top_players AS (
+                SELECT player_name, faction
+                FROM total_stats
+                ORDER BY total_kills DESC
+                LIMIT :limit
+            )
+            SELECT 
+                tp.player_name,
+                tp.faction,
+                ds.date,
+                COALESCE(ds.kills, 0) as kills
+            FROM top_players tp
+            LEFT JOIN daily_stats ds ON tp.player_name = ds.player_name
+            ORDER BY tp.player_name, ds.date ASC
+        """)
+        
+        result = db.session.execute(query, {'limit': limit})
+        
+        # 处理结果
+        players_dict = {}
+        dates_set = set()
+        
+        for row in result:
+            player_name = row.player_name
+            if player_name not in players_dict:
+                players_dict[player_name] = {
+                    'name': player_name,
+                    'faction': row.faction,
+                    'daily_data': {}
+                }
+            if row.date:
+                date_str = row.date.strftime('%Y-%m-%d')
+                dates_set.add(date_str)
+                players_dict[player_name]['daily_data'][date_str] = row.kills
+        
+        # 获取所有日期并排序
+        dates = sorted(list(dates_set))
+        
+        if not dates:
+            return {'dates': [], 'players': []}
+        
+        # 为每个玩家填充完整日期数组
+        players_data = []
+        for player_name, player_info in players_dict.items():
+            data = [player_info['daily_data'].get(date, 0) for date in dates]
+            players_data.append({
+                'name': player_info['name'],
+                'faction': player_info['faction'],
+                'data': data
+            })
+        
+        return {
+            'dates': dates,
+            'players': players_data
+        }
+        
+    except Exception as e:
+        logger.error(f"获取每日击杀数据时出错: {str(e)}", exc_info=True)
+        return {'dates': [], 'players': []}
+
+def get_daily_deaths_by_player(date_range=None, limit=5):
+    """
+    获取每日死亡数据，按角色和日期分组（优化版：单次查询）
+    
+    Args:
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        limit: 返回前N个死亡最多的玩家
+    
+    Returns:
+        dict: {
+            'dates': ['2025-01-01', '2025-01-02', ...],
+            'players': [
+                {
+                    'name': '玩家名',
+                    'faction': '势力',
+                    'data': [10, 15, 20, ...]  # 每天的死亡数
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        # 构建日期筛选条件（基础部分，不含别名）
+        base_date_condition = ""
+        if date_range:
+            if date_range == 'today':
+                base_date_condition = "AND DATE(br.publish_at) = CURDATE()"
+            elif date_range == 'yesterday':
+                base_date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+            elif date_range == 'week':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif date_range == 'month':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
+            elif date_range == 'three_months':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+        
+        # 优化：使用单次查询获取所有数据
+        query = text(f"""
+            WITH filtered_records AS (
+                SELECT 
+                    br.lost as player_name,
+                    DATE(br.publish_at) as date,
+                    p.god as faction
+                FROM battle_record br
+                JOIN person p ON br.lost = p.name
+                WHERE br.deleted_at IS NULL
+                  AND p.deleted_at IS NULL
+                  AND br.lost IS NOT NULL
+                  {base_date_condition}
+            ),
+            daily_stats AS (
+                SELECT 
+                    player_name,
+                    faction,
+                    date,
+                    COUNT(*) as deaths
+                FROM filtered_records
+                GROUP BY player_name, faction, date
+            ),
+            total_stats AS (
+                SELECT 
+                    player_name,
+                    faction,
+                    SUM(deaths) as total_deaths
+                FROM daily_stats
+                GROUP BY player_name, faction
+            ),
+            top_players AS (
+                SELECT player_name, faction
+                FROM total_stats
+                ORDER BY total_deaths DESC
+                LIMIT :limit
+            )
+            SELECT 
+                tp.player_name,
+                tp.faction,
+                ds.date,
+                COALESCE(ds.deaths, 0) as deaths
+            FROM top_players tp
+            LEFT JOIN daily_stats ds ON tp.player_name = ds.player_name
+            ORDER BY tp.player_name, ds.date ASC
+        """)
+        
+        result = db.session.execute(query, {'limit': limit})
+        
+        # 处理结果
+        players_dict = {}
+        dates_set = set()
+        
+        for row in result:
+            player_name = row.player_name
+            if player_name not in players_dict:
+                players_dict[player_name] = {
+                    'name': player_name,
+                    'faction': row.faction,
+                    'daily_data': {}
+                }
+            if row.date:
+                date_str = row.date.strftime('%Y-%m-%d')
+                dates_set.add(date_str)
+                players_dict[player_name]['daily_data'][date_str] = row.deaths
+        
+        # 获取所有日期并排序
+        dates = sorted(list(dates_set))
+        
+        if not dates:
+            return {'dates': [], 'players': []}
+        
+        # 为每个玩家填充完整日期数组
+        players_data = []
+        for player_name, player_info in players_dict.items():
+            data = [player_info['daily_data'].get(date, 0) for date in dates]
+            players_data.append({
+                'name': player_info['name'],
+                'faction': player_info['faction'],
+                'data': data
+            })
+        
+        return {
+            'dates': dates,
+            'players': players_data
+        }
+        
+    except Exception as e:
+        logger.error(f"获取每日死亡数据时出错: {str(e)}", exc_info=True)
+        return {'dates': [], 'players': []}
+
+def get_daily_scores_by_player(date_range=None, limit=5):
+    """
+    获取每日得分数据，按角色和日期分组（优化版：单次查询）
+    
+    Args:
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        limit: 返回前N个得分最高的玩家
+    
+    Returns:
+        dict: {
+            'dates': ['2025-01-01', '2025-01-02', ...],
+            'players': [
+                {
+                    'name': '玩家名',
+                    'faction': '势力',
+                    'data': [10, 15, 20, ...]  # 每天的得分
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        # 构建日期筛选条件（基础部分，不含别名）
+        base_date_condition = ""
+        if date_range:
+            if date_range == 'today':
+                base_date_condition = "AND DATE(br.publish_at) = CURDATE()"
+            elif date_range == 'yesterday':
+                base_date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+            elif date_range == 'week':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+            elif date_range == 'month':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
+            elif date_range == 'three_months':
+                base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+        
+        # 优化：使用单次查询获取所有数据，避免循环查询和子查询
+        query = text(f"""
+            WITH filtered_records AS (
+                SELECT 
+                    br.win,
+                    br.lost,
+                    DATE(br.publish_at) as date
+                FROM battle_record br
+                WHERE br.deleted_at IS NULL
+                  {base_date_condition}
+            ),
+            win_stats AS (
+                SELECT 
+                    win as player_name,
+                    date,
+                    COUNT(*) * 3 as score
+                FROM filtered_records
+                WHERE win IS NOT NULL
+                GROUP BY win, date
+            ),
+            lost_stats AS (
+                SELECT 
+                    lost as player_name,
+                    date,
+                    COUNT(*) as score
+                FROM filtered_records
+                WHERE lost IS NOT NULL
+                GROUP BY lost, date
+            ),
+            daily_scores AS (
+                SELECT 
+                    COALESCE(ws.player_name, ls.player_name) as player_name,
+                    COALESCE(ws.date, ls.date) as date,
+                    COALESCE(ws.score, 0) - COALESCE(ls.score, 0) as daily_score
+                FROM win_stats ws
+                FULL OUTER JOIN lost_stats ls ON ws.player_name = ls.player_name AND ws.date = ls.date
+                UNION
+                SELECT 
+                    ls.player_name,
+                    ls.date,
+                    -ls.score as daily_score
+                FROM lost_stats ls
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM win_stats ws 
+                    WHERE ws.player_name = ls.player_name AND ws.date = ls.date
+                )
+            ),
+            player_totals AS (
+                SELECT 
+                    ds.player_name,
+                    SUM(ds.daily_score) as total_score
+                FROM daily_scores ds
+                GROUP BY ds.player_name
+            ),
+            top_players AS (
+                SELECT 
+                    pt.player_name,
+                    p.god as faction
+                FROM player_totals pt
+                JOIN person p ON pt.player_name = p.name
+                WHERE pt.total_score > 0
+                  AND p.deleted_at IS NULL
+                ORDER BY pt.total_score DESC
+                LIMIT :limit
+            )
+            SELECT 
+                tp.player_name,
+                tp.faction,
+                ds.date,
+                COALESCE(ds.daily_score, 0) as daily_score
+            FROM top_players tp
+            LEFT JOIN daily_scores ds ON tp.player_name = ds.player_name
+            ORDER BY tp.player_name, ds.date ASC
+        """)
+        
+        # MySQL/MariaDB不支持FULL OUTER JOIN，改用UNION方式
+        query = text(f"""
+            WITH filtered_records AS (
+                SELECT 
+                    br.win,
+                    br.lost,
+                    DATE(br.publish_at) as date
+                FROM battle_record br
+                WHERE br.deleted_at IS NULL
+                  {base_date_condition}
+            ),
+            win_stats AS (
+                SELECT 
+                    win as player_name,
+                    date,
+                    COUNT(*) * 3 as score
+                FROM filtered_records
+                WHERE win IS NOT NULL
+                GROUP BY win, date
+            ),
+            lost_stats AS (
+                SELECT 
+                    lost as player_name,
+                    date,
+                    COUNT(*) as score
+                FROM filtered_records
+                WHERE lost IS NOT NULL
+                GROUP BY lost, date
+            ),
+            daily_scores AS (
+                SELECT 
+                    ws.player_name,
+                    ws.date,
+                    ws.score - COALESCE(ls.score, 0) as daily_score
+                FROM win_stats ws
+                LEFT JOIN lost_stats ls ON ws.player_name = ls.player_name AND ws.date = ls.date
+                UNION
+                SELECT 
+                    ls.player_name,
+                    ls.date,
+                    -ls.score as daily_score
+                FROM lost_stats ls
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM win_stats ws 
+                    WHERE ws.player_name = ls.player_name AND ws.date = ls.date
+                )
+            ),
+            player_totals AS (
+                SELECT 
+                    ds.player_name,
+                    SUM(ds.daily_score) as total_score
+                FROM daily_scores ds
+                GROUP BY ds.player_name
+            ),
+            top_players AS (
+                SELECT 
+                    pt.player_name,
+                    p.god as faction
+                FROM player_totals pt
+                JOIN person p ON pt.player_name = p.name
+                WHERE pt.total_score > 0
+                  AND p.deleted_at IS NULL
+                ORDER BY pt.total_score DESC
+                LIMIT :limit
+            )
+            SELECT 
+                tp.player_name,
+                tp.faction,
+                ds.date,
+                COALESCE(ds.daily_score, 0) as daily_score
+            FROM top_players tp
+            LEFT JOIN daily_scores ds ON tp.player_name = ds.player_name
+            ORDER BY tp.player_name, ds.date ASC
+        """)
+        
+        result = db.session.execute(query, {'limit': limit})
+        
+        # 处理结果
+        players_dict = {}
+        dates_set = set()
+        
+        for row in result:
+            player_name = row.player_name
+            if player_name not in players_dict:
+                players_dict[player_name] = {
+                    'name': player_name,
+                    'faction': row.faction,
+                    'daily_data': {}
+                }
+            if row.date:
+                date_str = row.date.strftime('%Y-%m-%d')
+                dates_set.add(date_str)
+                players_dict[player_name]['daily_data'][date_str] = row.daily_score
+        
+        # 获取所有日期并排序
+        dates = sorted(list(dates_set))
+        
+        if not dates:
+            return {'dates': [], 'players': []}
+        
+        # 为每个玩家填充完整日期数组
+        players_data = []
+        for player_name, player_info in players_dict.items():
+            data = [player_info['daily_data'].get(date, 0) for date in dates]
+            players_data.append({
+                'name': player_info['name'],
+                'faction': player_info['faction'],
+                'data': data
+            })
+        
+        return {
+            'dates': dates,
+            'players': players_data
+        }
+        
+    except Exception as e:
+        logger.error(f"获取每日得分数据时出错: {str(e)}", exc_info=True)
+        return {'dates': [], 'players': []} 

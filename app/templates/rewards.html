@@ -143,7 +143,7 @@ function displayResults(results) {
 
     results.forEach(result => {
         result.people.forEach(person => {
-            if (!person.name || person.name.trim() === '') {
+            if (!person.name || person.name === '') {
                 return;
             }
             

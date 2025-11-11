@@ -7,7 +7,7 @@
 
 from flask import Blueprint, render_template, current_app, request, flash, redirect, url_for
 from app.routes.battle import get_faction_statistics
-from app.services.data_service import get_faction_stats
+from app.services.data_service import get_faction_stats, get_daily_kills_by_player, get_daily_deaths_by_player, get_daily_scores_by_player
 from app.utils.logger import get_logger
 from app.utils.auth import login_required
 
@@ -81,6 +81,13 @@ def index():
         }
         
         # 不再需要从各个势力收集top_killers和top_scorers
+        
+        # 获取每日击杀数据
+        daily_kills_data = get_daily_kills_by_player(date_range, limit=5)
+        # 获取每日死亡数据
+        daily_deaths_data = get_daily_deaths_by_player(date_range, limit=5)
+        # 获取每日得分数据
+        daily_scores_data = get_daily_scores_by_player(date_range, limit=5)
 
         return render_template('home/index.html',
                             chart_data=chart_data,
@@ -95,7 +102,10 @@ def index():
                             faction_player_counts=faction_player_counts,
                             faction_statistics=faction_statistics,
                             faction_player_names=faction_player_names,
-                            faction_player_counts_values=faction_player_counts_values)
+                            faction_player_counts_values=faction_player_counts_values,
+                            daily_kills_data=daily_kills_data,
+                            daily_deaths_data=daily_deaths_data,
+                            daily_scores_data=daily_scores_data)
                             
     except Exception as e:
         logger.error(f"生成首页仪表盘时出错: {str(e)}", exc_info=True)
@@ -112,4 +122,7 @@ def index():
                             faction_player_counts={'梵天': 0, '比湿奴': 0, '湿婆': 0},
                             faction_statistics=[],
                             faction_player_names=[],
-                            faction_player_counts_values=[]) 
+                            faction_player_counts_values=[],
+                            daily_kills_data={'dates': [], 'players': []},
+                            daily_deaths_data={'dates': [], 'players': []},
+                            daily_scores_data={'dates': [], 'players': []}) 

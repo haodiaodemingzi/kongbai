@@ -290,7 +290,7 @@
 
     // 已分配玩家搜索过滤功能
     document.getElementById('assigned_player_search').addEventListener('input', function(e) {
-        const searchText = e.target.value.toLowerCase().trim();
+        const searchText = e.target.value.toLowerCase();
         const playerItems = document.querySelectorAll('.assigned-player');
         
         playerItems.forEach(item => {
@@ -305,7 +305,7 @@
     
     // 未分配玩家搜索过滤功能
     document.getElementById('unassigned_player_search').addEventListener('input', function(e) {
-        const searchText = e.target.value.toLowerCase().trim();
+        const searchText = e.target.value.toLowerCase();
         const playerItems = document.querySelectorAll('.unassigned-player');
         
         playerItems.forEach(item => {

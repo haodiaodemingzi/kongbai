@@ -57,9 +57,19 @@ body {
     color: #666;
 }
 
-.faction-梵天 { color: #ff4d4d; }
-.faction-比湿奴 { color: #4d94ff; }
-.faction-湿婆 { color: #9966ff; }
+/* 势力颜色设置：梵天-黄色，湿婆-蓝色，其他-红色 */
+.faction-梵天,
+[class*="faction-梵天"] {
+    color: #ffd700;
+}
+.faction-湿婆,
+[class*="faction-湿婆"] {
+    color: #4d94ff;
+}
+/* 其他势力默认红色 */
+[class*="faction-"]:not([class*="faction-梵天"]):not([class*="faction-湿婆"]) {
+    color: #ff4d4d;
+}
 
 .modal-kill-details {
     max-height: 400px;
@@ -116,7 +126,7 @@ body {
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="faction-{{ killer.faction }}">【{{ killer.faction }}】</span>
-                        <span>{{ killer.name }}</span>
+                        <span class="faction-{{ killer.faction }}">{{ killer.name }}</span>
                     </div>
                     <div>
                         <span class="badge bg-danger">{{ killer.kills }} 击杀</span>
@@ -132,7 +142,7 @@ body {
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="faction-{{ scorer.faction }}">【{{ scorer.faction }}】</span>
-                        <span>{{ scorer.name }}</span>
+                        <span class="faction-{{ scorer.faction }}">{{ scorer.name }}</span>
                     </div>
                     <div>
                         <span class="badge bg-primary">{{ scorer.score }} 分</span>
@@ -149,7 +159,7 @@ body {
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="faction-{{ death.faction }}">【{{ death.faction }}】</span>
-                            <span>{{ death.name }}</span>
+                            <span class="faction-{{ death.faction }}">{{ death.name }}</span>
                         </div>
                         <div>
                             <span class="badge bg-dark">{{ death.deaths }} 死亡</span>
@@ -177,6 +187,27 @@ body {
         </div>
         <div class="col-md-3">
             <div class="chart-container" id="factionPlayersPieChart"></div>
+        </div>
+    </div>
+    
+    <!-- 每日击杀趋势图 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-container" id="dailyKillsChart" style="height: 500px;"></div>
+        </div>
+    </div>
+    
+    <!-- 每日死亡趋势图 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-container" id="dailyDeathsChart" style="height: 500px;"></div>
+        </div>
+    </div>
+    
+    <!-- 每日得分趋势图 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="chart-container" id="dailyScoresChart" style="height: 500px;"></div>
         </div>
     </div>
 </div>
@@ -326,10 +357,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 labelLine: {
                     show: false
                 },
-                data: {{ chart_data.factions | chart_data(chart_data.kills) | tojson }}
+                data: (function() {
+                    var data = {{ chart_data.factions | chart_data(chart_data.kills) | tojson }};
+                    return data.map(function(item) {
+                        var color = '#ff4d4d'; // 默认红色
+                        if (item.name === '梵天') {
+                            color = '#ffd700'; // 黄色
+                        } else if (item.name === '湿婆') {
+                            color = '#4d94ff'; // 蓝色
+                        }
+                        return {
+                            name: item.name,
+                            value: item.value,
+                            itemStyle: {
+                                color: color
+                            }
+                        };
+                    });
+                })()
             }
-        ],
-        color: ['#ff4d4d', '#4d94ff', '#9966ff']
+        ]
     };
     killsPieChart.setOption(killsPieOption);
 
@@ -389,21 +436,612 @@ document.addEventListener('DOMContentLoaded', function() {
                     {% for stat in faction_statistics %}
                     {
                         name: "{{ stat.faction }}",
-                        value: {{ stat.player_count }}
+                        value: {{ stat.player_count }},
+                        itemStyle: {
+                            color: {% if stat.faction == '梵天' %}'#ffd700'{% elif stat.faction == '湿婆' %}'#4d94ff'{% else %}'#ff4d4d'{% endif %}
+                        }
                     }{% if not loop.last %},{% endif %}
                     {% endfor %}
                 ]
             }
-        ],
-        color: ['#ff4d4d', '#4d94ff', '#9966ff', '#ff9933', '#33cc99', '#cc66ff']
+        ]
     };
     factionPlayersPieChart.setOption(factionPlayersPieOption);
+
+    // 渲染每日击杀趋势折线图
+    const dailyKillsChart = echarts.init(document.getElementById('dailyKillsChart'));
+    const dailyKillsData = {{ daily_kills_data | tojson }};
+    
+    // 为每个玩家分配高对比度颜色（按索引）
+    const playerColors = [
+        '#E74C3C',  // 红色
+        '#3498DB',  // 蓝色
+        '#2ECC71',  // 绿色
+        '#F39C12',  // 橙色
+        '#9B59B6'   // 紫色
+    ];
+    
+    // 准备折线图数据
+    const series = dailyKillsData.players.map(function(player, index) {
+        return {
+            name: player.name + ' [' + player.faction + ']',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            data: player.data,
+            lineStyle: {
+                width: 2
+            },
+            itemStyle: {
+                color: playerColors[index] || '#666'
+            },
+            areaStyle: {
+                opacity: 0.1
+            }
+        };
+    });
+    
+    const dailyKillsOption = {
+        title: {
+            text: '角色每日击杀次数趋势',
+            textStyle: {
+                color: '#333',
+                fontSize: 18
+            },
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross'
+            },
+            formatter: function(params) {
+                var result = params[0].axisValue + '<br/>';
+                params.forEach(function(item) {
+                    result += item.marker + item.seriesName + ': ' + item.value + ' 次<br/>';
+                });
+                return result;
+            }
+        },
+        legend: {
+            data: dailyKillsData.players.map(function(p) { return p.name + ' [' + p.faction + ']'; }),
+            orient: 'horizontal',
+            bottom: 10,
+            left: 'center',
+            textStyle: {
+                color: '#333',
+                fontSize: 12
+            },
+            type: 'scroll',
+            pageButtonItemGap: 5,
+            pageButtonGap: 10,
+            selectedMode: 'multiple'  // 允许多选，点击图例可以显示/隐藏对应系列
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            top: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: dailyKillsData.dates,
+            axisLabel: {
+                color: '#333',
+                rotate: 45,
+                formatter: function(value) {
+                    // 格式化日期显示，只显示月-日
+                    if (value && value.length >= 10) {
+                        return value.substring(5);
+                    }
+                    return value;
+                }
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '击杀次数',
+            nameTextStyle: {
+                color: '#333'
+            },
+            axisLabel: {
+                color: '#333'
+            },
+            splitLine: {
+                lineStyle: {
+                    color: '#e0e0e0'
+                }
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 0,
+                end: 100
+            },
+            {
+                type: 'slider',
+                start: 0,
+                end: 100,
+                height: 20,
+                bottom: 40
+            }
+        ],
+        series: series
+    };
+    
+    if (dailyKillsData.dates.length > 0 && dailyKillsData.players.length > 0) {
+        dailyKillsChart.setOption(dailyKillsOption);
+        
+        // 双击图例项时只显示该角色，隐藏其他所有角色
+        var lastLegendState = {};
+        var lastLegendClickTime = {};
+        var lastLegendName = null;
+        var allNamesKills = dailyKillsData.players.map(function(p) { return p.name + ' [' + p.faction + ']'; });
+        // 初始化状态
+        allNamesKills.forEach(function(name) {
+            lastLegendState[name] = true;
+        });
+        
+        dailyKillsChart.on('legendselectchanged', function(params) {
+            // 找出状态改变的项目
+            var clickedName = null;
+            for (var name in params.selected) {
+                if (allNamesKills.indexOf(name) >= 0 && params.selected[name] !== lastLegendState[name]) {
+                    clickedName = name;
+                    break;
+                }
+            }
+            
+            // 更新状态
+            for (var name in params.selected) {
+                if (allNamesKills.indexOf(name) >= 0) {
+                    lastLegendState[name] = params.selected[name];
+                }
+            }
+            
+            if (clickedName) {
+                var now = Date.now();
+                // 如果是同一个图例项在300ms内被点击两次，视为双击
+                if (lastLegendName === clickedName && lastLegendClickTime[clickedName] && now - lastLegendClickTime[clickedName] < 300) {
+                    // 双击：只显示当前角色
+                    var selected = {};
+                    allNamesKills.forEach(function(name) {
+                        selected[name] = (name === clickedName);
+                    });
+                    dailyKillsChart.dispatchAction({
+                        type: 'legendSelect',
+                        selected: selected
+                    });
+                    // 更新状态
+                    for (var name in selected) {
+                        lastLegendState[name] = selected[name];
+                    }
+                    lastLegendClickTime = {}; // 重置，避免连续触发
+                } else {
+                    lastLegendClickTime[clickedName] = now;
+                    lastLegendName = clickedName;
+                }
+            }
+        });
+    } else {
+        dailyKillsChart.setOption({
+            title: {
+                text: '角色每日击杀次数趋势',
+                textStyle: {
+                    color: '#333',
+                    fontSize: 18
+                },
+                left: 'center'
+            },
+            graphic: {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                    text: '暂无数据',
+                    fontSize: 16,
+                    fill: '#999'
+                }
+            }
+        });
+    }
+
+    // 渲染每日死亡趋势折线图
+    const dailyDeathsChart = echarts.init(document.getElementById('dailyDeathsChart'));
+    const dailyDeathsData = {{ daily_deaths_data | tojson }};
+    
+    // 准备死亡折线图数据
+    const deathsSeries = dailyDeathsData.players.map(function(player, index) {
+        return {
+            name: player.name + ' [' + player.faction + ']',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            data: player.data,
+            lineStyle: {
+                width: 2
+            },
+            itemStyle: {
+                color: playerColors[index] || '#666'
+            },
+            areaStyle: {
+                opacity: 0.1
+            }
+        };
+    });
+    
+    const dailyDeathsOption = {
+        title: {
+            text: '角色每日死亡次数趋势',
+            textStyle: {
+                color: '#333',
+                fontSize: 18
+            },
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross'
+            },
+            formatter: function(params) {
+                var result = params[0].axisValue + '<br/>';
+                params.forEach(function(item) {
+                    result += item.marker + item.seriesName + ': ' + item.value + ' 次<br/>';
+                });
+                return result;
+            }
+        },
+        legend: {
+            data: dailyDeathsData.players.map(function(p) { return p.name + ' [' + p.faction + ']'; }),
+            orient: 'horizontal',
+            bottom: 10,
+            left: 'center',
+            textStyle: {
+                color: '#333',
+                fontSize: 12
+            },
+            type: 'scroll',
+            pageButtonItemGap: 5,
+            pageButtonGap: 10,
+            selectedMode: 'multiple'  // 允许多选，点击图例可以显示/隐藏对应系列
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            top: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: dailyDeathsData.dates,
+            axisLabel: {
+                color: '#333',
+                rotate: 45,
+                formatter: function(value) {
+                    if (value && value.length >= 10) {
+                        return value.substring(5);
+                    }
+                    return value;
+                }
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '死亡次数',
+            nameTextStyle: {
+                color: '#333'
+            },
+            axisLabel: {
+                color: '#333'
+            },
+            splitLine: {
+                lineStyle: {
+                    color: '#e0e0e0'
+                }
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 0,
+                end: 100
+            },
+            {
+                type: 'slider',
+                start: 0,
+                end: 100,
+                height: 20,
+                bottom: 40
+            }
+        ],
+        series: deathsSeries
+    };
+    
+    if (dailyDeathsData.dates.length > 0 && dailyDeathsData.players.length > 0) {
+        dailyDeathsChart.setOption(dailyDeathsOption);
+        
+        // 双击图例项时只显示该角色，隐藏其他所有角色
+        var lastLegendStateDeaths = {};
+        var lastLegendClickTimeDeaths = {};
+        var lastLegendNameDeaths = null;
+        var allNamesDeaths = dailyDeathsData.players.map(function(p) { return p.name + ' [' + p.faction + ']'; });
+        // 初始化状态
+        allNamesDeaths.forEach(function(name) {
+            lastLegendStateDeaths[name] = true;
+        });
+        
+        dailyDeathsChart.on('legendselectchanged', function(params) {
+            // 找出状态改变的项目
+            var clickedName = null;
+            for (var name in params.selected) {
+                if (allNamesDeaths.indexOf(name) >= 0 && params.selected[name] !== lastLegendStateDeaths[name]) {
+                    clickedName = name;
+                    break;
+                }
+            }
+            
+            // 更新状态
+            for (var name in params.selected) {
+                if (allNamesDeaths.indexOf(name) >= 0) {
+                    lastLegendStateDeaths[name] = params.selected[name];
+                }
+            }
+            
+            if (clickedName) {
+                var now = Date.now();
+                // 如果是同一个图例项在300ms内被点击两次，视为双击
+                if (lastLegendNameDeaths === clickedName && lastLegendClickTimeDeaths[clickedName] && now - lastLegendClickTimeDeaths[clickedName] < 300) {
+                    // 双击：只显示当前角色
+                    var selected = {};
+                    allNamesDeaths.forEach(function(name) {
+                        selected[name] = (name === clickedName);
+                    });
+                    dailyDeathsChart.dispatchAction({
+                        type: 'legendSelect',
+                        selected: selected
+                    });
+                    // 更新状态
+                    for (var name in selected) {
+                        lastLegendStateDeaths[name] = selected[name];
+                    }
+                    lastLegendClickTimeDeaths = {}; // 重置，避免连续触发
+                } else {
+                    lastLegendClickTimeDeaths[clickedName] = now;
+                    lastLegendNameDeaths = clickedName;
+                }
+            }
+        });
+    } else {
+        dailyDeathsChart.setOption({
+            title: {
+                text: '角色每日死亡次数趋势',
+                textStyle: {
+                    color: '#333',
+                    fontSize: 18
+                },
+                left: 'center'
+            },
+            graphic: {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                    text: '暂无数据',
+                    fontSize: 16,
+                    fill: '#999'
+                }
+            }
+        });
+    }
+
+    // 渲染每日得分趋势折线图
+    const dailyScoresChart = echarts.init(document.getElementById('dailyScoresChart'));
+    const dailyScoresData = {{ daily_scores_data | tojson }};
+    
+    // 准备得分折线图数据
+    const scoresSeries = dailyScoresData.players.map(function(player, index) {
+        return {
+            name: player.name + ' [' + player.faction + ']',
+            type: 'line',
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            data: player.data,
+            lineStyle: {
+                width: 2
+            },
+            itemStyle: {
+                color: playerColors[index] || '#666'
+            },
+            areaStyle: {
+                opacity: 0.1
+            }
+        };
+    });
+    
+    const dailyScoresOption = {
+        title: {
+            text: '角色每日得分趋势',
+            textStyle: {
+                color: '#333',
+                fontSize: 18
+            },
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross'
+            },
+            formatter: function(params) {
+                var result = params[0].axisValue + '<br/>';
+                params.forEach(function(item) {
+                    result += item.marker + item.seriesName + ': ' + item.value + ' 分<br/>';
+                });
+                return result;
+            }
+        },
+        legend: {
+            data: dailyScoresData.players.map(function(p) { return p.name + ' [' + p.faction + ']'; }),
+            orient: 'horizontal',
+            bottom: 10,
+            left: 'center',
+            textStyle: {
+                color: '#333',
+                fontSize: 12
+            },
+            type: 'scroll',
+            pageButtonItemGap: 5,
+            pageButtonGap: 10,
+            selectedMode: 'multiple'  // 允许多选，点击图例可以显示/隐藏对应系列
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            top: '15%',
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: dailyScoresData.dates,
+            axisLabel: {
+                color: '#333',
+                rotate: 45,
+                formatter: function(value) {
+                    if (value && value.length >= 10) {
+                        return value.substring(5);
+                    }
+                    return value;
+                }
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: '得分',
+            nameTextStyle: {
+                color: '#333'
+            },
+            axisLabel: {
+                color: '#333'
+            },
+            splitLine: {
+                lineStyle: {
+                    color: '#e0e0e0'
+                }
+            }
+        },
+        dataZoom: [
+            {
+                type: 'inside',
+                start: 0,
+                end: 100
+            },
+            {
+                type: 'slider',
+                start: 0,
+                end: 100,
+                height: 20,
+                bottom: 40
+            }
+        ],
+        series: scoresSeries
+    };
+    
+    if (dailyScoresData.dates.length > 0 && dailyScoresData.players.length > 0) {
+        dailyScoresChart.setOption(dailyScoresOption);
+        
+        // 双击图例项时只显示该角色，隐藏其他所有角色
+        var lastLegendStateScores = {};
+        var lastLegendClickTimeScores = {};
+        var lastLegendNameScores = null;
+        var allNamesScores = dailyScoresData.players.map(function(p) { return p.name + ' [' + p.faction + ']'; });
+        // 初始化状态
+        allNamesScores.forEach(function(name) {
+            lastLegendStateScores[name] = true;
+        });
+        
+        dailyScoresChart.on('legendselectchanged', function(params) {
+            // 找出状态改变的项目
+            var clickedName = null;
+            for (var name in params.selected) {
+                if (allNamesScores.indexOf(name) >= 0 && params.selected[name] !== lastLegendStateScores[name]) {
+                    clickedName = name;
+                    break;
+                }
+            }
+            
+            // 更新状态
+            for (var name in params.selected) {
+                if (allNamesScores.indexOf(name) >= 0) {
+                    lastLegendStateScores[name] = params.selected[name];
+                }
+            }
+            
+            if (clickedName) {
+                var now = Date.now();
+                // 如果是同一个图例项在300ms内被点击两次，视为双击
+                if (lastLegendNameScores === clickedName && lastLegendClickTimeScores[clickedName] && now - lastLegendClickTimeScores[clickedName] < 300) {
+                    // 双击：只显示当前角色
+                    var selected = {};
+                    allNamesScores.forEach(function(name) {
+                        selected[name] = (name === clickedName);
+                    });
+                    dailyScoresChart.dispatchAction({
+                        type: 'legendSelect',
+                        selected: selected
+                    });
+                    // 更新状态
+                    for (var name in selected) {
+                        lastLegendStateScores[name] = selected[name];
+                    }
+                    lastLegendClickTimeScores = {}; // 重置，避免连续触发
+                } else {
+                    lastLegendClickTimeScores[clickedName] = now;
+                    lastLegendNameScores = clickedName;
+                }
+            }
+        });
+    } else {
+        dailyScoresChart.setOption({
+            title: {
+                text: '角色每日得分趋势',
+                textStyle: {
+                    color: '#333',
+                    fontSize: 18
+                },
+                left: 'center'
+            },
+            graphic: {
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: {
+                    text: '暂无数据',
+                    fontSize: 16,
+                    fill: '#999'
+                }
+            }
+        });
+    }
 
     // 响应式调整
     window.addEventListener('resize', function() {
         factionStatsChart.resize();
         killsPieChart.resize();
         factionPlayersPieChart.resize();
+        dailyKillsChart.resize();
+        dailyDeathsChart.resize();
+        dailyScoresChart.resize();
     });
 });
 
