@@ -68,6 +68,30 @@
                                         <button type="button" class="btn btn-sm filter-btn {% if selected_time == 'all' %}btn-primary active{% else %}btn-outline-primary{% endif %}" data-filter="time_range" data-value="all">
                                             1年
                                         </button>
+                                        <button type="button" class="btn btn-sm filter-btn {% if start_date and end_date %}btn-primary active{% else %}btn-outline-primary{% endif %}" id="custom-time-btn" data-filter="time_range" data-value="custom">
+                                            自定义
+                                        </button>
+                                    </div>
+                                    <!-- 自定义时间段选择器 -->
+                                    <div id="custom-time-range" class="mt-3" {% if start_date and end_date %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <label class="form-label small">开始时间</label>
+                                                <input type="datetime-local" class="form-control form-control-sm" id="start_datetime" name="start_datetime" value="{% if start_date %}{{ start_date }}{% endif %}">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small">结束时间</label>
+                                                <input type="datetime-local" class="form-control form-control-sm" id="end_datetime" name="end_datetime" value="{% if end_date %}{{ end_date }}{% endif %}">
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-sm btn-primary" id="apply-custom-time">
+                                                <i class="fas fa-check me-1"></i>应用
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary" id="clear-custom-time">
+                                                <i class="fas fa-times me-1"></i>清除
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -80,6 +104,8 @@
                 <input type="hidden" id="time_range" name="time_range" value="{{ selected_time or 'today' }}">
                 <input type="hidden" id="show_grouped" name="show_grouped" value="false">
                 <input type="hidden" id="job" name="job" value="{{ selected_job or '' }}">
+                <input type="hidden" id="start_datetime_hidden" name="start_datetime" value="{{ start_date or '' }}">
+                <input type="hidden" id="end_datetime_hidden" name="end_datetime" value="{{ end_date or '' }}">
             </form>
         </div>
     </div>
@@ -106,6 +132,28 @@
             <!-- 统计信息 -->
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
+                    const customTimeRange = document.getElementById('custom-time-range');
+                    const customTimeBtn = document.getElementById('custom-time-btn');
+                    const startDatetimeInput = document.getElementById('start_datetime');
+                    const endDatetimeInput = document.getElementById('end_datetime');
+                    const startDatetimeHidden = document.getElementById('start_datetime_hidden');
+                    const endDatetimeHidden = document.getElementById('end_datetime_hidden');
+                    
+                    // 转换后端传递的日期格式 (YYYY-MM-DD HH:mm:ss) 为 datetime-local 格式 (YYYY-MM-DDTHH:mm)
+                    function convertToDatetimeLocal(dateStr) {
+                        if (!dateStr) return '';
+                        // 将 "YYYY-MM-DD HH:mm:ss" 转换为 "YYYY-MM-DDTHH:mm"
+                        return dateStr.replace(' ', 'T').substring(0, 16);
+                    }
+                    
+                    // 初始化日期输入框的值
+                    if (startDatetimeHidden && startDatetimeHidden.value) {
+                        startDatetimeInput.value = convertToDatetimeLocal(startDatetimeHidden.value);
+                    }
+                    if (endDatetimeHidden && endDatetimeHidden.value) {
+                        endDatetimeInput.value = convertToDatetimeLocal(endDatetimeHidden.value);
+                    }
+                    
                     // 处理筛选按钮点击事件
                     document.querySelectorAll('.filter-btn').forEach(function(button) {
                         button.addEventListener('click', function(e) {
@@ -114,6 +162,24 @@
                             // 获取筛选类型和值
                             const filterType = this.dataset.filter;
                             const filterValue = this.dataset.value;
+                            
+                            // 如果是时间范围筛选
+                            if (filterType === 'time_range') {
+                                // 如果点击的是自定义按钮
+                                if (filterValue === 'custom') {
+                                    // 显示自定义时间段选择器
+                                    customTimeRange.style.display = 'block';
+                                    // 不清除已有的自定义时间值
+                                } else {
+                                    // 隐藏自定义时间段选择器
+                                    customTimeRange.style.display = 'none';
+                                    // 清除自定义时间段
+                                    startDatetimeHidden.value = '';
+                                    endDatetimeHidden.value = '';
+                                    startDatetimeInput.value = '';
+                                    endDatetimeInput.value = '';
+                                }
+                            }
                             
                             // 更新隐藏输入字段
                             document.getElementById(filterType).value = filterValue;
@@ -131,12 +197,89 @@
                             this.classList.remove('btn-outline-primary');
                             this.classList.add('btn-primary', 'active');
                             
-                            // 保存当前状态到localStorage
-                            localStorage.setItem(`rankings_${filterType}`, filterValue);
-                            
-                            // 提交表单
-                            document.getElementById('filter-form').submit();
+                            // 如果不是自定义时间段，提交表单
+                            if (filterType !== 'time_range' || filterValue !== 'custom') {
+                                // 保存当前状态到localStorage
+                                localStorage.setItem(`rankings_${filterType}`, filterValue);
+                                // 提交表单
+                                document.getElementById('filter-form').submit();
+                            }
                         });
+                    });
+                    
+                    // 处理应用自定义时间段按钮
+                    document.getElementById('apply-custom-time').addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        const startValue = startDatetimeInput.value;
+                        const endValue = endDatetimeInput.value;
+                        
+                        // 验证时间范围
+                        if (!startValue || !endValue) {
+                            alert('请选择开始时间和结束时间');
+                            return;
+                        }
+                        
+                        if (new Date(startValue) > new Date(endValue)) {
+                            alert('开始时间不能晚于结束时间');
+                            return;
+                        }
+                        
+                        // 转换datetime-local格式 (YYYY-MM-DDTHH:mm) 为后端期望的格式 (YYYY-MM-DD HH:mm:ss)
+                        const startFormatted = startValue.replace('T', ' ') + ':00';
+                        const endFormatted = endValue.replace('T', ' ') + ':00';
+                        
+                        // 更新隐藏字段
+                        startDatetimeHidden.value = startFormatted;
+                        endDatetimeHidden.value = endFormatted;
+                        
+                        // 清除time_range，因为使用自定义时间段
+                        document.getElementById('time_range').value = '';
+                        
+                        // 更新自定义按钮状态
+                        const btnGroup = customTimeBtn.closest('.btn-group');
+                        btnGroup.querySelectorAll('.filter-btn').forEach(btn => {
+                            btn.classList.remove('btn-primary', 'active');
+                            btn.classList.add('btn-outline-primary');
+                        });
+                        customTimeBtn.classList.remove('btn-outline-primary');
+                        customTimeBtn.classList.add('btn-primary', 'active');
+                        
+                        // 提交表单
+                        document.getElementById('filter-form').submit();
+                    });
+                    
+                    // 处理清除自定义时间段按钮
+                    document.getElementById('clear-custom-time').addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // 清除自定义时间段
+                        startDatetimeInput.value = '';
+                        endDatetimeInput.value = '';
+                        startDatetimeHidden.value = '';
+                        endDatetimeHidden.value = '';
+                        
+                        // 隐藏自定义时间段选择器
+                        customTimeRange.style.display = 'none';
+                        
+                        // 恢复默认时间范围（今天）
+                        document.getElementById('time_range').value = 'today';
+                        
+                        // 更新按钮状态
+                        const btnGroup = customTimeBtn.closest('.btn-group');
+                        btnGroup.querySelectorAll('.filter-btn').forEach(btn => {
+                            btn.classList.remove('btn-primary', 'active');
+                            btn.classList.add('btn-outline-primary');
+                        });
+                        // 激活"今天"按钮
+                        const todayBtn = btnGroup.querySelector('[data-value="today"]');
+                        if (todayBtn) {
+                            todayBtn.classList.remove('btn-outline-primary');
+                            todayBtn.classList.add('btn-primary', 'active');
+                        }
+                        
+                        // 提交表单
+                        document.getElementById('filter-form').submit();
                     });
                     
                     // 加载持久化的筛选值（如果页面刷新）
