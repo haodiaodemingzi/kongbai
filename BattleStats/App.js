@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import LoginScreen from './screens/LoginScreen';
+import RankingsScreen from './screens/RankingsScreen';
+import BattleRankingsScreen from './screens/BattleRankingsScreen';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
+  const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'rankings', 'battle'
 
   const handleLoginSuccess = (user) => {
     setUsername(user);
@@ -15,11 +18,42 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUsername('');
+    setCurrentScreen('home');
   };
 
   // 如果未登录，显示登录界面
   if (!isLoggedIn) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // 如果在排名页面
+  if (currentScreen === 'rankings') {
+    return (
+      <View style={styles.container}>
+        <RankingsScreen />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Text style={styles.backButtonText}>← 返回首页</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // 如果在战绩页面
+  if (currentScreen === 'battle') {
+    return (
+      <View style={styles.container}>
+        <BattleRankingsScreen />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => setCurrentScreen('home')}
+        >
+          <Text style={styles.backButtonText}>← 返回首页</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   // 已登录，显示主界面
@@ -87,12 +121,18 @@ export default function App() {
         </View>
 
         {/* 操作按钮 */}
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>查看排名</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => setCurrentScreen('rankings')}
+        >
+          <Text style={styles.buttonText}>查看主神排名</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.buttonSecondary]}>
-          <Text style={styles.buttonTextSecondary}>上传战斗记录</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={() => setCurrentScreen('battle')}
+        >
+          <Text style={styles.buttonTextSecondary}>查看战绩排名</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -225,6 +265,26 @@ const styles = StyleSheet.create({
   },
   buttonTextSecondary: {
     color: '#3498db',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    backgroundColor: '#3498db',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  backButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
