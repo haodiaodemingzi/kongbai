@@ -1,15 +1,41 @@
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import LoginScreen from './screens/LoginScreen';
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+
+  const handleLoginSuccess = (user) => {
+    setUsername(user);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUsername('');
+  };
+
+  // 如果未登录，显示登录界面
+  if (!isLoggedIn) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // 已登录，显示主界面
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       
       {/* 顶部标题 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>战斗统计</Text>
-        <Text style={styles.headerSubtitle}>Battle Stats</Text>
+        <View>
+          <Text style={styles.headerTitle}>战斗统计</Text>
+          <Text style={styles.headerSubtitle}>欢迎, {username}</Text>
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Text style={styles.logoutText}>登出</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 主要内容 */}
@@ -83,7 +109,20 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  logoutButton: {
+    backgroundColor: '#e74c3c',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   headerTitle: {
     fontSize: 28,
