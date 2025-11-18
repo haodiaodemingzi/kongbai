@@ -162,13 +162,18 @@ export default function BattleRankingsScreen() {
           <Text style={[styles.headerCell, styles.jobCell]}>职业</Text>
           <Text style={[styles.headerCell, styles.killsCell]}>击杀</Text>
           <Text style={[styles.headerCell, styles.deathsCell]}>死亡</Text>
+          <Text style={[styles.headerCell, styles.blessingsCell]}>爆灯</Text>
           <Text style={[styles.headerCell, styles.kdCell]}>K/D</Text>
           <Text style={[styles.headerCell, styles.scoreCell]}>总分</Text>
         </View>
 
         {/* 数据行 */}
         {players.map((player) => (
-          <View key={player.id} style={styles.tableRow}>
+          <TouchableOpacity
+            key={player.id}
+            style={styles.tableRow}
+            onPress={() => navigation.navigate('PlayerDetail', { playerName: player.name })}
+          >
             <Text style={[styles.cell, styles.rankCell]}>{player.rank}</Text>
             <View style={[styles.cell, styles.nameCell]}>
               <Text style={styles.playerName} numberOfLines={1}>
@@ -183,11 +188,14 @@ export default function BattleRankingsScreen() {
             <Text style={[styles.cell, styles.deathsCell, styles.deathsText]}>
               {player.deaths}
             </Text>
+            <Text style={[styles.cell, styles.blessingsCell, styles.blessingsText]}>
+              {player.blessings || 0}
+            </Text>
             <Text style={[styles.cell, styles.kdCell]}>{player.kd_ratio}</Text>
             <Text style={[styles.cell, styles.scoreCell, styles.scoreText]}>
               {player.score}
             </Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
@@ -315,16 +323,19 @@ const styles = StyleSheet.create({
     width: 50,
   },
   killsCell: {
-    width: 45,
+    width: 40,
   },
   deathsCell: {
-    width: 45,
+    width: 40,
+  },
+  blessingsCell: {
+    width: 40,
   },
   kdCell: {
-    width: 50,
+    width: 45,
   },
   scoreCell: {
-    width: 50,
+    width: 45,
   },
   killsText: {
     color: '#27ae60',
@@ -332,6 +343,10 @@ const styles = StyleSheet.create({
   },
   deathsText: {
     color: '#e74c3c',
+    fontWeight: '600',
+  },
+  blessingsText: {
+    color: '#f39c12',
     fontWeight: '600',
   },
   scoreText: {

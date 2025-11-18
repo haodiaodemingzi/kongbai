@@ -153,3 +153,166 @@ def get_all_jobs():
     jobs = [row[0] for row in db.session.execute(jobs_query)]
     logger.debug(f"获取到 {len(jobs)} 个职业分类")
     return jobs
+
+
+def get_player_details(player_name, time_range='week', start_datetime=None, end_datetime=None):
+    """
+    获取玩家详细信息（公共服务函数）
+    
+    Args:
+        player_name: 玩家名称
+        time_range: 时间范围 (today, yesterday, week, month, three_months, all)
+        start_datetime: 自定义开始时间
+        end_datetime: 自定义结束时间
+    
+    Returns:
+        dict: 玩家详细信息，包括基本信息、战绩统计、近期战斗记录
+    """
+    from app.models.player import Person
+    from datetime import datetime, timedelta
+    
+    # 查找玩家
+    player = Person.query.filter_by(name=player_name, deleted_at=None).first()
+    if not player:
+        logger.warning(f"找不到玩家: {player_name}")
+        return None
+    
+    # 确定时间筛选条件
+    date_condition = ""
+    if start_datetime and end_datetime:
+        date_condition = f"AND br.publish_at BETWEEN '{start_datetime}' AND '{end_datetime}'"
+    elif time_range:
+        now = datetime.now()
+        if time_range == 'today':
+            date_condition = f"AND DATE(br.publish_at) = '{now:%Y-%m-%d}'"
+        elif time_range == 'yesterday':
+            yesterday = now - timedelta(days=1)
+            date_condition = f"AND DATE(br.publish_at) = '{yesterday:%Y-%m-%d}'"
+        elif time_range == 'week':
+            week_ago = now - timedelta(days=7)
+            date_condition = f"AND br.publish_at >= '{week_ago:%Y-%m-%d}'"
+        elif time_range == 'month':
+            month_ago = now - timedelta(days=30)
+            date_condition = f"AND br.publish_at >= '{month_ago:%Y-%m-%d}'"
+        elif time_range == 'three_months':
+            three_months_ago = now - timedelta(days=90)
+            date_condition = f"AND br.publish_at >= '{three_months_ago:%Y-%m-%d}'"
+    
+    # 获取战绩汇总数据
+    sql = """
+    WITH player_battle_stats AS (
+        SELECT 
+            p.id AS player_id,
+            p.name AS player_name,
+            p.job AS player_job,
+            p.god AS player_god,
+            COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) as kills,
+            COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) as deaths,
+            SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) as blessings,
+            MAX(br.position) as last_position,
+            MAX(br.publish_at) as last_battle_time
+        FROM 
+            person p
+        LEFT JOIN 
+            battle_record br ON (br.win = p.name OR br.lost = p.name) AND br.deleted_at IS NULL
+        WHERE 
+            p.name = :player_name
+            AND p.deleted_at IS NULL
+            {date_condition}
+        GROUP BY 
+            p.id, p.name, p.job, p.god
+    )
+    SELECT 
+        player_id,
+        player_name,
+        player_job,
+        player_god,
+        kills,
+        deaths,
+        blessings,
+        CASE WHEN deaths > 0 
+             THEN ROUND(CAST(kills AS FLOAT) / deaths, 2) 
+             ELSE kills END as kd_ratio,
+        (kills * 3 + blessings - deaths) as score,
+        last_position,
+        last_battle_time
+    FROM 
+        player_battle_stats
+    """.format(date_condition=date_condition)
+    
+    result = db.session.execute(text(sql), {"player_name": player_name}).first()
+    
+    # 如果没有战绩记录，返回基本信息
+    if not result or result.kills == 0:
+        logger.debug(f"玩家 {player_name} 没有战绩记录")
+        return {
+            'id': player.id,
+            'name': player.name,
+            'faction': player.god,
+            'job': player.job,
+            'kills': 0,
+            'deaths': 0,
+            'kd_ratio': 0.0,
+            'score': 0,
+            'blessings': 0,
+            'last_battle_time': None,
+            'last_position': '0,0',
+            'recent_battles': []
+        }
+    
+    # 获取近期战斗记录
+    recent_battles_sql = """
+    SELECT 
+        br.id,
+        CASE 
+            WHEN br.win = :player_name THEN br.lost
+            ELSE br.win
+        END as opponent_name,
+        CASE 
+            WHEN br.win = :player_name THEN 'win'
+            ELSE 'lost'
+        END as battle_result,
+        br.remark as blessings,
+        br.position,
+        br.publish_at
+    FROM 
+        battle_record br 
+    WHERE 
+        (br.win = :player_name OR br.lost = :player_name)
+        AND br.deleted_at IS NULL
+        {date_condition}
+    ORDER BY 
+        br.publish_at DESC 
+    LIMIT 50
+    """.format(date_condition=date_condition)
+    
+    recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player_name}).fetchall()
+    
+    # 构建返回数据
+    player_details = {
+        'id': result.player_id,
+        'name': result.player_name,
+        'faction': result.player_god,
+        'job': result.player_job,
+        'kills': int(result.kills),
+        'deaths': int(result.deaths),
+        'kd_ratio': float(result.kd_ratio),
+        'score': int(result.score),
+        'blessings': int(result.blessings),
+        'last_battle_time': result.last_battle_time.strftime('%Y-%m-%d %H:%M:%S') if result.last_battle_time else None,
+        'last_position': result.last_position or '0,0',
+        'recent_battles': [
+            {
+                'id': battle.id,
+                'opponent_name': battle.opponent_name,
+                'battle_result': battle.battle_result,
+                'blessings': int(battle.blessings) if battle.blessings else 0,
+                'position': battle.position,
+                'publish_at': battle.publish_at.strftime('%Y-%m-%d %H:%M:%S') if battle.publish_at else None
+            }
+            for battle in recent_battles
+        ]
+    }
+    
+    logger.debug(f"获取玩家 {player_name} 详情成功")
+    return player_details

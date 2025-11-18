@@ -19,11 +19,13 @@ logger = get_logger()
 api_battle_bp = Blueprint('api_battle', __name__)
 
 # 导入服务层函数
-from app.services.battle_service import get_player_rankings as get_rankings_service
+from app.services.battle_service import (
+    get_player_rankings as get_rankings_service,
+    get_player_details as get_player_details_service
+)
 
 # 导入必要的函数（从 battle.py）
 from app.routes.battle import (
-    get_battle_details_by_player,
     parse_text_file,
     save_battle_log_to_db,
     allowed_file,
@@ -102,51 +104,22 @@ def api_get_player_details(player_name):
     """API 获取玩家详细信息"""
     try:
         # 获取时间参数
-        time_range = request.args.get('time_range')
-        start_date = request.args.get('start_datetime')
-        end_date = request.args.get('end_datetime')
+        time_range = request.args.get('time_range', 'week')
+        start_datetime = request.args.get('start_datetime')
+        end_datetime = request.args.get('end_datetime')
         
-        # 构建日期条件
-        date_condition = ""
-        if start_date and end_date:
-            try:
-                start_datetime = parser.parse(start_date)
-                end_datetime = parser.parse(end_date)
-                date_condition = f"AND br.publish_at BETWEEN '{start_datetime:%Y-%m-%d %H:%M:%S}' AND '{end_datetime:%Y-%m-%d %H:%M:%S}'"
-            except (ValueError, TypeError) as e:
-                logger.error(f"日期解析错误: {str(e)}")
-        elif time_range:
-            now = datetime.now()
-            if time_range == 'today':
-                date_condition = f"AND DATE(br.publish_at) = '{now:%Y-%m-%d}'"
-            elif time_range == 'yesterday':
-                yesterday = now - timedelta(days=1)
-                date_condition = f"AND DATE(br.publish_at) = '{yesterday:%Y-%m-%d}'"
-            elif time_range == 'week':
-                week_ago = now - timedelta(days=7)
-                date_condition = f"AND br.publish_at >= '{week_ago:%Y-%m-%d}'"
-            elif time_range == 'month':
-                month_ago = now - timedelta(days=30)
-                date_condition = f"AND br.publish_at >= '{month_ago:%Y-%m-%d}'"
-            elif time_range == 'three_months':
-                three_months_ago = now - timedelta(days=90)
-                date_condition = f"AND br.publish_at >= '{three_months_ago:%Y-%m-%d}'"
-        
-        # 查找玩家
-        player = Person.query.filter_by(name=player_name, deleted_at=None).first()
-        if not player:
-            return jsonify({
-                'status': 'error',
-                'message': f'未找到玩家: {player_name}'
-            }), 404
-        
-        # 获取玩家战斗明细
-        player_details = get_battle_details_by_player(player.id, date_condition=date_condition)
+        # 使用服务层获取玩家详情
+        player_details = get_player_details_service(
+            player_name=player_name,
+            time_range=time_range,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime
+        )
         
         if not player_details:
             return jsonify({
                 'status': 'error',
-                'message': '未找到该玩家的详细信息'
+                'message': f'未找到玩家: {player_name}'
             }), 404
         
         logger.info(f"API 获取玩家 {player_name} 详情成功")
