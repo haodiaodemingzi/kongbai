@@ -384,9 +384,9 @@ const styles = StyleSheet.create({
 // 势力颜色映射
 function getFactionColor(faction) {
   const colors = {
-    '梵天': '#e74c3c',
-    '比湿奴': '#3498db',
-    '湿婆': '#9b59b6',
+    '梵天': '#f39c12',  // 橘黄色
+    '比湿奴': '#e74c3c',  // 鲜红色
+    '湿婆': '#3498db',  // 蓝色
   };
   return colors[faction] || '#95a5a6';
 }

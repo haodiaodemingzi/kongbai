@@ -9,13 +9,25 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialIcons } from '@expo/vector-icons';
 import { login } from '../services/api';
 
 export default function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  React.useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -47,147 +59,196 @@ export default function LoginScreen({ onLoginSuccess }) {
   };
 
   return (
-    <KeyboardAvoidingView
+    <LinearGradient
+      colors={['#667eea', '#764ba2', '#f093fb']}
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
-        {/* Logo 区域 */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>⚔️</Text>
-          <Text style={styles.title}>战斗统计</Text>
-          <Text style={styles.subtitle}>Battle Stats</Text>
-        </View>
-
-        {/* 表单区域 */}
-        <View style={styles.formContainer}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>用户名</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="请输入用户名"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              editable={!loading}
-            />
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+          {/* Logo 区域 */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <MaterialIcons name="sports-martial-arts" size={60} color="#fff" />
+            </View>
+            <Text style={styles.title}>战斗统计</Text>
+            <Text style={styles.subtitle}>Battle Stats</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>密码</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="请输入密码"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!loading}
-            />
-          </View>
+          {/* 表单区域 */}
+          <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons name="person" size={20} color="#667eea" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="请输入用户名"
+                  placeholderTextColor="#999"
+                  value={username}
+                  onChangeText={setUsername}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+              </View>
+            </View>
 
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>登录</Text>
-            )}
-          </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <MaterialIcons name="lock" size={20} color="#667eea" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="请输入密码"
+                  placeholderTextColor="#999"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  editable={!loading}
+                />
+              </View>
+            </View>
 
-          {/* 提示信息 */}
-          <View style={styles.hintContainer}>
-            <Text style={styles.hintText}>测试账号: admin</Text>
-            <Text style={styles.hintText}>测试密码: admin123</Text>
+            <TouchableOpacity
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <View style={styles.loginButtonContent}>
+                  <MaterialIcons name="login" size={20} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.loginButtonText}>登录</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* 提示信息 */}
+            <View style={styles.hintContainer}>
+              <MaterialIcons name="info-outline" size={16} color="#667eea" />
+              <Text style={styles.hintText}>首次使用请联系管理员获取账号</Text>
+            </View>
           </View>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6fa',
+  },
+  keyboardView: {
+    flex: 1,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: 20,
+    padding: 30,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 60,
   },
-  logoText: {
-    fontSize: 60,
-    marginBottom: 10,
+  logoCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 5,
+    color: '#fff',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 16,
-    color: '#7f8c8d',
+    color: 'rgba(255, 255, 255, 0.9)',
+    letterSpacing: 2,
   },
   formContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 25,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
   },
   inputContainer: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 8,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e1e8ed',
+    paddingHorizontal: 15,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
+    flex: 1,
+    padding: 15,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
+    color: '#2c3e50',
   },
   loginButton: {
-    backgroundColor: '#3498db',
-    borderRadius: 8,
+    backgroundColor: '#667eea',
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   loginButtonDisabled: {
     backgroundColor: '#95a5a6',
+    shadowOpacity: 0.2,
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   hintContainer: {
     marginTop: 20,
-    padding: 12,
-    backgroundColor: '#e8f4f8',
-    borderRadius: 8,
+    padding: 15,
+    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hintText: {
-    fontSize: 12,
-    color: '#3498db',
-    textAlign: 'center',
-    marginVertical: 2,
+    fontSize: 13,
+    color: '#667eea',
+    marginLeft: 8,
+    fontWeight: '500',
   },
 });

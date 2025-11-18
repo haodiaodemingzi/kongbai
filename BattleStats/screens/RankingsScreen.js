@@ -8,14 +8,17 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Animated,
 } from 'react-native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getGodRankings } from '../services/api';
 
 // 势力颜色映射
 const GOD_COLORS = {
-  '梵天': '#e74c3c',
-  '比湿奴': '#3498db',
-  '湿婆': '#9b59b6',
+  '梵天': '#f39c12',  // 橘黄色
+  '比湿奴': '#e74c3c',  // 鲜红色
+  '湿婆': '#3498db',  // 蓝色
 };
 
 // 等级颜色映射
@@ -106,32 +109,42 @@ export default function RankingsScreen() {
 
       {/* 标签切换 */}
       <View style={styles.tabContainer}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.value}
-            style={[
-              styles.tab,
-              selectedTab === tab.value && styles.tabActive,
-              { borderBottomColor: GOD_COLORS[tab.label] },
-            ]}
-            onPress={() => setSelectedTab(tab.value)}
-          >
-            <View style={[styles.tabIcon, { backgroundColor: GOD_COLORS[tab.label] }]} />
-            <Text
+        {TABS.map((tab) => {
+          const isActive = selectedTab === tab.value;
+          return (
+            <TouchableOpacity
+              key={tab.value}
               style={[
-                styles.tabText,
-                selectedTab === tab.value && styles.tabTextActive,
+                styles.tab,
+                isActive && styles.tabActive,
               ]}
+              onPress={() => setSelectedTab(tab.value)}
             >
-              {tab.label}
-            </Text>
-            <View style={styles.tabBadge}>
-              <Text style={styles.tabBadgeText}>
-                {rankingData ? (rankingData[tab.key] || []).length : 0}
+              {isActive && (
+                <LinearGradient
+                  colors={[GOD_COLORS[tab.label], GOD_COLORS[tab.label] + 'CC']}
+                  style={styles.tabGradient}
+                />
+              )}
+              <View style={[styles.tabIcon, { backgroundColor: GOD_COLORS[tab.label] }]}>
+                <MaterialIcons name="military-tech" size={12} color="#fff" />
+              </View>
+              <Text
+                style={[
+                  styles.tabText,
+                  isActive && styles.tabTextActive,
+                ]}
+              >
+                {tab.label}
               </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+                  {rankingData ? (rankingData[tab.key] || []).length : 0}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* 排名列表 */}
@@ -152,29 +165,46 @@ export default function RankingsScreen() {
             </View>
 
             {/* 数据行 */}
-            {currentPlayers.map((player, index) => (
-              <View key={`${player.god}-${player.rank || index}`} style={styles.tableRow}>
-                <Text style={[styles.cell, styles.rankCell]}>{player.rank || index + 1}</Text>
-                <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>
-                  {player.name}
-                </Text>
-                <View style={[styles.cell, styles.jobCell]}>
-                  <View style={styles.jobBadge}>
-                    <Text style={styles.jobText}>{player.job || '未知'}</Text>
+            {currentPlayers.map((player, index) => {
+              const rank = player.rank || index + 1;
+              const isTopThree = rank <= 3;
+              return (
+                <View key={`${player.god}-${rank}`} style={[styles.tableRow, isTopThree && styles.tableRowHighlight]}>
+                  <View style={[styles.cell, styles.rankCell]}>
+                    {isTopThree ? (
+                      <View style={styles.medalContainer}>
+                        <Ionicons 
+                          name="medal" 
+                          size={24} 
+                          color={rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : '#CD7F32'} 
+                        />
+                        <Text style={styles.medalText}>{rank}</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.rankText}>{rank}</Text>
+                    )}
+                  </View>
+                  <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>
+                    {player.name}
+                  </Text>
+                  <View style={[styles.cell, styles.jobCell]}>
+                    <View style={styles.jobBadge}>
+                      <Text style={styles.jobText}>{player.job || '未知'}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.cell, styles.levelCell]}>
+                    <View
+                      style={[
+                        styles.levelBadge,
+                        { backgroundColor: LEVEL_COLORS[player.level] || '#999' },
+                      ]}
+                    >
+                      <Text style={styles.levelText}>{player.level || '未知'}</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={[styles.cell, styles.levelCell]}>
-                  <View
-                    style={[
-                      styles.levelBadge,
-                      { backgroundColor: LEVEL_COLORS[player.level] || '#999' },
-                    ]}
-                  >
-                    <Text style={styles.levelText}>{player.level || '未知'}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <View style={styles.emptyContainer}>
@@ -235,17 +265,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 15,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    position: 'relative',
+    overflow: 'hidden',
   },
   tabActive: {
-    borderBottomWidth: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  tabGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
   },
   tabIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     marginRight: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   tabText: {
     fontSize: 14,
@@ -258,15 +302,23 @@ const styles = StyleSheet.create({
   },
   tabBadge: {
     backgroundColor: '#ecf0f1',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
     marginLeft: 6,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: '#667eea',
   },
   tabBadgeText: {
     fontSize: 11,
     color: '#7f8c8d',
     fontWeight: 'bold',
+  },
+  tabBadgeTextActive: {
+    color: '#fff',
   },
   rankingCard: {
     backgroundColor: '#fff',
@@ -309,14 +361,38 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f8f9fa',
+    alignItems: 'center',
+  },
+  tableRowHighlight: {
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
   },
   cell: {
     fontSize: 14,
     color: '#2c3e50',
   },
   rankCell: {
-    width: 40,
-    textAlign: 'center',
+    width: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medalContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medalText: {
+    position: 'absolute',
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  rankText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7f8c8d',
   },
   nameCell: {
     flex: 1,

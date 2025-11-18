@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { getPlayerRankings } from '../services/api';
 import PlayerDetailScreen from './PlayerDetailScreen';
 
@@ -170,14 +171,24 @@ export default function BattleRankingsScreen() {
       >
         {/* 表头 */}
         <View style={styles.tableHeader}>
-          <Text style={[styles.headerCell, styles.rankCell]}>排名</Text>
+          <View style={[styles.headerCell, styles.rankCell]}>
+            <MaterialIcons name="format-list-numbered" size={14} color="#7f8c8d" />
+          </View>
           <Text style={[styles.headerCell, styles.nameCell]}>玩家</Text>
           <Text style={[styles.headerCell, styles.jobCell]}>职业</Text>
-          <Text style={[styles.headerCell, styles.killsCell]}>击杀</Text>
-          <Text style={[styles.headerCell, styles.deathsCell]}>死亡</Text>
-          <Text style={[styles.headerCell, styles.blessingsCell]}>爆灯</Text>
+          <View style={[styles.headerCell, styles.killsCell]}>
+            <FontAwesome5 name="skull-crossbones" size={12} color="#e74c3c" />
+          </View>
+          <View style={[styles.headerCell, styles.deathsCell]}>
+            <MaterialIcons name="dangerous" size={14} color="#95a5a6" />
+          </View>
+          <View style={[styles.headerCell, styles.blessingsCell]}>
+            <MaterialIcons name="wb-sunny" size={14} color="#f39c12" />
+          </View>
           <Text style={[styles.headerCell, styles.kdCell]}>K/D</Text>
-          <Text style={[styles.headerCell, styles.scoreCell]}>总分</Text>
+          <View style={[styles.headerCell, styles.scoreCell]}>
+            <MaterialIcons name="stars" size={14} color="#f1c40f" />
+          </View>
         </View>
 
         {/* 数据行 */}
