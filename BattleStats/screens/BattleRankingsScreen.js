@@ -7,19 +7,18 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import axios from 'axios';
-
-const API_URL = 'https://bigmang.xyz';
+import { getPlayerRankings } from '../services/api';
 
 // 时间范围选项
 const TIME_RANGES = [
-  { label: '全部', value: 'all' },
   { label: '今天', value: 'today' },
   { label: '昨天', value: 'yesterday' },
   { label: '7天', value: 'week' },
   { label: '30天', value: 'month' },
-  { label: '1年', value: 'all' },
+  { label: '3个月', value: 'three_months' },
+  { label: '全部', value: 'all' },
 ];
 
 // 势力选项
@@ -43,20 +42,28 @@ export default function BattleRankingsScreen() {
 
   const fetchRankings = async () => {
     try {
-      const response = await axios.get(`${API_URL}/battle/rankings`, {
-        params: {
-          time_range: selectedTime,
-          faction: selectedFaction,
-          show_grouped: 'false',
-        },
+      const result = await getPlayerRankings({
+        time_range: selectedTime,
+        faction: selectedFaction,
       });
 
-      // 解析 HTML 响应（实际应该有 JSON API）
-      // 这里暂时使用模拟数据
-      setPlayers(generateMockData());
+      if (result.success) {
+        // 处理返回的数据，添加 K/D 比率
+        const processedData = result.data.rankings.map((player) => ({
+          ...player,
+          kd_ratio: player.deaths > 0 
+            ? (player.kills / player.deaths).toFixed(2) 
+            : player.kills.toFixed(2),
+        }));
+        setPlayers(processedData);
+      } else {
+        Alert.alert('错误', result.message || '获取排名失败');
+        setPlayers([]);
+      }
     } catch (error) {
       console.error('获取战绩失败:', error);
-      setPlayers(generateMockData());
+      Alert.alert('错误', '网络错误，请稍后重试');
+      setPlayers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -66,34 +73,6 @@ export default function BattleRankingsScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchRankings();
-  };
-
-  // 生成模拟数据
-  const generateMockData = () => {
-    const factions = ['梵天', '比湿奴', '湿婆'];
-    const jobs = ['法师', '刺客', '金刚', '奶', '弓', '狂'];
-    const data = [];
-
-    for (let i = 1; i <= 20; i++) {
-      const kills = Math.floor(Math.random() * 20);
-      const deaths = Math.floor(Math.random() * 20);
-      const blessings = Math.floor(Math.random() * 5);
-      
-      data.push({
-        id: i,
-        rank: i,
-        name: `玩家${i}`,
-        job: jobs[Math.floor(Math.random() * jobs.length)],
-        faction: selectedFaction || factions[Math.floor(Math.random() * factions.length)],
-        kills,
-        deaths,
-        kd_ratio: deaths > 0 ? (kills / deaths).toFixed(2) : kills.toFixed(2),
-        blessings,
-        score: kills * 3 + blessings - deaths,
-      });
-    }
-
-    return data.sort((a, b) => b.score - a.score);
   };
 
   if (loading) {

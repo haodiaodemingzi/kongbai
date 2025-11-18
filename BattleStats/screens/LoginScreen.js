@@ -10,9 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import axios from 'axios';
-
-const API_URL = 'https://bigmang.xyz';
+import { login } from '../services/api';
 
 export default function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -27,21 +25,22 @@ export default function LoginScreen({ onLoginSuccess }) {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        username,
-        password,
-      });
+      const result = await login(username, password);
 
-      // 登录成功
-      Alert.alert('成功', '登录成功！', [
-        {
-          text: '确定',
-          onPress: () => onLoginSuccess(username),
-        },
-      ]);
+      if (result.success) {
+        // 登录成功，传递 token 和用户信息
+        Alert.alert('成功', '登录成功！', [
+          {
+            text: '确定',
+            onPress: () => onLoginSuccess(result.user, result.token),
+          },
+        ]);
+      } else {
+        Alert.alert('登录失败', result.message || '用户名或密码错误');
+      }
     } catch (error) {
       console.error('登录失败:', error);
-      Alert.alert('登录失败', '用户名或密码错误');
+      Alert.alert('登录失败', '网络错误，请稍后重试');
     } finally {
       setLoading(false);
     }

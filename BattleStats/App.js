@@ -1,25 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import LoginScreen from './screens/LoginScreen';
 import RankingsScreen from './screens/RankingsScreen';
 import BattleRankingsScreen from './screens/BattleRankingsScreen';
+import { getDashboardData, logout, getStoredToken, getStoredUser } from './services/api';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
+  const [token, setToken] = useState(null);
   const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'rankings', 'battle'
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [selectedDateRange, setSelectedDateRange] = useState('week');
 
-  const handleLoginSuccess = (user) => {
-    setUsername(user);
+  // 检查本地是否有保存的 token
+  useEffect(() => {
+    checkStoredToken();
+  }, []);
+
+  // 登录成功后加载首页数据
+  useEffect(() => {
+    if (isLoggedIn && currentScreen === 'home') {
+      loadDashboardData();
+    }
+  }, [isLoggedIn, currentScreen, selectedDateRange]);
+
+  const checkStoredToken = async () => {
+    try {
+      const storedToken = await getStoredToken();
+      const storedUser = await getStoredUser();
+      
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUsername(storedUser.username);
+        setIsLoggedIn(true);
+      }
+    } catch (error) {
+      console.error('检查 token 失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoginSuccess = (user, userToken) => {
+    setUsername(user.username);
+    setToken(userToken);
     setIsLoggedIn(true);
+    setLoading(false);
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUsername('');
-    setCurrentScreen('home');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsLoggedIn(false);
+      setUsername('');
+      setToken(null);
+      setCurrentScreen('home');
+      setDashboardData(null);
+    } catch (error) {
+      console.error('登出失败:', error);
+    }
   };
+
+  const loadDashboardData = async () => {
+    try {
+      const result = await getDashboardData(selectedDateRange);
+      if (result.success) {
+        setDashboardData(result.data);
+      } else {
+        Alert.alert('错误', result.message || '加载数据失败');
+      }
+    } catch (error) {
+      console.error('加载首页数据失败:', error);
+    }
+  };
+
+  // 初始加载中
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3498db" />
+        <Text style={styles.loadingText}>加载中...</Text>
+      </View>
+    );
+  }
 
   // 如果未登录，显示登录界面
   if (!isLoggedIn) {
@@ -74,51 +140,60 @@ export default function App() {
 
       {/* 主要内容 */}
       <ScrollView style={styles.content}>
-        {/* 统计卡片 */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>1,234</Text>
-            <Text style={styles.statLabel}>总击杀</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>567</Text>
-            <Text style={styles.statLabel}>总死亡</Text>
-          </View>
-        </View>
+        {dashboardData ? (
+          <>
+            {/* 统计卡片 */}
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{dashboardData.summary.total_kills.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>总击杀</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{dashboardData.summary.total_deaths.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>总死亡</Text>
+              </View>
+            </View>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>3,145</Text>
-            <Text style={styles.statLabel}>总得分</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>2.18</Text>
-            <Text style={styles.statLabel}>K/D 比</Text>
-          </View>
-        </View>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{(dashboardData.summary.total_kills * 3 + dashboardData.summary.total_blessings - dashboardData.summary.total_deaths).toLocaleString()}</Text>
+                <Text style={styles.statLabel}>总得分</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{dashboardData.summary.total_players}</Text>
+                <Text style={styles.statLabel}>玩家数</Text>
+              </View>
+            </View>
 
-        {/* 势力统计 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>势力统计</Text>
-          
-          <View style={styles.factionCard}>
-            <View style={[styles.factionBar, { backgroundColor: '#e74c3c' }]} />
-            <Text style={styles.factionName}>梵天</Text>
-            <Text style={styles.factionScore}>1,050</Text>
+            {/* 势力统计 */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>势力统计</Text>
+              
+              {dashboardData.faction_stats.chart_data.factions.map((faction, index) => (
+                <View key={faction} style={styles.factionCard}>
+                  <View style={[styles.factionBar, { backgroundColor: getFactionColor(faction) }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.factionName}>{faction}</Text>
+                    <Text style={styles.factionSubtext}>
+                      玩家: {dashboardData.faction_stats.player_counts[faction]}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.factionScore}>
+                      {dashboardData.faction_stats.chart_data.kills[index]}
+                    </Text>
+                    <Text style={styles.factionSubtext}>击杀</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3498db" />
+            <Text style={styles.loadingText}>加载数据中...</Text>
           </View>
-
-          <View style={styles.factionCard}>
-            <View style={[styles.factionBar, { backgroundColor: '#3498db' }]} />
-            <Text style={styles.factionName}>比湿奴</Text>
-            <Text style={styles.factionScore}>980</Text>
-          </View>
-
-          <View style={styles.factionCard}>
-            <View style={[styles.factionBar, { backgroundColor: '#9b59b6' }]} />
-            <Text style={styles.factionName}>湿婆</Text>
-            <Text style={styles.factionScore}>1,115</Text>
-          </View>
-        </View>
+        )}
 
         {/* 操作按钮 */}
         <TouchableOpacity
@@ -288,4 +363,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f6fa',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#7f8c8d',
+  },
+  factionSubtext: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginTop: 2,
+  },
 });
+
+// 势力颜色映射
+function getFactionColor(faction) {
+  const colors = {
+    '梵天': '#e74c3c',
+    '比湿奴': '#3498db',
+    '湿婆': '#9b59b6',
+  };
+  return colors[faction] || '#95a5a6';
+}
