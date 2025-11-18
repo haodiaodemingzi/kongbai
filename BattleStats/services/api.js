@@ -263,6 +263,27 @@ export const getPlayerDetail = async (playerName, timeRange = 'week') => {
 };
 
 /**
+ * 获取主神排名数据
+ */
+export const getGodRankings = async () => {
+  try {
+    const response = await apiClient.get('/api/battle/god_rankings');
+
+    if (response.data.status === 'success') {
+      return { success: true, data: response.data.data };
+    } else {
+      return { success: false, message: response.data.message, data: response.data.data };
+    }
+  } catch (error) {
+    console.error('获取主神排名失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '获取主神排名失败',
+    };
+  }
+};
+
+/**
  * 获取势力统计数据
  * @param {string} dateRange 时间范围
  */

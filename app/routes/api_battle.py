@@ -21,7 +21,8 @@ api_battle_bp = Blueprint('api_battle', __name__)
 # 导入服务层函数
 from app.services.battle_service import (
     get_player_rankings as get_rankings_service,
-    get_player_details as get_player_details_service
+    get_player_details as get_player_details_service,
+    get_god_rankings as get_god_rankings_service
 )
 
 # 导入必要的函数（从 battle.py）
@@ -232,4 +233,38 @@ def api_get_faction_stats():
         return jsonify({
             'status': 'error',
             'message': f'获取势力统计失败: {str(e)}'
+        }), 500
+
+
+@api_battle_bp.route('/god_rankings', methods=['GET'])
+@token_required
+def api_get_god_rankings():
+    """API 获取主神排名数据"""
+    try:
+        # 获取 URL 参数（可选）
+        url = request.args.get('url')
+        
+        # 使用服务层获取主神排名
+        result = get_god_rankings_service(url=url)
+        
+        if result['success']:
+            logger.info("API 获取主神排名成功")
+            return jsonify({
+                'status': 'success',
+                'message': result['message'],
+                'data': result['data']
+            }), 200
+        else:
+            logger.warning(f"API 获取主神排名失败: {result['message']}")
+            return jsonify({
+                'status': 'error',
+                'message': result['message'],
+                'data': result['data']
+            }), 200  # 即使失败也返回 200，但数据为空
+        
+    except Exception as e:
+        logger.error(f"API 获取主神排名时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'获取主神排名失败: {str(e)}'
         }), 500

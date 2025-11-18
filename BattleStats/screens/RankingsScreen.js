@@ -7,14 +7,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import { scrapeRankings } from '../services/rankingScraper';
+import { getGodRankings } from '../services/api';
 
 // 势力颜色映射
 const GOD_COLORS = {
-  '梵天': '#FFD700',
-  '比湿奴': '#FF6347',
-  '湿婆': '#4169E1',
+  '梵天': '#e74c3c',
+  '比湿奴': '#3498db',
+  '湿婆': '#9b59b6',
 };
 
 // 等级颜色映射
@@ -25,11 +26,19 @@ const LEVEL_COLORS = {
   '刹帝利': '#2196F3',
 };
 
+// 标签选项
+const TABS = [
+  { label: '梵天', value: 'brahma', key: 'brahma_players' },
+  { label: '比湿奴', value: 'vishnu', key: 'vishnu_players' },
+  { label: '湿婆', value: 'shiva', key: 'shiva_players' },
+];
+
 export default function RankingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [rankingData, setRankingData] = useState(null);
   const [updateTime, setUpdateTime] = useState('');
+  const [selectedTab, setSelectedTab] = useState('brahma');
 
   useEffect(() => {
     fetchRankings();
@@ -37,17 +46,22 @@ export default function RankingsScreen() {
 
   const fetchRankings = async () => {
     try {
-      // 使用爬虫服务获取排名数据
-      const data = await scrapeRankings();
+      const result = await getGodRankings();
       
-      setRankingData({
-        brahma_players: data.brahmaPlayers,
-        vishnu_players: data.vishnuPlayers,
-        shiva_players: data.shivaPlayers,
-      });
-      setUpdateTime(data.updateTime);
+      if (result.success) {
+        setRankingData(result.data);
+        setUpdateTime(result.data.update_time || '未知');
+      } else {
+        Alert.alert('提示', result.message || '获取排名失败');
+        setRankingData({
+          brahma_players: [],
+          vishnu_players: [],
+          shiva_players: [],
+        });
+      }
     } catch (error) {
       console.error('获取排名失败:', error);
+      Alert.alert('错误', '网络错误，请稍后重试');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -59,51 +73,15 @@ export default function RankingsScreen() {
     fetchRankings();
   };
 
-  const renderGodRanking = (title, players, color) => {
-    if (!players || players.length === 0) return null;
+  const getCurrentPlayers = () => {
+    if (!rankingData) return [];
+    const tab = TABS.find(t => t.value === selectedTab);
+    return rankingData[tab.key] || [];
+  };
 
-    return (
-      <View style={styles.godCard}>
-        <View style={styles.godHeader}>
-          <View style={[styles.godIcon, { backgroundColor: color }]} />
-          <Text style={styles.godTitle}>{title}</Text>
-          <View style={styles.countBadge}>
-            <Text style={styles.countText}>{players.length}</Text>
-          </View>
-        </View>
-
-        <View style={styles.tableHeader}>
-          <Text style={[styles.headerCell, styles.rankCell]}>#</Text>
-          <Text style={[styles.headerCell, styles.nameCell]}>玩家名</Text>
-          <Text style={[styles.headerCell, styles.jobCell]}>职业</Text>
-          <Text style={[styles.headerCell, styles.levelCell]}>级别</Text>
-        </View>
-
-        {players.map((player) => (
-          <View key={`${player.god}-${player.rank}`} style={styles.tableRow}>
-            <Text style={[styles.cell, styles.rankCell]}>{player.rank}</Text>
-            <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>
-              {player.name}
-            </Text>
-            <View style={[styles.cell, styles.jobCell]}>
-              <View style={styles.jobBadge}>
-                <Text style={styles.jobText}>{player.job}</Text>
-              </View>
-            </View>
-            <View style={[styles.cell, styles.levelCell]}>
-              <View
-                style={[
-                  styles.levelBadge,
-                  { backgroundColor: LEVEL_COLORS[player.level] || '#999' },
-                ]}
-              >
-                <Text style={styles.levelText}>{player.level}</Text>
-              </View>
-            </View>
-          </View>
-        ))}
-      </View>
-    );
+  const getCurrentGodName = () => {
+    const tab = TABS.find(t => t.value === selectedTab);
+    return tab ? tab.label : '';
   };
 
   if (loading) {
@@ -115,6 +93,9 @@ export default function RankingsScreen() {
     );
   }
 
+  const currentPlayers = getCurrentPlayers();
+  const currentGodName = getCurrentGodName();
+
   return (
     <View style={styles.container}>
       {/* 顶部标题 */}
@@ -123,18 +104,82 @@ export default function RankingsScreen() {
         <Text style={styles.updateTime}>更新时间: {updateTime}</Text>
       </View>
 
+      {/* 标签切换 */}
+      <View style={styles.tabContainer}>
+        {TABS.map((tab) => (
+          <TouchableOpacity
+            key={tab.value}
+            style={[
+              styles.tab,
+              selectedTab === tab.value && styles.tabActive,
+              { borderBottomColor: GOD_COLORS[tab.label] },
+            ]}
+            onPress={() => setSelectedTab(tab.value)}
+          >
+            <View style={[styles.tabIcon, { backgroundColor: GOD_COLORS[tab.label] }]} />
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === tab.value && styles.tabTextActive,
+              ]}
+            >
+              {tab.label}
+            </Text>
+            <View style={styles.tabBadge}>
+              <Text style={styles.tabBadgeText}>
+                {rankingData ? (rankingData[tab.key] || []).length : 0}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* 排名列表 */}
       <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {rankingData && (
-          <>
-            {renderGodRanking('梵天', rankingData.brahma_players, GOD_COLORS['梵天'])}
-            {renderGodRanking('比湿奴', rankingData.vishnu_players, GOD_COLORS['比湿奴'])}
-            {renderGodRanking('湿婆', rankingData.shiva_players, GOD_COLORS['湿婆'])}
-          </>
+        {currentPlayers.length > 0 ? (
+          <View style={styles.rankingCard}>
+            {/* 表头 */}
+            <View style={styles.tableHeader}>
+              <Text style={[styles.headerCell, styles.rankCell]}>#</Text>
+              <Text style={[styles.headerCell, styles.nameCell]}>玩家名</Text>
+              <Text style={[styles.headerCell, styles.jobCell]}>职业</Text>
+              <Text style={[styles.headerCell, styles.levelCell]}>级别</Text>
+            </View>
+
+            {/* 数据行 */}
+            {currentPlayers.map((player, index) => (
+              <View key={`${player.god}-${player.rank || index}`} style={styles.tableRow}>
+                <Text style={[styles.cell, styles.rankCell]}>{player.rank || index + 1}</Text>
+                <Text style={[styles.cell, styles.nameCell]} numberOfLines={1}>
+                  {player.name}
+                </Text>
+                <View style={[styles.cell, styles.jobCell]}>
+                  <View style={styles.jobBadge}>
+                    <Text style={styles.jobText}>{player.job || '未知'}</Text>
+                  </View>
+                </View>
+                <View style={[styles.cell, styles.levelCell]}>
+                  <View
+                    style={[
+                      styles.levelBadge,
+                      { backgroundColor: LEVEL_COLORS[player.level] || '#999' },
+                    ]}
+                  >
+                    <Text style={styles.levelText}>{player.level || '未知'}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>暂无{currentGodName}排名数据</Text>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -178,47 +223,75 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 15,
   },
-  godCard: {
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ecf0f1',
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomWidth: 3,
+  },
+  tabIcon: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 6,
+  },
+  tabText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
+  tabTextActive: {
+    color: '#2c3e50',
+    fontWeight: 'bold',
+  },
+  tabBadge: {
+    backgroundColor: '#ecf0f1',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    color: '#7f8c8d',
+    fontWeight: 'bold',
+  },
+  rankingCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 15,
-    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  godHeader: {
-    flexDirection: 'row',
+  emptyContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 40,
     alignItems: 'center',
-    marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  godIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 10,
-  },
-  godTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    flex: 1,
-  },
-  countBadge: {
-    backgroundColor: '#3498db',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  emptyText: {
+    fontSize: 16,
+    color: '#7f8c8d',
   },
   tableHeader: {
     flexDirection: 'row',

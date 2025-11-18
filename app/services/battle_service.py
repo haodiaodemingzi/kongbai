@@ -155,6 +155,48 @@ def get_all_jobs():
     return jobs
 
 
+def get_god_rankings(url=None):
+    """
+    获取主神排名数据（公共服务函数）
+    
+    Args:
+        url: 排行榜页面 URL（可选）
+    
+    Returns:
+        dict: 包含三个势力的排名数据
+    """
+    from app.utils.web_scraper import get_rankings_by_scraper
+    
+    # 使用爬虫获取数据
+    ranking_data = get_rankings_by_scraper(url=url, category="虎威主神排行榜")
+    
+    # 检查是否有错误
+    if "error" in ranking_data:
+        logger.error(f"获取主神排名失败: {ranking_data['error']}")
+        return {
+            "success": False,
+            "message": ranking_data["error"],
+            "data": {
+                "update_time": ranking_data.get("update_time"),
+                "brahma_players": [],
+                "vishnu_players": [],
+                "shiva_players": []
+            }
+        }
+    
+    # 返回成功数据
+    return {
+        "success": True,
+        "message": "获取主神排名成功",
+        "data": {
+            "update_time": ranking_data.get("update_time"),
+            "brahma_players": ranking_data.get("brahma_players", []),
+            "vishnu_players": ranking_data.get("vishnu_players", []),
+            "shiva_players": ranking_data.get("shiva_players", [])
+        }
+    }
+
+
 def get_player_details(player_name, time_range='week', start_datetime=None, end_datetime=None):
     """
     获取玩家详细信息（公共服务函数）
