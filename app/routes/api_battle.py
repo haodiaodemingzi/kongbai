@@ -8,7 +8,6 @@ from app.utils.logger import get_logger
 from app.extensions import db
 from app.models import Person
 from app.config import Config
-from sqlalchemy import text
 from datetime import datetime, timedelta
 from dateutil import parser
 import os
@@ -18,6 +17,9 @@ logger = get_logger()
 
 # 创建 API 战斗数据蓝图
 api_battle_bp = Blueprint('api_battle', __name__)
+
+# 导入服务层函数
+from app.services.battle_service import get_player_rankings as get_rankings_service
 
 # 导入必要的函数（从 battle.py）
 from app.routes.battle import (
@@ -45,7 +47,7 @@ def api_get_rankings():
         if faction == 'all' or faction == '':
             query_faction = None
         elif faction is None:
-            query_faction = '比湿奴'  # 默认
+            query_faction = None  # API 默认不筛选势力
         else:
             query_faction = faction
         
@@ -55,91 +57,21 @@ def api_get_rankings():
         else:
             query_job = job
         
-        # 确定时间筛选条件
-        date_condition = ""
-        if start_datetime and end_datetime:
-            date_condition = f"AND publish_at BETWEEN '{start_datetime}' AND '{end_datetime}'"
-        elif time_range == 'today':
-            date_condition = "AND DATE(publish_at) = CURDATE()"
-        elif time_range == 'yesterday':
-            date_condition = "AND DATE(publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
-        elif time_range == 'week':
-            date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
-        elif time_range == 'month':
-            date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
-        elif time_range == 'three_months':
-            date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)"
-        elif time_range == 'all':
-            date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)"
-        
-        # 构建查询
-        query_text = """
-            WITH filtered_battle_records AS (
-                SELECT win, lost, remark
-                FROM battle_record
-                WHERE deleted_at IS NULL
-                  {filtered_date_condition}
-            ),
-            win_stats AS (
-                SELECT 
-                    win as player_name,
-                    COUNT(*) as kills,
-                    SUM(COALESCE(remark, 0)) as blessings
-                FROM filtered_battle_records
-                WHERE win IS NOT NULL
-                GROUP BY win
-            ),
-            lost_stats AS (
-                SELECT 
-                    lost as player_name,
-                    COUNT(*) as deaths
-                FROM filtered_battle_records
-                WHERE lost IS NOT NULL
-                GROUP BY lost
-            ),
-            player_stats AS (
-                SELECT 
-                    p.id,
-                    p.name,
-                    p.faction,
-                    p.job,
-                    COALESCE(w.kills, 0) as kills,
-                    COALESCE(l.deaths, 0) as deaths,
-                    COALESCE(w.blessings, 0) as blessings,
-                    (COALESCE(w.kills, 0) * 3 + COALESCE(w.blessings, 0) - COALESCE(l.deaths, 0)) as score
-                FROM person p
-                LEFT JOIN win_stats w ON p.name = w.player_name
-                LEFT JOIN lost_stats l ON p.name = l.player_name
-                WHERE p.deleted_at IS NULL
-                  {faction_condition}
-                  {job_condition}
-            )
-            SELECT 
-                id, name, faction, job, kills, deaths, blessings, score
-            FROM player_stats
-            WHERE kills > 0 OR deaths > 0
-            ORDER BY score DESC, kills DESC
-        """.format(
-            filtered_date_condition=date_condition,
-            faction_condition=f"AND p.faction = '{query_faction}'" if query_faction else "",
-            job_condition=f"AND p.job = '{query_job}'" if query_job else ""
+        # 使用服务层获取排名数据
+        player_rankings = get_rankings_service(
+            faction=query_faction,
+            job=query_job,
+            time_range=time_range,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime
         )
         
-        # 执行查询
-        result = db.session.execute(text(query_text))
+        # 添加排名序号
         rankings = []
-        
-        for idx, row in enumerate(result, start=1):
+        for idx, player in enumerate(player_rankings, start=1):
             rankings.append({
                 'rank': idx,
-                'id': row.id,
-                'name': row.name,
-                'faction': row.faction,
-                'job': row.job,
-                'kills': int(row.kills),
-                'deaths': int(row.deaths),
-                'blessings': int(row.blessings),
-                'score': int(row.score)
+                **player  # 展开玩家数据
             })
         
         logger.info(f"API 获取排名成功，返回 {len(rankings)} 条记录")

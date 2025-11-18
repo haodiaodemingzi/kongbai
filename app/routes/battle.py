@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -23,6 +23,7 @@ from app.utils.jwt_auth import token_required
 import json
 from app.utils.web_scraper import get_rankings_by_scraper
 from dateutil import parser
+from app.services.battle_service import get_player_rankings as get_rankings_service, get_all_jobs
 
 logger = get_logger()
 
@@ -183,113 +184,17 @@ def rankings():
     logger.debug(f"排名筛选参数: faction={selected_faction}, job={selected_job}, time_range={time_range}, start_datetime={start_datetime}, end_datetime={end_datetime}, show_grouped={show_grouped}")
     
     try:
-        # 根据是否需要按分组统计选择不同的查询
-        if show_grouped:
-            pass
-        else:
-            # 原始查询（不考虑玩家分组） - 优化版：先过滤battle_record并聚合，充分利用索引
-            
-            query_text = """
-                WITH filtered_battle_records AS (
-                    -- 1. 先过滤battle_record表（利用 deleted_at 和 publish_at 索引）
-                    SELECT win, lost, remark
-                    FROM battle_record
-                    WHERE deleted_at IS NULL
-                      {filtered_date_condition}
-                ),
-                win_stats AS (
-                    -- 2. 统计每个玩家的击杀和祝福（利用 win 索引）
-                    SELECT 
-                        win as player_name,
-                        COUNT(*) as kills,
-                        SUM(COALESCE(remark, 0)) as blessings
-                    FROM filtered_battle_records
-                    WHERE win IS NOT NULL
-                    GROUP BY win
-                ),
-                lost_stats AS (
-                    -- 3. 统计每个玩家的死亡（利用 lost 索引）
-                    SELECT 
-                        lost as player_name,
-                        COUNT(*) as deaths
-                    FROM filtered_battle_records
-                    WHERE lost IS NOT NULL
-                    GROUP BY lost
-                ),
-                player_stats AS (
-                    -- 4. 将统计数据与玩家表JOIN（使用等值JOIN，可以走索引）
-                    SELECT 
-                        p.id,
-                        p.name,
-                        p.job,
-                        p.god as faction,
-                        COALESCE(ws.kills, 0) as kills,
-                        COALESCE(ls.deaths, 0) as deaths,
-                        COALESCE(ws.blessings, 0) as blessings,
-                        CASE 
-                            WHEN COALESCE(ls.deaths, 0) > 0 
-                            THEN ROUND(COALESCE(ws.kills, 0) * 1.0 / COALESCE(ls.deaths, 0), 2)
-                            ELSE COALESCE(ws.kills, 0)
-                        END as kd_ratio
-                    FROM person p
-                    LEFT JOIN win_stats ws ON p.name = ws.player_name
-                    LEFT JOIN lost_stats ls ON p.name = ls.player_name
-                    WHERE p.deleted_at IS NULL
-                        AND (:faction IS NULL OR p.god = :faction)
-                        AND (:job IS NULL OR p.job = :job)
-                        AND (COALESCE(ws.kills, 0) > 0 OR COALESCE(ls.deaths, 0) > 0)
-                )
-                SELECT 
-                    id,
-                    name,
-                    job,
-                    faction,
-                    kills,
-                    deaths,
-                    blessings,
-                    kd_ratio,
-                    (kills * 3 + blessings - deaths) as score
-                FROM player_stats
-                ORDER BY score DESC, kills DESC, deaths ASC
-            """
-            # 使用format方法插入日期条件
-            query_text = query_text.format(filtered_date_condition=date_condition)
-            query = text(query_text)
+        # 使用服务层获取排名数据
+        player_rankings = get_rankings_service(
+            faction=query_faction,
+            job=query_job,
+            time_range=time_range,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime
+        )
         
-        # 执行查询 (Use query_faction and query_job)
-        result = db.session.execute(query, {
-            'faction': query_faction,
-            'job': query_job
-        })
-        
-        # 转换结果为列表
-        player_rankings = []
-        for row in result:
-            player_rankings.append({
-                'id': row.id,
-                'name': row.name,
-                'job': row.job,
-                'faction': row.faction,
-                'kills': int(row.kills),
-                'deaths': int(row.deaths),
-                'blessings': int(row.blessings),
-                'kd_ratio': float(row.kd_ratio),
-                'score': int(row.score)
-            })
-        
-        logger.debug(f"获取到 {len(player_rankings)} 名玩家排名数据")
-        
-        # 获取所有职业列表（去重）
-        jobs_query = text("""
-            SELECT DISTINCT job 
-            FROM person 
-            WHERE job IS NOT NULL 
-            AND deleted_at IS NULL 
-            ORDER BY job
-        """)
-        
-        jobs = [row[0] for row in db.session.execute(jobs_query)]
-        logger.debug(f"获取到 {len(jobs)} 个职业分类")
+        # 获取所有职业列表
+        jobs = get_all_jobs()
         
         # 获取统计数据 (Use query_faction)
         # total_players, total_kills, total_deaths, total_score = get_statistics(faction=query_faction)
