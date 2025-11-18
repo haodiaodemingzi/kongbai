@@ -1,7 +1,7 @@
 // API 配置文件
 
 // 根据运行环境选择 API 地址
-const ENV = 'local'; // 'local' | 'production'
+const ENV = 'production'; // 'local' | 'production'
 
 const API_URLS = {
   // 本地开发环境

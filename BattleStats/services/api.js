@@ -161,7 +161,7 @@ export const getDashboardData = async (dateRange = 'week') => {
  */
 export const getPlayerRankings = async (params = {}) => {
   try {
-    const response = await apiClient.get('/battle/api/rankings', {
+    const response = await apiClient.get('/api/battle/rankings', {
       params: {
         faction: params.faction || '',
         job: params.job || '',
@@ -190,7 +190,7 @@ export const getPlayerRankings = async (params = {}) => {
  */
 export const getPlayerDetails = async (playerName, timeRange = 'week') => {
   try {
-    const response = await apiClient.get(`/battle/api/player/${playerName}`, {
+    const response = await apiClient.get(`/api/battle/player/${playerName}`, {
       params: { time_range: timeRange },
     });
 
@@ -217,7 +217,7 @@ export const uploadBattleLog = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await apiClient.post('/battle/api/upload', formData, {
+    const response = await apiClient.post('/api/battle/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -243,7 +243,7 @@ export const uploadBattleLog = async (file) => {
  */
 export const getFactionStats = async (dateRange = 'week') => {
   try {
-    const response = await apiClient.get('/battle/api/faction_stats', {
+    const response = await apiClient.get('/api/battle/faction_stats', {
       params: { date_range: dateRange },
     });
 

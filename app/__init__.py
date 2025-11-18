@@ -131,6 +131,7 @@ def create_app(config_class=Config):
     from app.routes.home import home_bp
     from app.routes.auth import auth_bp, login_required
     from app.routes.api_auth import api_auth_bp
+    from app.routes.api_battle import api_battle_bp
     from app.routes.person import bp as person_bp
     from app.routes.reward import bp as reward_bp
     from app.routes.player_group import bp as player_group_bp
@@ -145,12 +146,13 @@ def create_app(config_class=Config):
     # 注册蓝图
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(api_auth_bp, url_prefix='/api/auth')  # API 认证蓝图
+    app.register_blueprint(api_battle_bp, url_prefix='/api/battle')  # API 战斗数据蓝图
     app.register_blueprint(battle_bp, url_prefix='/battle')
     app.register_blueprint(home_bp)
     app.register_blueprint(person_bp)
     app.register_blueprint(reward_bp)
     app.register_blueprint(player_group_bp)
-    logger.info("蓝图已注册: /auth, /api/auth, /battle, /, /person, /reward, /player_group")
+    logger.info("蓝图已注册: /auth, /api/auth, /api/battle, /battle, /, /person, /reward, /player_group")
     
     # 为需要登录的蓝图添加保护
     for blueprint in [home_bp, battle_bp, player_group_bp]:
