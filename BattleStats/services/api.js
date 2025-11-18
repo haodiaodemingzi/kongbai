@@ -238,6 +238,31 @@ export const uploadBattleLog = async (file) => {
 };
 
 /**
+ * 获取玩家详细信息
+ * @param {string} playerName 玩家名称
+ * @param {string} timeRange 时间范围
+ */
+export const getPlayerDetail = async (playerName, timeRange = 'week') => {
+  try {
+    const response = await apiClient.get(`/api/battle/player/${encodeURIComponent(playerName)}`, {
+      params: { time_range: timeRange },
+    });
+
+    if (response.data.status === 'success') {
+      return { success: true, data: response.data.data };
+    } else {
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    console.error('获取玩家详情失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '获取玩家详情失败',
+    };
+  }
+};
+
+/**
  * 获取势力统计数据
  * @param {string} dateRange 时间范围
  */

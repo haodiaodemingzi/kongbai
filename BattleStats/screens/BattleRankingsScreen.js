@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { getPlayerRankings } from '../services/api';
+import PlayerDetailScreen from './PlayerDetailScreen';
 
 // 时间范围选项
 const TIME_RANGES = [
@@ -35,6 +36,7 @@ export default function BattleRankingsScreen() {
   const [players, setPlayers] = useState([]);
   const [selectedTime, setSelectedTime] = useState('today');
   const [selectedFaction, setSelectedFaction] = useState('');
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   useEffect(() => {
     fetchRankings();
@@ -70,10 +72,21 @@ export default function BattleRankingsScreen() {
     }
   };
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    fetchRankings();
+    await fetchRankings();
+    setRefreshing(false);
   };
+
+  // 如果选中了玩家，显示玩家详情
+  if (selectedPlayer) {
+    return (
+      <PlayerDetailScreen
+        playerName={selectedPlayer}
+        onBack={() => setSelectedPlayer(null)}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -172,7 +185,7 @@ export default function BattleRankingsScreen() {
           <TouchableOpacity
             key={player.id}
             style={styles.tableRow}
-            onPress={() => navigation.navigate('PlayerDetail', { playerName: player.name })}
+            onPress={() => setSelectedPlayer(player.name)}
           >
             <Text style={[styles.cell, styles.rankCell]}>{player.rank}</Text>
             <View style={[styles.cell, styles.nameCell]}>
