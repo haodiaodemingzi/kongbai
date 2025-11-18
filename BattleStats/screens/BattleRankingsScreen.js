@@ -8,7 +8,10 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Modal,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { getPlayerRankings } from '../services/api';
 import PlayerDetailScreen from './PlayerDetailScreen';
@@ -21,6 +24,7 @@ const TIME_RANGES = [
   { label: '30天', value: 'month' },
   { label: '3个月', value: 'three_months' },
   { label: '全部', value: 'all' },
+  { label: '自定义', value: 'custom' },
 ];
 
 // 势力选项
@@ -38,17 +42,33 @@ export default function BattleRankingsScreen() {
   const [selectedTime, setSelectedTime] = useState('today');
   const [selectedFaction, setSelectedFaction] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  
+  // 自定义时间相关状态
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState('start'); // 'start' or 'end'
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [showCustomModal, setShowCustomModal] = useState(false);
 
   useEffect(() => {
     fetchRankings();
-  }, [selectedTime, selectedFaction]);
+  }, [selectedTime, selectedFaction, startDate, endDate]);
 
   const fetchRankings = async () => {
     try {
-      const result = await getPlayerRankings({
-        time_range: selectedTime,
+      const params = {
         faction: selectedFaction,
-      });
+      };
+      
+      // 如果是自定义时间，使用日期参数
+      if (selectedTime === 'custom') {
+        params.start_date = formatDate(startDate);
+        params.end_date = formatDate(endDate);
+      } else {
+        params.time_range = selectedTime;
+      }
+      
+      const result = await getPlayerRankings(params);
 
       if (result.success) {
         // 处理返回的数据，添加 K/D 比率
@@ -71,6 +91,45 @@ export default function BattleRankingsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+  
+  // 格式化日期为 YYYY-MM-DD
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // 处理时间选择
+  const handleTimeSelect = (value) => {
+    if (value === 'custom') {
+      setShowCustomModal(true);
+    } else {
+      setSelectedTime(value);
+    }
+  };
+  
+  // 处理日期选择
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      if (datePickerMode === 'start') {
+        setStartDate(selectedDate);
+      } else {
+        setEndDate(selectedDate);
+      }
+    }
+  };
+  
+  // 确认自定义时间
+  const confirmCustomTime = () => {
+    if (startDate > endDate) {
+      Alert.alert('错误', '开始日期不能晚于结束日期');
+      return;
+    }
+    setSelectedTime('custom');
+    setShowCustomModal(false);
   };
 
   const onRefresh = async () => {
@@ -119,7 +178,7 @@ export default function BattleRankingsScreen() {
                     styles.filterButton,
                     selectedTime === item.value && styles.filterButtonActive,
                   ]}
-                  onPress={() => setSelectedTime(item.value)}
+                  onPress={() => handleTimeSelect(item.value)}
                 >
                   <Text
                     style={[
@@ -128,6 +187,11 @@ export default function BattleRankingsScreen() {
                     ]}
                   >
                     {item.label}
+                    {item.value === 'custom' && selectedTime === 'custom' && (
+                      <Text style={styles.customDateText}>
+                        {'\n'}{formatDate(startDate)} ~ {formatDate(endDate)}
+                      </Text>
+                    )}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -206,6 +270,70 @@ export default function BattleRankingsScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+      
+      {/* 自定义时间选择模态框 */}
+      <Modal
+        visible={showCustomModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCustomModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>选择时间范围</Text>
+            
+            {/* 开始日期 */}
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                setDatePickerMode('start');
+                setShowDatePicker(true);
+              }}
+            >
+              <Text style={styles.dateLabel}>开始日期:</Text>
+              <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
+            </TouchableOpacity>
+            
+            {/* 结束日期 */}
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                setDatePickerMode('end');
+                setShowDatePicker(true);
+              }}
+            >
+              <Text style={styles.dateLabel}>结束日期:</Text>
+              <Text style={styles.dateValue}>{formatDate(endDate)}</Text>
+            </TouchableOpacity>
+            
+            {/* 按钮组 */}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowCustomModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={confirmCustomTime}
+              >
+                <Text style={styles.confirmButtonText}>确定</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* 日期选择器 */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={datePickerMode === 'start' ? startDate : endDate}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+        />
+      )}
     </View>
   );
 }
@@ -352,5 +480,77 @@ const styles = StyleSheet.create({
   scoreText: {
     color: '#3498db',
     fontWeight: 'bold',
+  },
+  customDateText: {
+    fontSize: 10,
+    color: '#fff',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  dateButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+  },
+  dateLabel: {
+    fontSize: 16,
+    color: '#2c3e50',
+    fontWeight: '500',
+  },
+  dateValue: {
+    fontSize: 16,
+    color: '#3498db',
+    fontWeight: 'bold',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#ecf0f1',
+  },
+  confirmButton: {
+    backgroundColor: '#3498db',
+  },
+  cancelButtonText: {
+    color: '#7f8c8d',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

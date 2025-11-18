@@ -158,15 +158,26 @@ export const getDashboardData = async (dateRange = 'week') => {
  * @param {string} params.faction 势力 (梵天, 比湿奴, 湿婆, all)
  * @param {string} params.job 职业
  * @param {string} params.time_range 时间范围 (today, yesterday, week, month, three_months, all)
+ * @param {string} params.start_date 自定义开始日期 (YYYY-MM-DD)
+ * @param {string} params.end_date 自定义结束日期 (YYYY-MM-DD)
  */
 export const getPlayerRankings = async (params = {}) => {
   try {
+    const requestParams = {
+      faction: params.faction || '',
+      job: params.job || '',
+    };
+    
+    // 如果有自定义日期，使用自定义日期；否则使用时间范围
+    if (params.start_date && params.end_date) {
+      requestParams.start_datetime = params.start_date;
+      requestParams.end_datetime = params.end_date;
+    } else {
+      requestParams.time_range = params.time_range || 'today';
+    }
+    
     const response = await apiClient.get('/api/battle/rankings', {
-      params: {
-        faction: params.faction || '',
-        job: params.job || '',
-        time_range: params.time_range || 'today',
-      },
+      params: requestParams,
     });
 
     if (response.data.status === 'success') {

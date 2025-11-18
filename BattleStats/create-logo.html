@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Stats Logo 生成器</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #f5f6fa;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .instructions {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .logo-wrapper {
+            text-align: center;
+        }
+        
+        .logo-label {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        
+        .logo-size {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        /* Logo 1024x1024 */
+        .logo-1024 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 15px 40px rgba(231, 76, 60, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .logo-1024::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .logo-svg {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sword-icon {
+            width: 280px;
+            height: 280px;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+        }
+        
+        .logo-text {
+            position: absolute;
+            bottom: 40px;
+            z-index: 3;
+            text-align: center;
+        }
+        
+        .logo-main {
+            font-size: 56px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            letter-spacing: 4px;
+        }
+        
+        /* 简化版 Logo */
+        .logo-simple {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .logo-simple .logo-main {
+            font-size: 100px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        /* 圆形 Logo */
+        .logo-circle {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4);
+            border: 8px solid rgba(255,255,255,0.2);
+        }
+        
+        .logo-circle .logo-main {
+            font-size: 70px;
+        }
+        
+        .logo-circle .logo-sub {
+            font-size: 24px;
+        }
+        
+        /* 方形 Logo (Adaptive Icon) */
+        .logo-square {
+            width: 300px;
+            height: 300px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .logo-square-inner {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(231, 76, 60, 0.4);
+        }
+        
+        .logo-square-inner .logo-main {
+            font-size: 70px;
+        }
+        
+        .note {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 700px;
+            margin-top: 20px;
+        }
+        
+        .download-hint {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 700px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .download-hint h3 {
+            margin-top: 0;
+            color: #f57c00;
+        }
+        
+        .download-hint kbd {
+            background: #f5f5f5;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚔️ Battle Stats Logo</h1>
+    
+    <div class="instructions">
+        <h2>应用图标 Logo 设计</h2>
+        <p>以下是为 Battle Stats 设计的 Logo 方案</p>
+        <p>使用截图工具保存为 PNG 格式</p>
+    </div>
+    
+    <div class="logo-container">
+        <!-- 主 Logo 1024x1024 -->
+        <div class="logo-wrapper">
+            <div class="logo-1024">
+                <div class="logo-svg">
+                    <!-- SVG 剑盾图案 -->
+                    <svg class="sword-icon" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <!-- 盾牌 - 放大 -->
+                        <path d="M100 10 L175 45 L175 115 Q175 175 100 195 Q25 175 25 115 L25 45 Z" 
+                              fill="rgba(255,255,255,0.25)" 
+                              stroke="white" 
+                              stroke-width="4"/>
+                        
+                        <!-- 剑 - 放大 -->
+                        <g transform="translate(100, 100)">
+                            <!-- 剑刃 -->
+                            <rect x="-6" y="-85" width="12" height="100" fill="white" rx="3"/>
+                            <!-- 护手 -->
+                            <rect x="-28" y="15" width="56" height="8" fill="white" rx="3"/>
+                            <!-- 剑柄 -->
+                            <rect x="-5" y="23" width="10" height="40" fill="rgba(255,255,255,0.9)" rx="3"/>
+                            <!-- 剑首 -->
+                            <circle cx="0" cy="67" r="8" fill="white"/>
+                            
+                            <!-- 装饰线条 -->
+                            <line x1="-20" y1="-60" x2="20" y2="-60" stroke="rgba(255,215,0,0.9)" stroke-width="3"/>
+                            <line x1="-16" y1="-48" x2="16" y2="-48" stroke="rgba(255,215,0,0.9)" stroke-width="3"/>
+                        </g>
+                        
+                        <!-- 星星装饰 -->
+                        <circle cx="50" cy="75" r="4" fill="rgba(255,215,0,1)"/>
+                        <circle cx="150" cy="75" r="4" fill="rgba(255,215,0,1)"/>
+                        <circle cx="100" cy="40" r="5" fill="rgba(255,215,0,1)"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="logo-label">主图标</div>
+            <div class="logo-size">icon.png (1024x1024)</div>
+        </div>
+    </div>
+    
+    <div class="logo-container">
+        <!-- 简化版 -->
+        <div class="logo-wrapper">
+            <div class="logo-simple">
+                <svg width="150" height="150" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 简化的剑 -->
+                    <g transform="translate(100, 100)">
+                        <rect x="-5" y="-80" width="10" height="100" fill="white" rx="3"/>
+                        <rect x="-25" y="20" width="50" height="8" fill="white" rx="3"/>
+                        <rect x="-4" y="28" width="8" height="35" fill="rgba(255,255,255,0.9)" rx="2"/>
+                        <circle cx="0" cy="67" r="8" fill="white"/>
+                        <circle cx="0" cy="-60" r="5" fill="rgba(255,215,0,1)"/>
+                    </g>
+                </svg>
+            </div>
+            <div class="logo-label">简化版</div>
+            <div class="logo-size">适合小尺寸显示</div>
+        </div>
+        
+        <!-- 圆形版 -->
+        <div class="logo-wrapper">
+            <div class="logo-circle">
+                <svg width="120" height="120" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(100, 100)">
+                        <rect x="-4" y="-60" width="8" height="80" fill="white" rx="2"/>
+                        <rect x="-18" y="20" width="36" height="6" fill="white" rx="2"/>
+                        <rect x="-3" y="26" width="6" height="25" fill="rgba(255,255,255,0.9)" rx="2"/>
+                        <circle cx="0" cy="54" r="6" fill="white"/>
+                        <circle cx="0" cy="-45" r="4" fill="rgba(255,215,0,1)"/>
+                    </g>
+                </svg>
+            </div>
+            <div class="logo-label">圆形版</div>
+            <div class="logo-size">splash-icon.png</div>
+        </div>
+    </div>
+    
+    <div class="logo-container">
+        <!-- Adaptive Icon -->
+        <div class="logo-wrapper">
+            <div class="logo-square">
+                <div class="logo-square-inner">
+                    <svg width="100" height="100" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(100, 100)">
+                            <rect x="-5" y="-70" width="10" height="90" fill="white" rx="3"/>
+                            <rect x="-22" y="20" width="44" height="7" fill="white" rx="3"/>
+                            <rect x="-4" y="27" width="8" height="30" fill="rgba(255,255,255,0.9)" rx="2"/>
+                            <circle cx="0" cy="60" r="7" fill="white"/>
+                            <circle cx="0" cy="-50" r="5" fill="rgba(255,215,0,1)"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <div class="logo-label">自适应图标</div>
+            <div class="logo-size">adaptive-icon.png (透明背景)</div>
+        </div>
+    </div>
+    
+    <div class="download-hint">
+        <h3>📸 如何保存图标</h3>
+        <ol style="text-align: left; display: inline-block;">
+            <li>按 <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> 打开截图工具</li>
+            <li>框选要保存的 Logo 区域</li>
+            <li>粘贴到画图工具或 Photoshop</li>
+            <li>调整到所需尺寸 (1024x1024)</li>
+            <li>保存为 PNG 格式</li>
+            <li>重命名为对应的文件名</li>
+            <li>放到 <code>BattleStats/assets/</code> 文件夹</li>
+        </ol>
+    </div>
+    
+    <div class="note">
+        <h3>🎨 设计说明</h3>
+        <ul style="text-align: left;">
+            <li><strong>主色调</strong>: 紫色渐变 (#667eea → #764ba2)</li>
+            <li><strong>主元素</strong>: "BS" 字母缩写</li>
+            <li><strong>辅助元素</strong>: 剑图标 (⚔️) 作为背景</li>
+            <li><strong>副标题</strong>: "BATTLE STATS" 或 "战斗统计"</li>
+            <li><strong>风格</strong>: 现代、简洁、专业</li>
+            <li><strong>特效</strong>: 光晕旋转动画、阴影效果</li>
+        </ul>
+    </div>
+    
+    <div class="note">
+        <h3>📋 所需文件清单</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <tr style="background: #f5f5f5;">
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">文件名</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">尺寸</th>
+                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">用途</th>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><code>icon.png</code></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">1024x1024</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">应用主图标</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><code>adaptive-icon.png</code></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">1024x1024</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">Android 自适应图标</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><code>splash-icon.png</code></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">任意</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">启动屏幕</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><code>favicon.png</code></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">48x48</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">Web 图标</td>
+            </tr>
+        </table>
+    </div>
+    
+    <script>
+        console.log('Battle Stats Logo 生成器已加载');
+        console.log('Logo 设计: BS + 紫色渐变');
+    </script>
+</body>
+</html>

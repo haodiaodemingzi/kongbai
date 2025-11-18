@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Stats 图标生成器</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #f5f6fa;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .instructions {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        
+        .instructions ol {
+            line-height: 1.8;
+        }
+        
+        .icon-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .icon-wrapper {
+            text-align: center;
+        }
+        
+        .icon-label {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .icon-size {
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        
+        /* 主图标 1024x1024 */
+        .main-icon {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            position: relative;
+        }
+        
+        .main-icon::before {
+            content: '⚔️';
+            font-size: 120px;
+            margin-bottom: -20px;
+        }
+        
+        .main-icon::after {
+            content: '📊';
+            font-size: 80px;
+            position: absolute;
+            bottom: 50px;
+            opacity: 0.9;
+        }
+        
+        .main-icon .text {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* 自适应图标 1024x1024 */
+        .adaptive-icon {
+            width: 300px;
+            height: 300px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .adaptive-icon::before {
+            content: '⚔️';
+            font-size: 180px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        /* 启动屏图标 */
+        .splash-icon {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .splash-icon::before {
+            content: '⚔️';
+            font-size: 80px;
+        }
+        
+        .splash-icon .text {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        /* Favicon */
+        .favicon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .favicon::before {
+            content: '⚔️';
+            font-size: 50px;
+        }
+        
+        .download-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        .download-btn:hover {
+            background: #764ba2;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Battle Stats 图标生成器</h1>
+    
+    <div class="instructions">
+        <h3>📝 使用说明</h3>
+        <ol>
+            <li>在 Windows 上按 <kbd>Win + Shift + S</kbd> 打开截图工具</li>
+            <li>截取下方对应的图标区域</li>
+            <li>保存为 PNG 格式</li>
+            <li>重命名并放到 <code>assets/</code> 文件夹</li>
+        </ol>
+        <p><strong>提示</strong>: 截图时尽量保持图标居中，边缘留白均匀</p>
+    </div>
+    
+    <div class="icon-container">
+        <!-- 主图标 -->
+        <div class="icon-wrapper">
+            <div class="main-icon">
+                <div class="text">Battle Stats</div>
+            </div>
+            <div class="icon-label">icon.png</div>
+            <div class="icon-size">1024x1024 (截图后调整大小)</div>
+        </div>
+        
+        <!-- 自适应图标 -->
+        <div class="icon-wrapper">
+            <div class="adaptive-icon"></div>
+            <div class="icon-label">adaptive-icon.png</div>
+            <div class="icon-size">1024x1024 (透明背景)</div>
+        </div>
+    </div>
+    
+    <div class="icon-container">
+        <!-- 启动屏图标 -->
+        <div class="icon-wrapper">
+            <div class="splash-icon">
+                <div class="text">BS</div>
+            </div>
+            <div class="icon-label">splash-icon.png</div>
+            <div class="icon-size">可以使用较小尺寸</div>
+        </div>
+        
+        <!-- Favicon -->
+        <div class="icon-wrapper">
+            <div class="favicon"></div>
+            <div class="icon-label">favicon.png</div>
+            <div class="icon-size">48x48</div>
+        </div>
+    </div>
+    
+    <div class="note">
+        <strong>⚡ 快速方案</strong>: 如果需要专业图标，推荐使用在线工具：
+        <ul>
+            <li><a href="https://www.appicon.co/" target="_blank" rel="noopener">App Icon Generator</a></li>
+            <li><a href="https://icon.kitchen/" target="_blank" rel="noopener">Icon Kitchen</a></li>
+            <li><a href="https://makeappicon.com/" target="_blank" rel="noopener">MakeAppIcon</a></li>
+        </ul>
+    </div>
+    
+    <div class="note">
+        <strong>🎨 设计说明</strong>:
+        <ul>
+            <li>主色调: 紫色渐变 (#667eea → #764ba2)</li>
+            <li>主元素: 剑 (⚔️) 代表战斗</li>
+            <li>辅助元素: 图表 (📊) 代表统计</li>
+            <li>风格: 现代、简洁、专业</li>
+        </ul>
+    </div>
+    
+    <script>
+        console.log('Battle Stats 图标生成器已加载');
+        console.log('请使用截图工具保存图标');
+    </script>
+</body>
+</html>
