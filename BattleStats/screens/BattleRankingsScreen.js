@@ -171,24 +171,11 @@ export default function BattleRankingsScreen() {
       >
         {/* 表头 */}
         <View style={styles.tableHeader}>
-          <View style={[styles.headerCell, styles.rankCell]}>
-            <MaterialIcons name="format-list-numbered" size={14} color="#7f8c8d" />
-          </View>
           <Text style={[styles.headerCell, styles.nameCell]}>玩家</Text>
-          <Text style={[styles.headerCell, styles.jobCell]}>职业</Text>
-          <View style={[styles.headerCell, styles.killsCell]}>
-            <FontAwesome5 name="skull-crossbones" size={12} color="#e74c3c" />
-          </View>
-          <View style={[styles.headerCell, styles.deathsCell]}>
-            <MaterialIcons name="dangerous" size={14} color="#95a5a6" />
-          </View>
-          <View style={[styles.headerCell, styles.blessingsCell]}>
-            <MaterialIcons name="wb-sunny" size={14} color="#f39c12" />
-          </View>
-          <Text style={[styles.headerCell, styles.kdCell]}>K/D</Text>
-          <View style={[styles.headerCell, styles.scoreCell]}>
-            <MaterialIcons name="stars" size={14} color="#f1c40f" />
-          </View>
+          <Text style={[styles.headerCell, styles.killsCell]}>击杀</Text>
+          <Text style={[styles.headerCell, styles.deathsCell]}>死亡</Text>
+          <Text style={[styles.headerCell, styles.blessingsCell]}>爆灯</Text>
+          <Text style={[styles.headerCell, styles.scoreCell]}>总分</Text>
         </View>
 
         {/* 数据行 */}
@@ -198,14 +185,12 @@ export default function BattleRankingsScreen() {
             style={styles.tableRow}
             onPress={() => setSelectedPlayer(player.name)}
           >
-            <Text style={[styles.cell, styles.rankCell]}>{player.rank}</Text>
             <View style={[styles.cell, styles.nameCell]}>
-              <Text style={styles.playerName} numberOfLines={1}>
+              <Text style={styles.playerName}>
                 {player.name}
               </Text>
-              <Text style={styles.factionText}>{player.faction}</Text>
+              <Text style={styles.jobText}>{player.job}</Text>
             </View>
-            <Text style={[styles.cell, styles.jobCell]}>{player.job}</Text>
             <Text style={[styles.cell, styles.killsCell, styles.killsText]}>
               {player.kills}
             </Text>
@@ -215,7 +200,6 @@ export default function BattleRankingsScreen() {
             <Text style={[styles.cell, styles.blessingsCell, styles.blessingsText]}>
               {player.blessings || 0}
             </Text>
-            <Text style={[styles.cell, styles.kdCell]}>{player.kd_ratio}</Text>
             <Text style={[styles.cell, styles.scoreCell, styles.scoreText]}>
               {player.score}
             </Text>
@@ -326,40 +310,32 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     textAlign: 'center',
   },
-  rankCell: {
-    width: 40,
-  },
   nameCell: {
-    flex: 1,
-    paddingHorizontal: 5,
+    flex: 2.5,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#2c3e50',
+    marginBottom: 2,
   },
-  factionText: {
+  jobText: {
     fontSize: 11,
     color: '#7f8c8d',
-    marginTop: 2,
-  },
-  jobCell: {
-    width: 50,
   },
   killsCell: {
-    width: 40,
+    width: 45,
   },
   deathsCell: {
-    width: 40,
+    width: 45,
   },
   blessingsCell: {
-    width: 40,
-  },
-  kdCell: {
     width: 45,
   },
   scoreCell: {
-    width: 45,
+    width: 55,
   },
   killsText: {
     color: '#27ae60',

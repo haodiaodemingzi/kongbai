@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import LoginScreen from './screens/LoginScreen';
 import RankingsScreen from './screens/RankingsScreen';
 import BattleRankingsScreen from './screens/BattleRankingsScreen';
@@ -96,13 +97,13 @@ export default function App() {
   if (currentScreen === 'rankings') {
     return (
       <View style={styles.container}>
-        <RankingsScreen />
         <TouchableOpacity
-          style={styles.backButton}
+          style={styles.backIconButton}
           onPress={() => setCurrentScreen('home')}
         >
-          <Text style={styles.backButtonText}>← 返回首页</Text>
+          <MaterialIcons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
+        <RankingsScreen />
       </View>
     );
   }
@@ -111,13 +112,13 @@ export default function App() {
   if (currentScreen === 'battle') {
     return (
       <View style={styles.container}>
-        <BattleRankingsScreen />
         <TouchableOpacity
-          style={styles.backButton}
+          style={styles.backIconButton}
           onPress={() => setCurrentScreen('home')}
         >
-          <Text style={styles.backButtonText}>← 返回首页</Text>
+          <MaterialIcons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
+        <BattleRankingsScreen />
       </View>
     );
   }
@@ -343,25 +344,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  backButton: {
+  backIconButton: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 20,
     left: 20,
-    right: 20,
-    backgroundColor: '#3498db',
-    padding: 16,
-    borderRadius: 12,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 5,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    elevation: 4,
   },
   loadingContainer: {
     flex: 1,

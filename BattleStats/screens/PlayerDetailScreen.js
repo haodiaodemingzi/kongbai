@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { getPlayerDetail } from '../services/api';
 
 export default function PlayerDetailScreen({ playerName, onBack }) {
@@ -48,22 +49,33 @@ export default function PlayerDetailScreen({ playerName, onBack }) {
 
   if (!playerData) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>未找到玩家信息</Text>
+      <View style={styles.container}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={styles.backIconButton}
           onPress={onBack}
         >
-          <Text style={styles.backButtonText}>返回</Text>
+          <MaterialIcons name="arrow-back" size={24} color="#2c3e50" />
         </TouchableOpacity>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>未找到玩家信息</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* 头部信息 */}
-      <View style={styles.header}>
+    <View style={styles.container}>
+      {/* 返回按钮 */}
+      <TouchableOpacity
+        style={styles.backIconButton}
+        onPress={onBack}
+      >
+        <MaterialIcons name="arrow-back" size={24} color="#2c3e50" />
+      </TouchableOpacity>
+
+      <ScrollView style={styles.scrollView}>
+        {/* 头部信息 */}
+        <View style={styles.header}>
         <Text style={styles.playerName}>{playerData.name}</Text>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>势力：</Text>
@@ -147,14 +159,8 @@ export default function PlayerDetailScreen({ playerName, onBack }) {
         )}
       </View>
 
-      {/* 返回按钮 */}
-      <TouchableOpacity
-        style={styles.returnButton}
-        onPress={onBack}
-      >
-        <Text style={styles.returnButtonText}>← 返回排名</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -162,6 +168,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f6fa',
+  },
+  backIconButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  scrollView: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
@@ -178,24 +204,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f6fa',
     padding: 20,
   },
   errorText: {
     fontSize: 18,
     color: '#e74c3c',
-    marginBottom: 20,
-  },
-  backButton: {
-    backgroundColor: '#3498db',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   header: {
     backgroundColor: '#2c3e50',
@@ -322,17 +335,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7f8c8d',
     marginTop: 20,
-  },
-  returnButton: {
-    backgroundColor: '#3498db',
-    margin: 15,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  returnButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
