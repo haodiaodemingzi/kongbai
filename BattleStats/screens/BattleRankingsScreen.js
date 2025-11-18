@@ -22,8 +22,6 @@ const TIME_RANGES = [
   { label: '昨天', value: 'yesterday' },
   { label: '7天', value: 'week' },
   { label: '30天', value: 'month' },
-  { label: '3个月', value: 'three_months' },
-  { label: '全部', value: 'all' },
   { label: '自定义', value: 'custom' },
 ];
 
