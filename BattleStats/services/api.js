@@ -1,9 +1,9 @@
 // API 服务模块
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL, CONFIG } from '../config';
 
-// API 基础 URL - 根据你的实际服务器地址修改
-const API_BASE_URL = 'https://bigmang.xyz';
+console.log('API Base URL:', API_BASE_URL);
 
 // Token 存储键
 const TOKEN_KEY = '@battle_stats_token';
@@ -57,7 +57,7 @@ apiClient.interceptors.response.use(
  */
 export const login = async (username, password) => {
   try {
-    const response = await apiClient.post('/auth/api/login', {
+    const response = await apiClient.post('/api/auth/login', {
       username,
       password,
     });
@@ -87,7 +87,7 @@ export const login = async (username, password) => {
  */
 export const logout = async () => {
   try {
-    await apiClient.post('/auth/api/logout');
+    await apiClient.post('/api/auth/logout');
   } catch (error) {
     console.error('登出失败:', error);
   } finally {
@@ -102,7 +102,7 @@ export const logout = async () => {
  */
 export const verifyToken = async () => {
   try {
-    const response = await apiClient.get('/auth/api/verify');
+    const response = await apiClient.get('/api/auth/verify');
     return response.data.status === 'success';
   } catch (error) {
     return false;

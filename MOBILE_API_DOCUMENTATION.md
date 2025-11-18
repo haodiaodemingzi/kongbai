@@ -36,7 +36,7 @@
 
 ### 1. 登录
 
-**接口**: `POST /auth/api/login`
+**接口**: `POST /api/auth/login`
 
 **描述**: 用户登录，获取 JWT Token
 
@@ -70,7 +70,7 @@ Content-Type: application/json
 
 ### 2. 登出
 
-**接口**: `POST /auth/api/logout`
+**接口**: `POST /api/auth/logout`
 
 **描述**: 用户登出
 
@@ -89,7 +89,7 @@ Authorization: Bearer <token>
 
 ### 3. 验证 Token
 
-**接口**: `GET /auth/api/verify`
+**接口**: `GET /api/auth/verify`
 
 **描述**: 验证 Token 是否有效
 
@@ -523,7 +523,7 @@ score = kills × 3 + blessings - deaths
 
 ```javascript
 // 登录
-const loginResponse = await axios.post('http://your-domain.com/auth/api/login', {
+const loginResponse = await axios.post('http://your-domain.com/api/auth/login', {
   username: 'admin',
   password: 'admin123'
 });
@@ -548,7 +548,7 @@ console.log(rankingsResponse.data);
 
 ```javascript
 // 登录
-const loginResponse = await fetch('http://your-domain.com/auth/api/login', {
+const loginResponse = await fetch('http://your-domain.com/api/auth/login', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
