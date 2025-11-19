@@ -28,6 +28,21 @@ const GOD_COLORS = {
   '湿婆': '#3498db',
 };
 
+// 战盟选项
+const UNION_OPTIONS = ['梵天战盟', '逍遥战盟', '蓝神战盟'];
+
+// 职业选项
+const JOB_OPTIONS = ['狂', '奶', '金刚', '护法', '法师', '弓', '刺客'];
+
+// 等级选项
+const LEVEL_OPTIONS = [
+  { label: '马哈拉', value: '1' },
+  { label: '阿尔瓦', value: '2' },
+  { label: '婆罗门', value: '3' },
+  { label: '刹帝利', value: '4' },
+  { label: '狗狗级', value: '5' },
+];
+
 export default function PersonManagementScreen() {
   const [persons, setPersons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -341,35 +356,80 @@ export default function PersonManagementScreen() {
 
             {/* 联盟 */}
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>联盟</Text>
-              <TextInput
-                style={styles.formInput}
-                value={formData.union_name}
-                onChangeText={(text) => setFormData({ ...formData, union_name: text })}
-                placeholder="请输入联盟名称"
-              />
+              <Text style={styles.formLabel}>联盟 *</Text>
+              <View style={styles.optionSelector}>
+                {UNION_OPTIONS.map((union) => (
+                  <TouchableOpacity
+                    key={union}
+                    style={[
+                      styles.option,
+                      formData.union_name === union && styles.optionActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, union_name: union })}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        formData.union_name === union && styles.optionTextActive,
+                      ]}
+                    >
+                      {union}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             {/* 职业 */}
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>职业</Text>
-              <TextInput
-                style={styles.formInput}
-                value={formData.job}
-                onChangeText={(text) => setFormData({ ...formData, job: text })}
-                placeholder="请输入职业"
-              />
+              <Text style={styles.formLabel}>职业 *</Text>
+              <View style={styles.optionSelector}>
+                {JOB_OPTIONS.map((job) => (
+                  <TouchableOpacity
+                    key={job}
+                    style={[
+                      styles.option,
+                      formData.job === job && styles.optionActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, job })}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        formData.job === job && styles.optionTextActive,
+                      ]}
+                    >
+                      {job}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             {/* 等级 */}
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>等级</Text>
-              <TextInput
-                style={styles.formInput}
-                value={formData.level}
-                onChangeText={(text) => setFormData({ ...formData, level: text })}
-                placeholder="请输入等级"
-              />
+              <Text style={styles.formLabel}>主神级别 *</Text>
+              <View style={styles.optionSelector}>
+                {LEVEL_OPTIONS.map((level) => (
+                  <TouchableOpacity
+                    key={level.value}
+                    style={[
+                      styles.option,
+                      formData.level === level.value && styles.optionActive,
+                    ]}
+                    onPress={() => setFormData({ ...formData, level: level.value })}
+                  >
+                    <Text
+                      style={[
+                        styles.optionText,
+                        formData.level === level.value && styles.optionTextActive,
+                      ]}
+                    >
+                      {level.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </ScrollView>
 
@@ -796,6 +856,32 @@ const styles = StyleSheet.create({
   },
   godOptionTextActive: {
     color: '#fff',
+  },
+  optionSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  option: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+  },
+  optionActive: {
+    backgroundColor: '#e74c3c',
+    borderColor: '#e74c3c',
+  },
+  optionText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
+  optionTextActive: {
+    color: '#fff',
+    fontWeight: '600',
   },
   modalButtons: {
     flexDirection: 'row',
