@@ -16,6 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = 'https://bigmang.xyz';
+const TOKEN_KEY = '@battle_stats_token';
 
 // 主神选项
 const GOD_OPTIONS = ['梵天', '比湿奴', '湿婆'];
@@ -62,7 +63,7 @@ export default function PersonManagementScreen() {
   // 获取人员列表
   const fetchPersons = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: '20',
@@ -104,7 +105,7 @@ export default function PersonManagementScreen() {
     }
 
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
       const response = await fetch(`${API_BASE_URL}/api/person/add`, {
         method: 'POST',
         headers: {
@@ -138,7 +139,7 @@ export default function PersonManagementScreen() {
     }
 
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
       const response = await fetch(`${API_BASE_URL}/api/person/edit/${editingPerson.id}`, {
         method: 'PUT',
         headers: {
@@ -176,7 +177,7 @@ export default function PersonManagementScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const token = await AsyncStorage.getItem('token');
+              const token = await AsyncStorage.getItem(TOKEN_KEY);
               const response = await fetch(`${API_BASE_URL}/api/person/delete/${person.id}`, {
                 method: 'DELETE',
                 headers: {
