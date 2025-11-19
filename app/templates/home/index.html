@@ -107,8 +107,8 @@ body {
                                class="btn btn-{{ 'primary active' if date_range == 'week' else 'outline-primary' }}">一周</a>
                             <a href="{{ url_for('home.index', date_range='month') }}" 
                                class="btn btn-{{ 'primary active' if date_range == 'month' else 'outline-primary' }}">一个月</a>
-                            <a href="{{ url_for('home.index', date_range='three_months') }}" 
-                               class="btn btn-{{ 'primary active' if date_range == 'three_months' else 'outline-primary' }}">三个月</a>
+                            <button type="button" class="btn btn-{{ 'primary active' if date_range == 'custom' else 'outline-primary' }}" 
+                                    data-bs-toggle="modal" data-bs-target="#customDateModal">自定义</button>
                         </div>
                     </div>
                 </div>
@@ -224,6 +224,47 @@ body {
                 <div id="killDetailsList" class="modal-kill-details">
                     <!-- 击杀详情将通过 JavaScript 动态加载 -->
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 自定义日期选择模态框 -->
+<div class="modal fade" id="customDateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">自定义时间范围</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="customDateForm" method="GET" action="{{ url_for('home.index') }}">
+                    <input type="hidden" name="date_range" value="custom">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   value="{{ request.args.get('start_date', '') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   value="{{ request.args.get('end_date', '') }}" required>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                选择时间范围后点击"应用"查看对应时间段的数据统计
+                            </small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="applyCustomDate()">应用</button>
             </div>
         </div>
     </div>
@@ -1077,5 +1118,46 @@ function showKillDetails(playerName) {
             alert('获取击杀详情失败，请稍后重试');
         });
 }
+
+// 应用自定义日期范围
+function applyCustomDate() {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    if (!startDate || !endDate) {
+        alert('请选择开始日期和结束日期');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        alert('开始日期不能晚于结束日期');
+        return;
+    }
+    
+    // 提交表单
+    document.getElementById('customDateForm').submit();
+}
+
+// 设置日期输入框的默认值和限制
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    
+    // 设置最大日期为今天
+    startDateInput.max = today;
+    endDateInput.max = today;
+    
+    // 如果没有默认值，设置为过去7天
+    if (!startDateInput.value) {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        startDateInput.value = weekAgo.toISOString().split('T')[0];
+    }
+    
+    if (!endDateInput.value) {
+        endDateInput.value = today;
+    }
+});
 </script>
 {% endblock %} 

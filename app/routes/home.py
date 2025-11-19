@@ -23,11 +23,17 @@ def index():
     try:
         # 获取日期范围参数
         date_range = request.args.get('date_range', 'week')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
         if date_range == 'all':
             date_range = 'week'
         
         # 获取势力统计数据
-        faction_stats, top_deaths, top_killers, top_scorers = get_faction_stats(date_range)
+        if date_range == 'custom' and start_date and end_date:
+            faction_stats, top_deaths, top_killers, top_scorers = get_faction_stats(date_range, start_date, end_date)
+        else:
+            faction_stats, top_deaths, top_killers, top_scorers = get_faction_stats(date_range)
         
         # 获取势力人数统计
         faction_statistics = get_faction_statistics()
@@ -84,11 +90,18 @@ def index():
         # 不再需要从各个势力收集top_killers和top_scorers
         
         # 获取每日击杀数据
-        daily_kills_data = get_daily_kills_by_player(date_range, limit=5)
-        # 获取每日死亡数据
-        daily_deaths_data = get_daily_deaths_by_player(date_range, limit=5)
-        # 获取每日得分数据
-        daily_scores_data = get_daily_scores_by_player(date_range, limit=5)
+        if date_range == 'custom' and start_date and end_date:
+            daily_kills_data = get_daily_kills_by_player(date_range, limit=5, start_date=start_date, end_date=end_date)
+            # 获取每日死亡数据
+            daily_deaths_data = get_daily_deaths_by_player(date_range, limit=5, start_date=start_date, end_date=end_date)
+            # 获取每日得分数据
+            daily_scores_data = get_daily_scores_by_player(date_range, limit=5, start_date=start_date, end_date=end_date)
+        else:
+            daily_kills_data = get_daily_kills_by_player(date_range, limit=5)
+            # 获取每日死亡数据
+            daily_deaths_data = get_daily_deaths_by_player(date_range, limit=5)
+            # 获取每日得分数据
+            daily_scores_data = get_daily_scores_by_player(date_range, limit=5)
 
         return render_template('home/index.html',
                             chart_data=chart_data,
