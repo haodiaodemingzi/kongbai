@@ -331,6 +331,95 @@
                             document.getElementById('filter-form').submit();
                         });
                     });
+                    
+                    // 表格排序功能
+                    let currentSort = { column: null, direction: 'asc' };
+                    
+                    // 为可排序的表头添加点击事件
+                    document.querySelectorAll('.sortable').forEach(header => {
+                        header.addEventListener('click', function() {
+                            const sortType = this.dataset.sort;
+                            
+                            // 确定排序方向
+                            if (currentSort.column === sortType) {
+                                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                            } else {
+                                currentSort.column = sortType;
+                                currentSort.direction = 'asc';
+                            }
+                            
+                            // 更新表头图标
+                            updateSortIcons(this, currentSort.direction);
+                            
+                            // 执行排序
+                            sortTable(sortType, currentSort.direction);
+                        });
+                        
+                        // 添加鼠标悬停效果
+                        header.style.cursor = 'pointer';
+                        header.style.userSelect = 'none';
+                    });
+                    
+                    function updateSortIcons(activeHeader, direction) {
+                        // 重置所有图标
+                        document.querySelectorAll('.sort-icon').forEach(icon => {
+                            icon.className = 'fas fa-sort sort-icon';
+                        });
+                        
+                        // 设置当前排序列的图标
+                        const icon = activeHeader.querySelector('.sort-icon');
+                        if (direction === 'asc') {
+                            icon.className = 'fas fa-sort-up sort-icon';
+                        } else {
+                            icon.className = 'fas fa-sort-down sort-icon';
+                        }
+                    }
+                    
+                    function sortTable(sortType, direction) {
+                        const tbody = document.querySelector('#rankings-table tbody');
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        
+                        rows.sort((a, b) => {
+                            let aVal, bVal;
+                            
+                            switch (sortType) {
+                                case 'rank':
+                                case 'kills':
+                                case 'deaths':
+                                case 'blessings':
+                                case 'score':
+                                    aVal = parseInt(a.dataset[sortType]) || 0;
+                                    bVal = parseInt(b.dataset[sortType]) || 0;
+                                    break;
+                                case 'kd':
+                                    aVal = parseFloat(a.dataset[sortType]) || 0;
+                                    bVal = parseFloat(b.dataset[sortType]) || 0;
+                                    break;
+                                case 'name':
+                                case 'job':
+                                case 'faction':
+                                    aVal = a.dataset[sortType].toLowerCase();
+                                    bVal = b.dataset[sortType].toLowerCase();
+                                    break;
+                                default:
+                                    return 0;
+                            }
+                            
+                            if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+                            if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+                            return 0;
+                        });
+                        
+                        // 重新排列表格行
+                        rows.forEach(row => tbody.appendChild(row));
+                        
+                        // 更新排名列（如果不是按排名排序）
+                        if (sortType !== 'rank') {
+                            rows.forEach((row, index) => {
+                                row.querySelector('td:first-child').textContent = index + 1;
+                            });
+                        }
+                    }
                 });
                 
                 // 不再需要这些客户端过滤函数
@@ -353,24 +442,50 @@
             
             {% if players %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-striped table-hover" id="rankings-table">
                     <thead class="table-dark">
                         <tr>
-                            <th>排名</th>
-                            <th>玩家</th>
-                            <th>职业</th>
-                            <th>势力</th>
-                            <th>击杀</th>
-                            <th>死亡</th>
-                            <th>K/D比</th>
-                            <th>爆灯</th>
-                            <th>总分</th>
+                            <th class="sortable" data-sort="rank">
+                                排名 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="name">
+                                玩家 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="job">
+                                职业 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="faction">
+                                势力 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="kills">
+                                击杀 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="deaths">
+                                死亡 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="kd">
+                                K/D比 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="blessings">
+                                爆灯 <i class="fas fa-sort sort-icon"></i>
+                            </th>
+                            <th class="sortable" data-sort="score">
+                                总分 <i class="fas fa-sort sort-icon"></i>
+                            </th>
                             <th>详情</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for player in players %}
-                        <tr data-job="{{ player.job|default('未知', true) }}">
+                        <tr data-job="{{ player.job|default('未知', true) }}" 
+                            data-rank="{{ loop.index }}"
+                            data-name="{{ player.name|default('未知', true) }}"
+                            data-faction="{{ player.faction|default('未知', true) }}"
+                            data-kills="{{ player.kills|int }}"
+                            data-deaths="{{ player.deaths|int }}"
+                            data-kd="{{ player.kd_ratio|float }}"
+                            data-blessings="{{ player.blessings|int }}"
+                            data-score="{{ player.score|int }}">
                             <td>{{ loop.index }}</td>
                             <td><a href="{{ url_for('battle.player_details', person_id=player.id) }}{% if start_date and end_date %}?start_datetime={{ start_date }}&end_datetime={{ end_date }}{% elif selected_time %}?time_range={{ selected_time }}{% endif %}">{{ player.name|default('未知', true) }}</a></td>
                             <td>{{ player.job|default('未知', true) }}</td>
@@ -438,6 +553,37 @@
     background-color: #0d6efd;
     color: white;
     border-color: #0d6efd;
+}
+
+/* 表格排序样式 */
+.sortable {
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.sortable:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sort-icon {
+    margin-left: 5px;
+    font-size: 0.8em;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.sortable:hover .sort-icon {
+    opacity: 1;
+}
+
+.fa-sort-up,
+.fa-sort-down {
+    opacity: 1 !important;
+    color: #ffc107;
 }
 </style>
 {% endblock %} 
