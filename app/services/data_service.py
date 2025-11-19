@@ -11,12 +11,14 @@ from app.utils.logger import get_logger
 
 logger = get_logger()
 
-def get_faction_stats(date_range=None):
+def get_faction_stats(date_range=None, start_date=None, end_date=None):
     """
     获取各个势力的统计数据
     
     Args:
-        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months, custom
+        start_date: 自定义开始日期 (YYYY-MM-DD)
+        end_date: 自定义结束日期 (YYYY-MM-DD)
     """
     try:
         # 构建日期筛选条件的 *基础部分* (不含别名)
@@ -32,6 +34,8 @@ def get_faction_stats(date_range=None):
                 base_date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
             elif date_range == 'three_months':
                 base_date_condition = "AND publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+            elif date_range == 'custom' and start_date and end_date:
+                base_date_condition = f"AND DATE(publish_at) BETWEEN '{start_date}' AND '{end_date}'"
 
         # 在需要的地方动态替换别名
         br_date_condition = base_date_condition.replace('publish_at', 'br.publish_at') if base_date_condition else ''
@@ -509,13 +513,15 @@ def export_data_to_json(faction=None):
         logger.error(f"导出数据时出错: {str(e)}", exc_info=True)
         return "{}", "error.json"
 
-def get_daily_kills_by_player(date_range=None, limit=5):
+def get_daily_kills_by_player(date_range=None, limit=5, start_date=None, end_date=None):
     """
     获取每日击杀数据，按角色和日期分组（优化版：单次查询）
     
     Args:
-        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months, custom
         limit: 返回前N个击杀最多的玩家
+        start_date: 自定义开始日期 (YYYY-MM-DD)
+        end_date: 自定义结束日期 (YYYY-MM-DD)
     
     Returns:
         dict: {
@@ -544,6 +550,8 @@ def get_daily_kills_by_player(date_range=None, limit=5):
                 base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
             elif date_range == 'three_months':
                 base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+            elif date_range == 'custom' and start_date and end_date:
+                base_date_condition = f"AND DATE(br.publish_at) BETWEEN '{start_date}' AND '{end_date}'"
         
         # 优化：使用单次查询获取所有数据
         query = text(f"""
@@ -636,13 +644,15 @@ def get_daily_kills_by_player(date_range=None, limit=5):
         logger.error(f"获取每日击杀数据时出错: {str(e)}", exc_info=True)
         return {'dates': [], 'players': []}
 
-def get_daily_deaths_by_player(date_range=None, limit=5):
+def get_daily_deaths_by_player(date_range=None, limit=5, start_date=None, end_date=None):
     """
     获取每日死亡数据，按角色和日期分组（优化版：单次查询）
     
     Args:
-        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months, custom
         limit: 返回前N个死亡最多的玩家
+        start_date: 自定义开始日期 (YYYY-MM-DD)
+        end_date: 自定义结束日期 (YYYY-MM-DD)
     
     Returns:
         dict: {
@@ -671,6 +681,8 @@ def get_daily_deaths_by_player(date_range=None, limit=5):
                 base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
             elif date_range == 'three_months':
                 base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+            elif date_range == 'custom' and start_date and end_date:
+                base_date_condition = f"AND DATE(br.publish_at) BETWEEN '{start_date}' AND '{end_date}'"
         
         # 优化：使用单次查询获取所有数据
         query = text(f"""
@@ -763,13 +775,15 @@ def get_daily_deaths_by_player(date_range=None, limit=5):
         logger.error(f"获取每日死亡数据时出错: {str(e)}", exc_info=True)
         return {'dates': [], 'players': []}
 
-def get_daily_scores_by_player(date_range=None, limit=5):
+def get_daily_scores_by_player(date_range=None, limit=5, start_date=None, end_date=None):
     """
     获取每日得分数据，按角色和日期分组（优化版：单次查询）
     
     Args:
-        date_range: 日期范围，可选值：today, yesterday, week, month, three_months
+        date_range: 日期范围，可选值：today, yesterday, week, month, three_months, custom
         limit: 返回前N个得分最高的玩家
+        start_date: 自定义开始日期 (YYYY-MM-DD)
+        end_date: 自定义结束日期 (YYYY-MM-DD)
     
     Returns:
         dict: {
@@ -798,6 +812,8 @@ def get_daily_scores_by_player(date_range=None, limit=5):
                 base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)"
             elif date_range == 'three_months':
                 base_date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)"
+            elif date_range == 'custom' and start_date and end_date:
+                base_date_condition = f"AND DATE(br.publish_at) BETWEEN '{start_date}' AND '{end_date}'"
         
         # 优化：使用单次查询获取所有数据，避免循环查询和子查询
         query = text(f"""
