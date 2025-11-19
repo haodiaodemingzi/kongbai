@@ -17,6 +17,7 @@ import LoginScreen from './screens/LoginScreen';
 import RankingsScreen from './screens/RankingsScreen';
 import BattleRankingsScreen from './screens/BattleRankingsScreen';
 import UploadScreen from './screens/UploadScreen';
+import PersonManagementScreen from './screens/PersonManagementScreen';
 import { getStoredToken, getStoredUser } from './services/api';
 
 const Tab = createBottomTabNavigator();
@@ -28,16 +29,25 @@ function HomeScreen({ navigation }) {
 }
 
 // 个人中心组件
-function ProfileScreen({ onLogout }) {
+function ProfileScreen({ onLogout, navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>个人中心</Text>
-      <Text style={{ marginBottom: 20 }}>用户设置和信息</Text>
+      
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => navigation.navigate('PersonManagement')}
+      >
+        <MaterialIcons name="people" size={24} color="#e74c3c" />
+        <Text style={styles.menuItemText}>人员管理</Text>
+        <MaterialIcons name="chevron-right" size={24} color="#95a5a6" />
+      </TouchableOpacity>
+      
       <TouchableOpacity
         style={styles.logoutButton}
         onPress={onLogout}
       >
-        <MaterialIcons name="logout" size={20} color="#fff" />
+        <MaterialIcons name="logout" size={20} color="#fff" style={{ marginRight: 8 }} />
         <Text style={styles.logoutButtonText}>登出</Text>
       </TouchableOpacity>
     </View>
@@ -145,6 +155,14 @@ function MainStackNavigator({ onLogout }) {
       >
         {(props) => <TabNavigator {...props} onLogout={onLogout} />}
       </Stack.Screen>
+      <Stack.Screen 
+        name="PersonManagement" 
+        component={PersonManagementScreen} 
+        options={{ 
+          title: '人员管理',
+          presentation: 'card',
+        }} 
+      />
     </Stack.Navigator>
   );
 }
@@ -232,6 +250,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7f8c8d',
   },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  menuItemText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginLeft: 12,
+  },
   logoutButton: {
     backgroundColor: '#e74c3c',
     flexDirection: 'row',
@@ -246,7 +284,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
   },
   scrollView: {
     flex: 1,
