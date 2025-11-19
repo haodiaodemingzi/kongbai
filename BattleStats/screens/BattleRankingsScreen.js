@@ -149,7 +149,7 @@ export default function BattleRankingsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3498db" />
+        <ActivityIndicator size="large" color="#e74c3c" />
         <Text style={styles.loadingText}>加载中...</Text>
       </View>
     );
@@ -157,11 +157,6 @@ export default function BattleRankingsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 顶部标题 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>战绩排名</Text>
-      </View>
-
       {/* 筛选器 */}
       <View style={styles.filterContainer}>
         {/* 时间筛选 */}
@@ -366,18 +361,19 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 12,
+    paddingTop: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#ecf0f1',
   },
   filterSection: {
-    marginBottom: 15,
+    marginBottom: 10,
   },
   filterLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#2c3e50',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   filterButtons: {
     flexDirection: 'row',
@@ -392,7 +388,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   filterButtonActive: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#e74c3c',
   },
   filterButtonText: {
     fontSize: 14,
@@ -408,7 +404,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#2c3e50',
+    backgroundColor: '#e74c3c',
     padding: 12,
     borderRadius: 8,
     marginBottom: 10,
@@ -476,7 +472,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   scoreText: {
-    color: '#3498db',
+    color: '#e74c3c',
     fontWeight: 'bold',
   },
   customDateText: {
@@ -521,7 +517,7 @@ const styles = StyleSheet.create({
   },
   dateValue: {
     fontSize: 16,
-    color: '#3498db',
+    color: '#e74c3c',
     fontWeight: 'bold',
   },
   modalButtons: {
@@ -539,7 +535,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ecf0f1',
   },
   confirmButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: '#e74c3c',
   },
   cancelButtonText: {
     color: '#7f8c8d',

@@ -1,43 +1,172 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
+import { 
+  ActivityIndicator, 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  RefreshControl 
+} from 'react-native';
 import LoginScreen from './screens/LoginScreen';
 import RankingsScreen from './screens/RankingsScreen';
 import BattleRankingsScreen from './screens/BattleRankingsScreen';
-import { getDashboardData, logout, getStoredToken, getStoredUser } from './services/api';
+import UploadScreen from './screens/UploadScreen';
+import { getStoredToken, getStoredUser } from './services/api';
+
+const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+// 首页组件 - 战绩排名（支持时间筛选）
+function HomeScreen({ navigation }) {
+  return <BattleRankingsScreen />;
+}
+
+// 个人中心组件
+function ProfileScreen({ onLogout }) {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>个人中心</Text>
+      <Text style={{ marginBottom: 20 }}>用户设置和信息</Text>
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={onLogout}
+      >
+        <MaterialIcons name="logout" size={20} color="#fff" />
+        <Text style={styles.logoutButtonText}>登出</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// 底部标签导航
+function TabNavigator({ onLogout }) {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          
+          if (route.name === 'Home') {
+            iconName = 'home';
+          } else if (route.name === 'Rankings') {
+            iconName = 'leaderboard';
+          } else if (route.name === 'Upload') {
+            iconName = 'cloud-upload';
+          } else if (route.name === 'Profile') {
+            iconName = 'person';
+          }
+          
+          return <MaterialIcons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#ffffff',
+        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
+        tabBarStyle: {
+          backgroundColor: '#e74c3c',
+          borderTopWidth: 0,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        headerStyle: {
+          backgroundColor: '#e74c3c',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{ 
+          title: '首页',
+          headerTitle: '战绩排名'
+        }} 
+      />
+      <Tab.Screen 
+        name="Rankings" 
+        component={RankingsScreen} 
+        options={{ 
+          title: '排名',
+          headerTitle: '主神排名'
+        }} 
+      />
+      <Tab.Screen 
+        name="Upload" 
+        component={UploadScreen} 
+        options={{ 
+          title: '上传',
+          headerTitle: '上传日志'
+        }} 
+      />
+      <Tab.Screen 
+        name="Profile" 
+        options={{ 
+          title: '我的',
+          headerTitle: '个人中心'
+        }}
+      >
+        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+}
+
+// 主堆栈导航（包含二级页面）
+function MainStackNavigator({ onLogout }) {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#e74c3c',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        gestureEnabled: true, // 启用手势返回
+        gestureDirection: 'horizontal',
+      }}
+    >
+      <Stack.Screen 
+        name="MainTabs" 
+        options={{ headerShown: false }}
+      >
+        {(props) => <TabNavigator {...props} onLogout={onLogout} />}
+      </Stack.Screen>
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState('');
-  const [token, setToken] = useState(null);
-  const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'rankings', 'battle'
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(null);
-  const [selectedDateRange, setSelectedDateRange] = useState('week');
 
   // 检查本地是否有保存的 token
   useEffect(() => {
     checkStoredToken();
   }, []);
 
-  // 登录成功后加载首页数据
-  useEffect(() => {
-    if (isLoggedIn && currentScreen === 'home') {
-      loadDashboardData();
-    }
-  }, [isLoggedIn, currentScreen, selectedDateRange]);
-
   const checkStoredToken = async () => {
     try {
-      const storedToken = await getStoredToken();
-      const storedUser = await getStoredUser();
+      // 清除旧的 token，强制用户重新登录
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.removeItem('@battle_stats_token');
+      await AsyncStorage.removeItem('@battle_stats_user');
       
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUsername(storedUser.username);
-        setIsLoggedIn(true);
-      }
+      // 不自动登录，让用户手动登录
+      setIsLoggedIn(false);
     } catch (error) {
       console.error('检查 token 失败:', error);
     } finally {
@@ -46,36 +175,12 @@ export default function App() {
   };
 
   const handleLoginSuccess = (user, userToken) => {
-    setUsername(user.username);
-    setToken(userToken);
     setIsLoggedIn(true);
     setLoading(false);
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      setIsLoggedIn(false);
-      setUsername('');
-      setToken(null);
-      setCurrentScreen('home');
-      setDashboardData(null);
-    } catch (error) {
-      console.error('登出失败:', error);
-    }
-  };
-
-  const loadDashboardData = async () => {
-    try {
-      const result = await getDashboardData(selectedDateRange);
-      if (result.success) {
-        setDashboardData(result.data);
-      } else {
-        Alert.alert('错误', result.message || '加载数据失败');
-      }
-    } catch (error) {
-      console.error('加载首页数据失败:', error);
-    }
+  const handleLogout = () => {
+    setIsLoggedIn(false);
   };
 
   // 初始加载中
@@ -93,125 +198,12 @@ export default function App() {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // 如果在排名页面
-  if (currentScreen === 'rankings') {
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backIconButton}
-          onPress={() => setCurrentScreen('home')}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#2c3e50" />
-        </TouchableOpacity>
-        <RankingsScreen />
-      </View>
-    );
-  }
-
-  // 如果在战绩页面
-  if (currentScreen === 'battle') {
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backIconButton}
-          onPress={() => setCurrentScreen('home')}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#2c3e50" />
-        </TouchableOpacity>
-        <BattleRankingsScreen />
-      </View>
-    );
-  }
-
-  // 已登录，显示主界面
+  // 已登录，显示主导航
   return (
-    <View style={styles.container}>
+    <NavigationContainer>
       <StatusBar style="light" />
-      
-      {/* 顶部标题 */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>战斗统计</Text>
-          <Text style={styles.headerSubtitle}>欢迎, {username}</Text>
-        </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>登出</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 主要内容 */}
-      <ScrollView style={styles.content}>
-        {dashboardData ? (
-          <>
-            {/* 统计卡片 */}
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{dashboardData.summary.total_kills.toLocaleString()}</Text>
-                <Text style={styles.statLabel}>总击杀</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{dashboardData.summary.total_deaths.toLocaleString()}</Text>
-                <Text style={styles.statLabel}>总死亡</Text>
-              </View>
-            </View>
-
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{(dashboardData.summary.total_kills * 3 + dashboardData.summary.total_blessings - dashboardData.summary.total_deaths).toLocaleString()}</Text>
-                <Text style={styles.statLabel}>总得分</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{dashboardData.summary.total_players}</Text>
-                <Text style={styles.statLabel}>玩家数</Text>
-              </View>
-            </View>
-
-            {/* 势力统计 */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>势力统计</Text>
-              
-              {dashboardData.faction_stats.chart_data.factions.map((faction, index) => (
-                <View key={faction} style={styles.factionCard}>
-                  <View style={[styles.factionBar, { backgroundColor: getFactionColor(faction) }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.factionName}>{faction}</Text>
-                    <Text style={styles.factionSubtext}>
-                      玩家: {dashboardData.faction_stats.player_counts[faction]}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.factionScore}>
-                      {dashboardData.faction_stats.chart_data.kills[index]}
-                    </Text>
-                    <Text style={styles.factionSubtext}>击杀</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </>
-        ) : (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3498db" />
-            <Text style={styles.loadingText}>加载数据中...</Text>
-          </View>
-        )}
-
-        {/* 操作按钮 */}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => setCurrentScreen('rankings')}
-        >
-          <Text style={styles.buttonText}>查看主神排名</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.buttonSecondary]}
-          onPress={() => setCurrentScreen('battle')}
-        >
-          <Text style={styles.buttonTextSecondary}>查看战绩排名</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+      <MainStackNavigator onLogout={handleLogout} />
+    </NavigationContainer>
   );
 }
 
@@ -219,147 +211,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f6fa',
-  },
-  header: {
-    backgroundColor: '#2c3e50',
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logoutButton: {
-    backgroundColor: '#e74c3c',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#bdc3c7',
-    marginTop: 5,
-  },
-  content: {
-    flex: 1,
-    padding: 15,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 5,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    marginTop: 5,
-  },
-  section: {
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 15,
-  },
-  factionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  factionBar: {
-    width: 4,
-    height: 40,
-    borderRadius: 2,
-    marginRight: 15,
-  },
-  factionName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  factionScore: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#3498db',
-  },
-  button: {
-    backgroundColor: '#3498db',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonSecondary: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#3498db',
-  },
-  buttonTextSecondary: {
-    color: '#3498db',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  backIconButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -372,19 +232,147 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7f8c8d',
   },
-  factionSubtext: {
+  logoutButton: {
+    backgroundColor: '#e74c3c',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#f5f6fa',
+  },
+  header: {
+    backgroundColor: '#3498db',
+    padding: 20,
+    paddingTop: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  updateTime: {
+    fontSize: 12,
+    color: '#ecf0f1',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    padding: 10,
+    justifyContent: 'space-around',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginHorizontal: 5,
+    borderRadius: 8,
+    backgroundColor: '#ecf0f1',
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7f8c8d',
+  },
+  tabTextActive: {
+    color: '#fff',
+  },
+  playerList: {
+    padding: 15,
+  },
+  playerCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  rankBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3498db',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  rankText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  playerLevel: {
     fontSize: 12,
     color: '#7f8c8d',
-    marginTop: 2,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#7f8c8d',
+    fontSize: 16,
+    marginTop: 50,
+  },
+  battleRankingsButton: {
+    backgroundColor: '#3498db',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    margin: 15,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  battleRankingsButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 10,
   },
 });
-
-// 势力颜色映射
-function getFactionColor(faction) {
-  const colors = {
-    '梵天': '#f39c12',  // 橘黄色
-    '比湿奴': '#e74c3c',  // 鲜红色
-    '湿婆': '#3498db',  // 蓝色
-  };
-  return colors[faction] || '#95a5a6';
-}

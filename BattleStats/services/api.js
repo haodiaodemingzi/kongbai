@@ -220,35 +220,6 @@ export const getPlayerDetails = async (playerName, timeRange = 'week') => {
 };
 
 /**
- * 上传战斗日志
- * @param {Object} file 文件对象
- */
-export const uploadBattleLog = async (file) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await apiClient.post('/api/battle/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (response.data.status === 'success') {
-      return { success: true, data: response.data.data };
-    } else {
-      return { success: false, message: response.data.message };
-    }
-  } catch (error) {
-    console.error('上传失败:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || '上传失败',
-    };
-  }
-};
-
-/**
  * 获取玩家详细信息
  * @param {string} playerName 玩家名称
  * @param {string} timeRange 时间范围
@@ -314,6 +285,49 @@ export const getFactionStats = async (dateRange = 'week') => {
     return {
       success: false,
       message: error.response?.data?.message || '获取势力统计失败',
+    };
+  }
+};
+
+/**
+ * 上传战斗日志文件
+ * @param {Object} file 文件对象
+ */
+export const uploadBattleLog = async (file) => {
+  try {
+    const formData = new FormData();
+    
+    // 创建文件对象
+    formData.append('file', {
+      uri: file.uri,
+      type: 'text/plain',
+      name: file.name,
+    });
+
+    const response = await apiClient.post('/api/battle/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 60000, // 上传文件超时时间设置为60秒
+    });
+
+    if (response.data.status === 'success') {
+      return { 
+        success: true, 
+        message: response.data.message,
+        data: response.data.data 
+      };
+    } else {
+      return { 
+        success: false, 
+        message: response.data.message 
+      };
+    }
+  } catch (error) {
+    console.error('上传战斗日志失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '上传失败，请检查网络连接',
     };
   }
 };

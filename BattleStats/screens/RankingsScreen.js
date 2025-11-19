@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { getGodRankings } from '../services/api';
 
 // 势力颜色映射
@@ -37,6 +38,7 @@ const TABS = [
 ];
 
 export default function RankingsScreen() {
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [rankingData, setRankingData] = useState(null);
@@ -101,10 +103,9 @@ export default function RankingsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 顶部标题 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>虎威主神排行榜</Text>
-        <Text style={styles.updateTime}>更新时间: {updateTime}</Text>
+      {/* 更新时间 */}
+      <View style={styles.updateTimeContainer}>
+        <Text style={styles.updateTime}>更新: {updateTime}</Text>
       </View>
 
       {/* 标签切换 */}
@@ -232,22 +233,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7f8c8d',
   },
-  header: {
-    backgroundColor: '#2c3e50',
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+  updateTimeContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ecf0f1',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
   updateTime: {
-    fontSize: 12,
-    color: '#bdc3c7',
-    marginTop: 5,
+    fontSize: 11,
+    color: '#95a5a6',
   },
   content: {
     flex: 1,
@@ -264,7 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
+    paddingVertical: 12,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -426,5 +422,29 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  navigationContainer: {
+    padding: 20,
+    paddingBottom: 30,
+  },
+  navigationButton: {
+    backgroundColor: '#3498db',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  navigationButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
