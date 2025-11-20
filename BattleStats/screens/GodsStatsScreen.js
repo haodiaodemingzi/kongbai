@@ -218,7 +218,7 @@ export default function GodsStatsScreen() {
           </View>
 
           {/* 玩家数据 */}
-          {godData.players && godData.players.slice(0, 10).map((player, index) => {
+          {godData.players && godData.players.map((player, index) => {
             const groupKey = `${godName}_${player.name}`;
             const isExpanded = expandedGroups[groupKey];
             const isLoading = loadingGroups[groupKey];

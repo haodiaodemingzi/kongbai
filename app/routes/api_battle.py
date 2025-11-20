@@ -10,6 +10,7 @@ from app.models import Person
 from app.config import Config
 from datetime import datetime, timedelta
 from dateutil import parser
+from sqlalchemy import text
 import os
 from werkzeug.utils import secure_filename
 
