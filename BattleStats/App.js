@@ -37,11 +37,11 @@ function ProfileScreen({ onLogout, navigation }) {
   const { currentTheme, colors, changeTheme } = useTheme();
 
   const themes = [
-    { key: THEMES.RED, name: '热情红', icon: 'favorite', color: '#a81808ff' },
-    { key: THEMES.BLUE, name: '科技蓝', icon: 'star', color: '#0455e0ffff' },
-    { key: THEMES.BLACK, name: '经典黑', icon: 'dark-mode', color: '#2c3e5058' },
-    { key: THEMES.WHITE, name: '简约白', icon: 'light-mode', color: '#f0d9d9dcff' },
-    { key: THEMES.GREEN , name: '翡翠绿', icon: 'dark-mode', color: '#1cb74d58' },
+    { key: THEMES.RED, name: '热情红', icon: 'favorite', color: '#e74c3c' },
+    { key: THEMES.BLUE, name: '科技蓝', icon: 'star', color: '#3498db' },
+    { key: THEMES.BLACK, name: '经典黑', icon: 'dark-mode', color: '#2c3e50' },
+    { key: THEMES.WHITE, name: '简约白', icon: 'light-mode', color: '#ecf0f1' },
+    { key: THEMES.GREEN, name: '翡翠绿', icon: 'eco', color: '#1cb74d' },
   ];
 
   return (

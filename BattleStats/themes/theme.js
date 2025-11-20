@@ -5,6 +5,7 @@ export const THEMES = {
   BLUE: 'blue',
   BLACK: 'black',
   WHITE: 'white',
+  GREEN: 'green',
 };
 
 export const THEME_COLORS = {
@@ -75,6 +76,23 @@ export const THEME_COLORS = {
     tabBarInactive: '#95a5a6',
     headerBackground: '#ffffff',
     headerText: '#2c3e50',
+  },
+  green: {
+    name: '翡翠绿',
+    primary: '#1cb74d',
+    primaryDark: '#16a03e',
+    primaryLight: '#2ecc71',
+    background: '#f5f6fa',
+    cardBackground: '#ffffff',
+    text: '#2c3e50',
+    textSecondary: '#7f8c8d',
+    textLight: '#95a5a6',
+    border: '#ecf0f1',
+    tabBarBackground: '#1cb74d',
+    tabBarActive: '#ffffff',
+    tabBarInactive: 'rgba(255, 255, 255, 0.6)',
+    headerBackground: '#1cb74d',
+    headerText: '#ffffff',
   },
 };
 
