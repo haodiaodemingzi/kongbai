@@ -21,6 +21,7 @@ import UploadScreen from './screens/UploadScreen';
 import PersonManagementScreen from './screens/PersonManagementScreen';
 import GroupManagementScreen from './screens/GroupManagementScreen';
 import ThemeSettingsScreen from './screens/ThemeSettingsScreen';
+import GodsStatsScreen from './screens/GodsStatsScreen';
 import { getStoredToken, getStoredUser } from './services/api';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
@@ -103,6 +104,8 @@ function TabNavigator({ onLogout }) {
             iconName = 'assessment'; // 数据分析图标
           } else if (route.name === 'Home') {
             iconName = 'military-tech'; // 勋章/战绩图标
+          } else if (route.name === 'GodsStats') {
+            iconName = 'auto-awesome'; // 三神统计图标
           } else if (route.name === 'Rankings') {
             iconName = 'emoji-events'; // 奖杯/排名图标
           } else if (route.name === 'Upload') {
@@ -146,6 +149,14 @@ function TabNavigator({ onLogout }) {
         options={{ 
           title: '战绩',
           headerTitle: '战绩排名'
+        }} 
+      />
+      <Tab.Screen 
+        name="GodsStats" 
+        component={GodsStatsScreen} 
+        options={{ 
+          title: '三神',
+          headerTitle: '三神统计'
         }} 
       />
       <Tab.Screen 

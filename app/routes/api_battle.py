@@ -22,7 +22,8 @@ api_battle_bp = Blueprint('api_battle', __name__)
 from app.services.battle_service import (
     get_player_rankings as get_rankings_service,
     get_player_details as get_player_details_service,
-    get_god_rankings as get_god_rankings_service
+    get_god_rankings as get_god_rankings_service,
+    get_gods_stats as get_gods_stats_service
 )
 
 # 导入必要的函数（从 battle.py）
@@ -267,4 +268,187 @@ def api_get_god_rankings():
         return jsonify({
             'status': 'error',
             'message': f'获取主神排名失败: {str(e)}'
+        }), 500
+
+
+@api_battle_bp.route('/gods_stats', methods=['GET'])
+@token_required
+def api_get_gods_stats():
+    """API 获取三神统计数据"""
+    try:
+        # 获取筛选参数
+        start_datetime = request.args.get('start_datetime')
+        end_datetime = request.args.get('end_datetime')
+        show_grouped = request.args.get('show_grouped', 'false').lower() == 'true'
+        
+        # 使用服务层获取三神统计
+        stats = get_gods_stats_service(
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+            show_grouped=show_grouped
+        )
+        
+        logger.info(f"API 获取三神统计成功")
+        return jsonify({
+            'status': 'success',
+            'message': '获取三神统计成功',
+            'data': {
+                'stats': stats,
+                'filters': {
+                    'start_datetime': start_datetime,
+                    'end_datetime': end_datetime,
+                    'show_grouped': show_grouped
+                }
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"API 获取三神统计时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'获取三神统计失败: {str(e)}'
+        }), 500
+
+
+@api_battle_bp.route('/group_details', methods=['GET'])
+@token_required
+def api_get_group_details():
+    """API 获取玩家分组下所有游戏ID的详细战绩"""
+    try:
+        # 获取参数
+        god = request.args.get('god')
+        player_name = request.args.get('player_name')
+        start_datetime_str = request.args.get('start_datetime')
+        end_datetime_str = request.args.get('end_datetime')
+        
+        # 验证必要参数
+        if not player_name:
+            return jsonify({
+                'status': 'error',
+                'message': '缺少必要参数: player_name'
+            }), 400
+            
+        # 解析日期时间
+        start_datetime = None
+        end_datetime = None
+        
+        if start_datetime_str:
+            try:
+                start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                return jsonify({
+                    'status': 'error',
+                    'message': '开始时间格式不正确'
+                }), 400
+                
+        if end_datetime_str:
+            try:
+                end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M')
+                end_datetime = end_datetime.replace(second=59)
+            except ValueError:
+                return jsonify({
+                    'status': 'error',
+                    'message': '结束时间格式不正确'
+                }), 400
+        
+        # 构建日期条件
+        date_condition = ""
+        query_params = {
+            'god': god,
+            'player_name': player_name
+        }
+        
+        if start_datetime:
+            date_condition += " AND br.publish_at >= :start_datetime"
+            query_params['start_datetime'] = start_datetime
+        if end_datetime:
+            date_condition += " AND br.publish_at <= :end_datetime"
+            query_params['end_datetime'] = end_datetime
+        
+        # 首先查询分组信息
+        group_query = text("""
+            SELECT 
+                pg.id as group_id,
+                pg.group_name,
+                pg.description
+            FROM 
+                player_group pg 
+            WHERE 
+                pg.group_name = :player_name
+            LIMIT 1
+        """)
+        
+        group_result = db.session.execute(group_query, query_params).fetchone()
+        
+        if not group_result:
+            return jsonify({
+                'status': 'error',
+                'message': '找不到指定的玩家分组'
+            }), 404
+            
+        # 获取分组ID
+        group_id = group_result.group_id
+        
+        # 查询该分组下所有玩家的战绩
+        members_query = text(f"""
+            SELECT 
+                p.id,
+                p.name,
+                p.god,
+                COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) AS kills,
+                COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) AS deaths,
+                SUM(CASE WHEN br.win = p.name THEN COALESCE(br.remark, 0) ELSE 0 END) AS bless
+            FROM 
+                person p
+            LEFT JOIN 
+                battle_record br ON p.name IN (br.win, br.lost)
+            WHERE 
+                p.deleted_at IS NULL
+                AND p.player_group_id = :group_id
+                {'' if god is None else 'AND p.god = :god'}
+                {date_condition}
+            GROUP BY 
+                p.id, p.name, p.god
+            HAVING 
+                kills > 0 OR deaths > 0
+            ORDER BY 
+                kills DESC, deaths ASC
+        """)
+        
+        # 添加分组ID参数
+        query_params['group_id'] = group_id
+        
+        # 获取成员数据
+        members = []
+        for row in db.session.execute(members_query, query_params):
+            members.append({
+                'id': row.id,
+                'name': row.name,
+                'god': row.god,
+                'kills': int(row.kills or 0),
+                'deaths': int(row.deaths or 0),
+                'bless': int(row.bless or 0)
+            })
+        
+        logger.info(f"API 获取分组 {player_name} 详情成功，包含 {len(members)} 个成员")
+        
+        # 返回结果
+        return jsonify({
+            'status': 'success',
+            'message': '获取分组详情成功',
+            'data': {
+                'group': {
+                    'id': group_result.group_id,
+                    'name': group_result.group_name,
+                    'description': group_result.description
+                },
+                'members': members
+            }
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"API 获取分组详情出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'获取分组详情失败: {str(e)}'
         }), 500

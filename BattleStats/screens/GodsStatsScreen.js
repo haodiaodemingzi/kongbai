@@ -1,0 +1,652 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  Platform,
+} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { getGodsStats, getGroupDetails } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
+
+export default function GodsStatsScreen() {
+  const { colors } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState({});
+  const [showGrouped, setShowGrouped] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({}); // 记录展开的分组
+  const [groupMembers, setGroupMembers] = useState({}); // 缓存分组成员数据
+  const [loadingGroups, setLoadingGroups] = useState({}); // 记录正在加载的分组
+  
+  // 自定义时间相关状态
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState('start'); // 'start' or 'end'
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date();
+    date.setHours(23, 59, 59, 999);
+    return date;
+  });
+  const [showCustomModal, setShowCustomModal] = useState(false);
+
+  useEffect(() => {
+    fetchGodsStats();
+  }, [showGrouped, startDate, endDate]);
+
+  const fetchGodsStats = async () => {
+    try {
+      const params = {
+        show_grouped: showGrouped,
+        start_datetime: formatDateTime(startDate),
+        end_datetime: formatDateTime(endDate),
+      };
+      
+      const result = await getGodsStats(params);
+
+      if (result.success) {
+        setStats(result.data.stats || {});
+      } else {
+        Alert.alert('错误', result.message || '获取三神统计失败');
+        setStats({});
+      }
+    } catch (error) {
+      console.error('获取三神统计失败:', error);
+      Alert.alert('错误', '网络错误，请稍后重试');
+      setStats({});
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+  
+  // 格式化日期时间为 YYYY-MM-DDTHH:MM
+  const formatDateTime = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  
+  // 格式化显示日期时间
+  const formatDisplayDateTime = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchGodsStats();
+  };
+
+  // 处理日期选择
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    
+    if (selectedDate) {
+      if (datePickerMode === 'start') {
+        setStartDate(selectedDate);
+      } else {
+        setEndDate(selectedDate);
+      }
+    }
+  };
+
+  // 打开日期选择器
+  const openDatePicker = (mode) => {
+    setDatePickerMode(mode);
+    setShowDatePicker(true);
+  };
+
+  // 切换分组展开/折叠
+  const toggleGroupExpand = async (godName, playerName) => {
+    const groupKey = `${godName}_${playerName}`;
+    
+    // 如果已经展开，则折叠
+    if (expandedGroups[groupKey]) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        [groupKey]: false
+      }));
+      return;
+    }
+    
+    // 如果已经有缓存数据，直接展开
+    if (groupMembers[groupKey]) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        [groupKey]: true
+      }));
+      return;
+    }
+    
+    // 否则加载数据
+    setLoadingGroups(prev => ({ ...prev, [groupKey]: true }));
+    
+    try {
+      const result = await getGroupDetails({
+        god: godName,
+        player_name: playerName,
+        start_datetime: formatDateTime(startDate),
+        end_datetime: formatDateTime(endDate),
+      });
+      
+      if (result.success) {
+        setGroupMembers(prev => ({
+          ...prev,
+          [groupKey]: result.data.members || []
+        }));
+        setExpandedGroups(prev => ({
+          ...prev,
+          [groupKey]: true
+        }));
+      } else {
+        Alert.alert('错误', result.message || '获取分组详情失败');
+      }
+    } catch (error) {
+      console.error('获取分组详情失败:', error);
+      Alert.alert('错误', '网络错误，请稍后重试');
+    } finally {
+      setLoadingGroups(prev => ({ ...prev, [groupKey]: false }));
+    }
+  };
+
+  // 渲染统计卡片
+  const renderStatsCard = (godName, godData) => {
+    const godColors = {
+      '梵天': '#e74c3c',
+      '比湿奴': '#3498db',
+      '湿婆': '#9b59b6',
+    };
+
+    return (
+      <View key={godName} style={[styles.godCard, { borderLeftColor: godColors[godName] || colors.primary }]}>
+        <View style={[styles.godHeader, { backgroundColor: godColors[godName] || colors.primary }]}>
+          <Text style={styles.godName}>{godName}</Text>
+        </View>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{godData.player_count}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>玩家</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{godData.kills}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>击杀</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#e74c3c' }]}>{godData.deaths}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>死亡</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#27ae60' }]}>{godData.bless}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>爆灯</Text>
+          </View>
+        </View>
+
+        {/* 玩家列表 */}
+        <View style={styles.playersContainer}>
+          <Text style={[styles.playersTitle, { color: colors.text }]}>
+            {showGrouped ? '实际玩家战绩' : '游戏ID战绩'}
+          </Text>
+          
+          {/* 表头 */}
+          <View style={styles.tableHeader}>
+            <Text style={[styles.tableHeaderText, { flex: 2, color: colors.text }]}>
+              {showGrouped ? '玩家' : '游戏ID'}
+            </Text>
+            <Text style={[styles.tableHeaderText, { flex: 1, color: colors.text }]}>击杀</Text>
+            <Text style={[styles.tableHeaderText, { flex: 1, color: colors.text }]}>死亡</Text>
+            <Text style={[styles.tableHeaderText, { flex: 1, color: colors.text }]}>爆灯</Text>
+          </View>
+
+          {/* 玩家数据 */}
+          {godData.players && godData.players.slice(0, 10).map((player, index) => {
+            const groupKey = `${godName}_${player.name}`;
+            const isExpanded = expandedGroups[groupKey];
+            const isLoading = loadingGroups[groupKey];
+            const members = groupMembers[groupKey] || [];
+            
+            return (
+              <View key={index}>
+                {/* 主行 - 可点击展开 */}
+                <TouchableOpacity
+                  disabled={!showGrouped || !player.is_group}
+                  onPress={() => showGrouped && player.is_group && toggleGroupExpand(godName, player.name)}
+                  style={[
+                    styles.playerRow,
+                    { backgroundColor: index % 2 === 0 ? colors.cardBackground : colors.background },
+                    player.is_group && { backgroundColor: colors.primary + '10' }
+                  ]}
+                >
+                  <View style={styles.playerNameContainer}>
+                    <Text 
+                      style={[
+                        styles.playerName, 
+                        { color: player.is_group ? colors.primary : colors.text }
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {player.name}
+                    </Text>
+                    {showGrouped && player.is_group && (
+                      <MaterialIcons 
+                        name={isExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
+                        size={18} 
+                        color={colors.primary} 
+                      />
+                    )}
+                  </View>
+                  <Text style={[styles.playerStat, { color: colors.primary }]}>{player.kills}</Text>
+                  <Text style={[styles.playerStat, { color: '#e74c3c' }]}>{player.deaths}</Text>
+                  <Text style={[styles.playerStat, { color: player.bless > 0 ? '#27ae60' : colors.textSecondary }]}>
+                    {player.bless > 0 ? `🏮${player.bless}` : '0'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* 展开的成员列表 */}
+                {showGrouped && player.is_group && isExpanded && (
+                  <View style={[styles.membersContainer, { backgroundColor: colors.background }]}>
+                    {isLoading ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>加载中...</Text>
+                      </View>
+                    ) : members.length > 0 ? (
+                      <>
+                        {/* 成员表头 */}
+                        <View style={styles.memberHeader}>
+                          <Text style={[styles.memberHeaderText, { flex: 2, color: colors.textSecondary }]}>游戏ID</Text>
+                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>神族</Text>
+                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>击杀</Text>
+                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>死亡</Text>
+                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>爆灯</Text>
+                        </View>
+                        {/* 成员数据 */}
+                        {members.map((member, mIndex) => (
+                          <View 
+                            key={mIndex} 
+                            style={[
+                              styles.memberRow,
+                              { borderBottomColor: colors.border }
+                            ]}
+                          >
+                            <Text style={[styles.memberName, { color: colors.text }]} numberOfLines={1}>
+                              {member.name}
+                            </Text>
+                            <Text style={[styles.memberGod, { color: colors.textSecondary }]}>
+                              {member.god}
+                            </Text>
+                            <Text style={[styles.memberStat, { color: colors.primary }]}>{member.kills}</Text>
+                            <Text style={[styles.memberStat, { color: '#e74c3c' }]}>{member.deaths}</Text>
+                            <Text style={[styles.memberStat, { color: member.bless > 0 ? '#27ae60' : colors.textSecondary }]}>
+                              {member.bless > 0 ? `🏮${member.bless}` : '0'}
+                            </Text>
+                          </View>
+                        ))}
+                      </>
+                    ) : (
+                      <View style={styles.emptyMembersContainer}>
+                        <Text style={[styles.emptyMembersText, { color: colors.textSecondary }]}>
+                          暂无成员数据
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>加载中...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* 筛选器 */}
+      <View style={[styles.filterContainer, { backgroundColor: colors.cardBackground }]}>
+        {/* 时间选择 */}
+        <View style={styles.dateRow}>
+          <TouchableOpacity
+            style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+            onPress={() => openDatePicker('start')}
+          >
+            <MaterialIcons name="event" size={18} color={colors.primary} />
+            <Text style={[styles.dateButtonText, { color: colors.text }]} numberOfLines={1}>
+              {formatDisplayDateTime(startDate)}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.dateSeparator, { color: colors.textSecondary }]}>至</Text>
+
+          <TouchableOpacity
+            style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+            onPress={() => openDatePicker('end')}
+          >
+            <MaterialIcons name="event" size={18} color={colors.primary} />
+            <Text style={[styles.dateButtonText, { color: colors.text }]} numberOfLines={1}>
+              {formatDisplayDateTime(endDate)}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 显示模式切换 */}
+        <View style={styles.toggleRow}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              !showGrouped && { backgroundColor: colors.primary },
+              { borderColor: colors.border }
+            ]}
+            onPress={() => setShowGrouped(false)}
+          >
+            <FontAwesome5 
+              name="user" 
+              size={14} 
+              color={!showGrouped ? '#fff' : colors.textSecondary} 
+            />
+            <Text style={[
+              styles.toggleButtonText,
+              { color: !showGrouped ? '#fff' : colors.textSecondary }
+            ]}>
+              按游戏ID
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              showGrouped && { backgroundColor: colors.primary },
+              { borderColor: colors.border }
+            ]}
+            onPress={() => setShowGrouped(true)}
+          >
+            <FontAwesome5 
+              name="users" 
+              size={14} 
+              color={showGrouped ? '#fff' : colors.textSecondary} 
+            />
+            <Text style={[
+              styles.toggleButtonText,
+              { color: showGrouped ? '#fff' : colors.textSecondary }
+            ]}>
+              按玩家分组
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 三神统计卡片 */}
+      <ScrollView
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {Object.keys(stats).length > 0 ? (
+          Object.entries(stats).map(([godName, godData]) => 
+            renderStatsCard(godName, godData)
+          )
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="inbox" size={64} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              暂无数据
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* 日期选择器 */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={datePickerMode === 'start' ? startDate : endDate}
+          mode="datetime"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  filterContainer: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dateButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  dateButtonText: {
+    marginLeft: 8,
+    fontSize: 12,
+    flex: 1,
+  },
+  dateSeparator: {
+    marginHorizontal: 8,
+    fontSize: 12,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  toggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  toggleButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  godCard: {
+    margin: 12,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  godHeader: {
+    padding: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  godName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  playersContainer: {
+    padding: 12,
+  },
+  playersTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#e0e0e0',
+  },
+  tableHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  playerRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
+  },
+  playerNameContainer: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  playerName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  playerStat: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  membersContainer: {
+    paddingLeft: 16,
+    paddingVertical: 4,
+    borderLeftWidth: 2,
+    borderLeftColor: '#e0e0e0',
+    marginLeft: 8,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  memberHeader: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d0d0d0',
+    backgroundColor: '#f5f5f5',
+  },
+  memberHeaderText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  memberRow: {
+    flexDirection: 'row',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+  },
+  memberName: {
+    flex: 2,
+    fontSize: 12,
+  },
+  memberGod: {
+    flex: 1,
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  memberStat: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  emptyMembersContainer: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  emptyMembersText: {
+    fontSize: 12,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+});

@@ -266,6 +266,86 @@ export const getGodRankings = async () => {
 };
 
 /**
+ * 获取三神统计数据
+ * @param {Object} params 筛选参数
+ * @param {string} params.start_datetime 开始时间
+ * @param {string} params.end_datetime 结束时间
+ * @param {boolean} params.show_grouped 是否按玩家分组显示
+ */
+export const getGodsStats = async (params = {}) => {
+  try {
+    const requestParams = {
+      show_grouped: params.show_grouped ? 'true' : 'false',
+    };
+    
+    if (params.start_datetime) {
+      requestParams.start_datetime = params.start_datetime;
+    }
+    if (params.end_datetime) {
+      requestParams.end_datetime = params.end_datetime;
+    }
+    
+    const response = await apiClient.get('/api/battle/gods_stats', {
+      params: requestParams,
+    });
+
+    if (response.data.status === 'success') {
+      return { success: true, data: response.data.data };
+    } else {
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    console.error('获取三神统计失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '获取三神统计失败',
+    };
+  }
+};
+
+/**
+ * 获取玩家分组成员详情
+ * @param {Object} params 参数
+ * @param {string} params.god 神族
+ * @param {string} params.player_name 玩家分组名称
+ * @param {string} params.start_datetime 开始时间
+ * @param {string} params.end_datetime 结束时间
+ */
+export const getGroupDetails = async (params = {}) => {
+  try {
+    const requestParams = {
+      player_name: params.player_name,
+    };
+    
+    if (params.god) {
+      requestParams.god = params.god;
+    }
+    if (params.start_datetime) {
+      requestParams.start_datetime = params.start_datetime;
+    }
+    if (params.end_datetime) {
+      requestParams.end_datetime = params.end_datetime;
+    }
+    
+    const response = await apiClient.get('/api/battle/group_details', {
+      params: requestParams,
+    });
+
+    if (response.data.status === 'success') {
+      return { success: true, data: response.data.data };
+    } else {
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    console.error('获取分组详情失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '获取分组详情失败',
+    };
+  }
+};
+
+/**
  * 获取势力统计数据
  * @param {string} dateRange 时间范围
  */
@@ -425,6 +505,9 @@ export default {
   getPlayerDetails,
   uploadBattleLog,
   getFactionStats,
+  getGodRankings,
+  getGodsStats,
+  getGroupDetails,
   getRankingData,
   refreshRanking,
   getRankingHistory,

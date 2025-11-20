@@ -358,3 +358,205 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
     
     logger.debug(f"获取玩家 {player_name} 详情成功")
     return player_details
+
+
+def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
+    """
+    获取三神统计数据（公共服务函数）
+    
+    Args:
+        start_datetime: 开始时间
+        end_datetime: 结束时间
+        show_grouped: 是否按玩家分组显示
+    
+    Returns:
+        dict: 三神统计数据，包含每个神的击杀、死亡、爆灯数据和玩家列表
+    """
+    gods = ['梵天', '比湿奴', '湿婆']
+    stats = {}
+    
+    try:
+        for god in gods:
+            # 构建日期条件
+            date_condition = ""
+            query_params = {'god': god}
+            
+            if start_datetime:
+                date_condition += " AND publish_at >= :start_datetime"
+                query_params['start_datetime'] = start_datetime
+            if end_datetime:
+                date_condition += " AND publish_at <= :end_datetime"
+                query_params['end_datetime'] = end_datetime
+            
+            # 根据是否需要按玩家分组进行统计选择不同的查询
+            if show_grouped:
+                # 使用玩家分组的查询
+                query = text(f"""
+                    WITH filtered_battle_records AS (
+                        SELECT win, lost, remark
+                        FROM battle_record
+                        WHERE deleted_at IS NULL
+                          {date_condition}
+                    ),
+                    win_stats AS (
+                        SELECT 
+                            win as player_name,
+                            COUNT(*) as kills,
+                            SUM(COALESCE(remark, 0)) as bless
+                        FROM filtered_battle_records
+                        WHERE win IS NOT NULL
+                        GROUP BY win
+                    ),
+                    lost_stats AS (
+                        SELECT 
+                            lost as player_name,
+                            COUNT(*) as deaths
+                        FROM filtered_battle_records
+                        WHERE lost IS NOT NULL
+                        GROUP BY lost
+                    ),
+                    player_battle_stats AS (
+                        SELECT
+                            p.id,
+                            p.name,
+                            COALESCE(ws.kills, 0) as kills,
+                            COALESCE(ls.deaths, 0) as deaths,
+                            COALESCE(ws.bless, 0) as bless
+                        FROM person p
+                        LEFT JOIN win_stats ws ON p.name = ws.player_name
+                        LEFT JOIN lost_stats ls ON p.name = ls.player_name
+                        WHERE p.god = :god
+                          AND p.deleted_at IS NULL
+                          AND (COALESCE(ws.kills, 0) > 0 
+                               OR COALESCE(ls.deaths, 0) > 0 
+                               OR COALESCE(ws.bless, 0) > 0)
+                    ),
+                    player_distinct AS (
+                        SELECT
+                            p.id,
+                            p.name AS original_player_name,
+                            p.god,
+                            COALESCE(p.player_group_id, p.id) AS group_key,
+                            COALESCE(pg.group_name, p.name) AS player_name,
+                            CASE
+                                WHEN p.player_group_id IS NOT NULL AND EXISTS (
+                                    SELECT 1 FROM person p2
+                                    WHERE p2.player_group_id = p.player_group_id
+                                    AND p2.id != p.id
+                                    AND p2.deleted_at IS NULL
+                                ) THEN 1
+                                ELSE 0
+                            END AS is_group
+                        FROM
+                            person p
+                        LEFT JOIN
+                            player_group pg ON p.player_group_id = pg.id
+                        WHERE
+                            p.god = :god
+                            AND p.deleted_at IS NULL
+                    )
+                    SELECT
+                        pd.player_name AS name,
+                        MAX(pd.is_group) AS is_group,
+                        SUM(COALESCE(pbs.kills, 0)) AS kills,
+                        SUM(COALESCE(pbs.deaths, 0)) AS deaths,
+                        SUM(COALESCE(pbs.bless, 0)) AS bless
+                    FROM
+                        player_distinct pd
+                    LEFT JOIN
+                        player_battle_stats pbs ON pd.id = pbs.id
+                    GROUP BY
+                        pd.group_key, pd.player_name
+                    HAVING
+                        SUM(COALESCE(pbs.kills, 0)) > 0 OR SUM(COALESCE(pbs.deaths, 0)) > 0 OR SUM(COALESCE(pbs.bless, 0)) > 0
+                    ORDER BY
+                        kills DESC, deaths ASC, bless DESC
+                """)
+            else:
+                # 原始查询（不考虑玩家分组）
+                query = text(f"""
+                    WITH filtered_battle_records AS (
+                        SELECT win, lost, remark
+                        FROM battle_record
+                        WHERE deleted_at IS NULL
+                          {date_condition}
+                    ),
+                    win_stats AS (
+                        SELECT 
+                            win as player_name,
+                            COUNT(*) as kills,
+                            SUM(COALESCE(remark, 0)) as bless
+                        FROM filtered_battle_records
+                        WHERE win IS NOT NULL
+                        GROUP BY win
+                    ),
+                    lost_stats AS (
+                        SELECT 
+                            lost as player_name,
+                            COUNT(*) as deaths
+                        FROM filtered_battle_records
+                        WHERE lost IS NOT NULL
+                        GROUP BY lost
+                    ),
+                    player_stats AS (
+                        SELECT 
+                            p.id,
+                            p.name AS name,
+                            COALESCE(ws.kills, 0) as kills,
+                            COALESCE(ls.deaths, 0) as deaths,
+                            COALESCE(ws.bless, 0) as bless
+                        FROM person p
+                        LEFT JOIN win_stats ws ON p.name = ws.player_name
+                        LEFT JOIN lost_stats ls ON p.name = ls.player_name
+                        WHERE p.god = :god
+                          AND p.deleted_at IS NULL
+                          AND (COALESCE(ws.kills, 0) > 0 
+                               OR COALESCE(ls.deaths, 0) > 0 
+                               OR COALESCE(ws.bless, 0) > 0)
+                    )
+                    SELECT 
+                        name,
+                        kills,
+                        deaths,
+                        bless
+                    FROM player_stats
+                    ORDER BY kills DESC, deaths ASC, bless DESC
+                """)
+            
+            # 获取玩家数据
+            player_stats = []
+            total_kills = 0
+            total_deaths = 0
+            total_bless = 0
+            
+            for row in db.session.execute(query, query_params):
+                player_data = {
+                    'name': row.name,
+                    'kills': int(row.kills or 0),
+                    'deaths': int(row.deaths or 0),
+                    'bless': int(row.bless or 0)
+                }
+                
+                # 如果是分组查询，添加is_group字段
+                if show_grouped:
+                    player_data['is_group'] = bool(row.is_group) if hasattr(row, 'is_group') else False
+                    
+                player_stats.append(player_data)
+                total_kills += int(row.kills or 0)
+                total_deaths += int(row.deaths or 0)
+                total_bless += int(row.bless or 0)
+            
+            stats[god] = {
+                'kills': total_kills,
+                'deaths': total_deaths,
+                'bless': total_bless,
+                'players': player_stats,
+                'player_count': len(player_stats)
+            }
+        
+        logger.info(f"获取三神统计成功")
+        return stats
+        
+    except Exception as e:
+        logger.error(f"获取三神统计时出错: {str(e)}", exc_info=True)
+        raise
