@@ -100,19 +100,20 @@ function TabNavigator({ onLogout }) {
           let iconName;
           
           if (route.name === 'Dashboard') {
-            iconName = 'dashboard';
+            iconName = 'assessment'; // 数据分析图标
           } else if (route.name === 'Home') {
-            iconName = 'home';
+            iconName = 'military-tech'; // 勋章/战绩图标
           } else if (route.name === 'Rankings') {
-            iconName = 'leaderboard';
+            iconName = 'emoji-events'; // 奖杯/排名图标
           } else if (route.name === 'Upload') {
-            iconName = 'cloud-upload';
+            iconName = 'cloud-upload'; // 上传图标
           } else if (route.name === 'Profile') {
-            iconName = 'person';
+            iconName = 'settings'; // 设置/管理图标
           }
           
-          return <MaterialIcons name={iconName} size={size} color={color} />;
+          return <MaterialIcons name={iconName} size={32} color={color} />;
         },
+        tabBarShowLabel: false, // 隐藏文字标签
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
@@ -121,10 +122,6 @@ function TabNavigator({ onLogout }) {
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
         },
         headerStyle: {
           backgroundColor: colors.headerBackground,
