@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 15,
+    paddingVertical: 15,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -318,24 +318,12 @@ const styles = StyleSheet.create({
   },
   rankingCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
     padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   emptyContainer: {
     backgroundColor: '#fff',
-    borderRadius: 12,
     padding: 40,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   emptyText: {
     fontSize: 16,
@@ -356,7 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f8f9fa',
+    borderBottomColor: '#d1d5db',
     alignItems: 'center',
   },
   tableRowHighlight: {

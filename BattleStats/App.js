@@ -18,6 +18,7 @@ import RankingsScreen from './screens/RankingsScreen';
 import BattleRankingsScreen from './screens/BattleRankingsScreen';
 import UploadScreen from './screens/UploadScreen';
 import PersonManagementScreen from './screens/PersonManagementScreen';
+import GroupManagementScreen from './screens/GroupManagementScreen';
 import { getStoredToken, getStoredUser } from './services/api';
 
 const Tab = createBottomTabNavigator();
@@ -32,7 +33,7 @@ function HomeScreen({ navigation }) {
 function ProfileScreen({ onLogout, navigation }) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>个人中心</Text>
+      <Text style={styles.title}>配置中心</Text>
       
       <TouchableOpacity
         style={styles.menuItem}
@@ -40,6 +41,15 @@ function ProfileScreen({ onLogout, navigation }) {
       >
         <MaterialIcons name="people" size={24} color="#e74c3c" />
         <Text style={styles.menuItemText}>人员管理</Text>
+        <MaterialIcons name="chevron-right" size={24} color="#95a5a6" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={() => navigation.navigate('GroupManagement')}
+      >
+        <MaterialIcons name="group" size={24} color="#e74c3c" />
+        <Text style={styles.menuItemText}>分组管理</Text>
         <MaterialIcons name="chevron-right" size={24} color="#95a5a6" />
       </TouchableOpacity>
       
@@ -123,8 +133,8 @@ function TabNavigator({ onLogout }) {
       <Tab.Screen 
         name="Profile" 
         options={{ 
-          title: '我的',
-          headerTitle: '个人中心'
+          title: '管理',
+          headerTitle: '配置中心'
         }}
       >
         {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
@@ -160,6 +170,14 @@ function MainStackNavigator({ onLogout }) {
         component={PersonManagementScreen} 
         options={{ 
           title: '人员管理',
+          presentation: 'card',
+        }} 
+      />
+      <Stack.Screen 
+        name="GroupManagement" 
+        component={GroupManagementScreen} 
+        options={{ 
+          title: '分组管理',
           presentation: 'card',
         }} 
       />
