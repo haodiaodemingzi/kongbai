@@ -400,13 +400,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 15,
+    paddingVertical: 15,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#e74c3c',
     padding: 12,
-    borderRadius: 8,
     marginBottom: 10,
   },
   headerCell: {
@@ -419,13 +418,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    marginBottom: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ecf0f1',
   },
   cell: {
     fontSize: 14,
