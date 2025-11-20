@@ -40,13 +40,14 @@ export default function LoginScreen({ onLoginSuccess }) {
       const result = await login(username, password);
 
       if (result.success) {
-        // 登录成功，传递 token 和用户信息
-        Alert.alert('成功', '登录成功！', [
-          {
-            text: '确定',
-            onPress: () => onLoginSuccess(result.user, result.token),
-          },
-        ]);
+        // 登录成功，添加淡出动画后进入主界面
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          onLoginSuccess(result.user, result.token);
+        });
       } else {
         Alert.alert('登录失败', result.message || '用户名或密码错误');
       }

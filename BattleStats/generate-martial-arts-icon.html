@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成武术图标 - 战斗统计</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .preview-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .preview-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .preview-item h3 {
+            margin: 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        button {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥋 战斗统计 - 武术图标生成器</h1>
+        
+        <div class="info">
+            <strong>说明：</strong>点击下方按钮生成不同尺寸的图标，然后右键保存图片到 assets 文件夹。
+        </div>
+
+        <div class="controls">
+            <button onclick="generateAllIcons()">🎨 生成所有图标</button>
+            <button onclick="downloadAll()">💾 下载全部</button>
+        </div>
+
+        <div class="preview-section">
+            <div class="preview-item">
+                <h3>App Icon (1024x1024)</h3>
+                <canvas id="icon1024"></canvas>
+                <button onclick="downloadCanvas('icon1024', 'icon.png')">下载</button>
+            </div>
+            <div class="preview-item">
+                <h3>Adaptive Icon (1024x1024)</h3>
+                <canvas id="adaptive"></canvas>
+                <button onclick="downloadCanvas('adaptive', 'adaptive-icon.png')">下载</button>
+            </div>
+            <div class="preview-item">
+                <h3>Splash Icon (1024x1024)</h3>
+                <canvas id="splash"></canvas>
+                <button onclick="downloadCanvas('splash', 'splash-icon.png')">下载</button>
+            </div>
+            <div class="preview-item">
+                <h3>Favicon (48x48)</h3>
+                <canvas id="favicon"></canvas>
+                <button onclick="downloadCanvas('favicon', 'favicon.png')">下载</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 绘制武术人物图标
+        function drawMartialArtsIcon(ctx, size, withBackground = true) {
+            const center = size / 2;
+            const scale = size / 1024;
+
+            // 清空画布
+            ctx.clearRect(0, 0, size, size);
+
+            if (withBackground) {
+                // 绘制方形渐变背景
+                const gradient = ctx.createLinearGradient(0, 0, size, size);
+                gradient.addColorStop(0, '#e74c3c');
+                gradient.addColorStop(0.5, '#c0392b');
+                gradient.addColorStop(1, '#e74c3c');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, size, size);
+
+                // 添加微妙的边框
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.lineWidth = size * 0.005;
+                ctx.strokeRect(0, 0, size, size);
+            }
+
+            // 绘制武术人物（简化版）
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = size * 0.025;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // 头部
+            ctx.beginPath();
+            ctx.arc(center - size * 0.05, center - size * 0.15, size * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 身体
+            ctx.beginPath();
+            ctx.moveTo(center - size * 0.05, center - size * 0.07);
+            ctx.lineTo(center - size * 0.05, center + size * 0.08);
+            ctx.stroke();
+
+            // 左手（向上伸展）
+            ctx.beginPath();
+            ctx.moveTo(center - size * 0.05, center - size * 0.05);
+            ctx.lineTo(center - size * 0.15, center - size * 0.18);
+            ctx.lineTo(center - size * 0.18, center - size * 0.12);
+            ctx.stroke();
+
+            // 右手（向前出拳）
+            ctx.beginPath();
+            ctx.moveTo(center - size * 0.05, center - size * 0.02);
+            ctx.lineTo(center + size * 0.12, center - size * 0.02);
+            ctx.stroke();
+
+            // 右拳
+            ctx.beginPath();
+            ctx.arc(center + size * 0.12, center - size * 0.02, size * 0.04, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 左腿（支撑腿）
+            ctx.beginPath();
+            ctx.moveTo(center - size * 0.05, center + size * 0.08);
+            ctx.lineTo(center - size * 0.08, center + size * 0.22);
+            ctx.stroke();
+
+            // 右腿（踢腿）
+            ctx.beginPath();
+            ctx.moveTo(center - size * 0.05, center + size * 0.08);
+            ctx.lineTo(center + size * 0.05, center + size * 0.02);
+            ctx.lineTo(center + size * 0.15, center - size * 0.05);
+            ctx.stroke();
+
+            // 添加动感线条
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = size * 0.015;
+            
+            // 拳头动感线
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(center + size * 0.16, center - size * 0.02 - size * 0.02 * i);
+                ctx.lineTo(center + size * 0.20, center - size * 0.02 - size * 0.02 * i);
+                ctx.stroke();
+            }
+
+            // 腿部动感线
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(center + size * 0.18, center - size * 0.05 - size * 0.02 * i);
+                ctx.lineTo(center + size * 0.22, center - size * 0.05 - size * 0.02 * i);
+                ctx.stroke();
+            }
+        }
+
+        // 生成所有图标
+        function generateAllIcons() {
+            // App Icon (1024x1024) - 方形红色背景
+            const canvas1024 = document.getElementById('icon1024');
+            canvas1024.width = 1024;
+            canvas1024.height = 1024;
+            const ctx1024 = canvas1024.getContext('2d');
+            drawMartialArtsIcon(ctx1024, 1024, true);
+
+            // Adaptive Icon (1024x1024) - 方形红色背景
+            const canvasAdaptive = document.getElementById('adaptive');
+            canvasAdaptive.width = 1024;
+            canvasAdaptive.height = 1024;
+            const ctxAdaptive = canvasAdaptive.getContext('2d');
+            drawMartialArtsIcon(ctxAdaptive, 1024, true);
+
+            // Splash Icon (1024x1024) - 方形红色背景
+            const canvasSplash = document.getElementById('splash');
+            canvasSplash.width = 1024;
+            canvasSplash.height = 1024;
+            const ctxSplash = canvasSplash.getContext('2d');
+            drawMartialArtsIcon(ctxSplash, 1024, true);
+
+            // Favicon (48x48) - 方形红色背景
+            const canvasFavicon = document.getElementById('favicon');
+            canvasFavicon.width = 48;
+            canvasFavicon.height = 48;
+            const ctxFavicon = canvasFavicon.getContext('2d');
+            drawMartialArtsIcon(ctxFavicon, 48, true);
+
+            alert('✅ 所有图标已生成！请点击各个"下载"按钮保存图片。');
+        }
+
+        // 下载单个画布
+        function downloadCanvas(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // 下载所有图标
+        function downloadAll() {
+            downloadCanvas('icon1024', 'icon.png');
+            setTimeout(() => downloadCanvas('adaptive', 'adaptive-icon.png'), 200);
+            setTimeout(() => downloadCanvas('splash', 'splash-icon.png'), 400);
+            setTimeout(() => downloadCanvas('favicon', 'favicon.png'), 600);
+            alert('✅ 所有图标下载完成！请将它们移动到 assets 文件夹。');
+        }
+
+        // 页面加载时自动生成
+        window.onload = function() {
+            generateAllIcons();
+        };
+    </script>
+</body>
+</html>

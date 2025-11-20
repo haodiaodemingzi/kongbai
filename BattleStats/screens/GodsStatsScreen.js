@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { getGodsStats, getGroupDetails } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
 
 export default function GodsStatsScreen() {
   const { colors } = useTheme();
@@ -25,6 +27,9 @@ export default function GodsStatsScreen() {
   const [expandedGroups, setExpandedGroups] = useState({}); // 记录展开的分组
   const [groupMembers, setGroupMembers] = useState({}); // 缓存分组成员数据
   const [loadingGroups, setLoadingGroups] = useState({}); // 记录正在加载的分组
+  const [isCapturing, setIsCapturing] = useState(false); // 截图中状态
+  const scrollViewRef = useRef(null); // ScrollView 引用
+  const contentRef = useRef(null); // 内容引用，用于截图
   
   // 自定义时间相关状态
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -115,6 +120,43 @@ export default function GodsStatsScreen() {
     setShowDatePicker(true);
   };
 
+  // 生成并分享截图
+  const handleShareScreenshot = async () => {
+    try {
+      setIsCapturing(true);
+      
+      // 检查分享功能是否可用
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert('提示', '当前设备不支持分享功能');
+        setIsCapturing(false);
+        return;
+      }
+
+      // 等待一小段时间确保UI渲染完成
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 截取整个内容区域
+      const uri = await captureRef(contentRef, {
+        format: 'png',
+        quality: 1,
+        result: 'tmpfile',
+      });
+
+      // 分享截图
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: '分享三神统计',
+      });
+
+    } catch (error) {
+      console.error('截图分享失败:', error);
+      Alert.alert('错误', '截图失败，请稍后重试');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
   // 切换分组展开/折叠
   const toggleGroupExpand = async (godName, playerName) => {
     const groupKey = `${godName}_${playerName}`;
@@ -203,10 +245,7 @@ export default function GodsStatsScreen() {
 
         {/* 玩家列表 */}
         <View style={styles.playersContainer}>
-          <Text style={[styles.playersTitle, { color: colors.text }]}>
-            {showGrouped ? '实际玩家战绩' : '游戏ID战绩'}
-          </Text>
-          
+          {/* 玩家战绩标题已移除 */}
           {/* 表头 */}
           <View style={styles.tableHeader}>
             <Text style={[styles.tableHeaderText, { flex: 2, color: colors.text }]}>
@@ -332,6 +371,24 @@ export default function GodsStatsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* 筛选器 */}
       <View style={[styles.filterContainer, { backgroundColor: colors.cardBackground }]}>
+        {/* 分享按钮 */}
+        <View style={styles.shareButtonContainer}>
+          <TouchableOpacity
+            style={[styles.shareButton, { backgroundColor: colors.primary }]}
+            onPress={handleShareScreenshot}
+            disabled={isCapturing || loading}
+          >
+            {isCapturing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <MaterialIcons name="share" size={20} color="#fff" />
+                <Text style={styles.shareButtonText}>分享截图</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* 时间选择 */}
         <View style={styles.dateRow}>
           <TouchableOpacity
@@ -405,6 +462,7 @@ export default function GodsStatsScreen() {
 
       {/* 三神统计卡片 */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         refreshControl={
           <RefreshControl
@@ -415,18 +473,20 @@ export default function GodsStatsScreen() {
           />
         }
       >
-        {Object.keys(stats).length > 0 ? (
-          Object.entries(stats).map(([godName, godData]) => 
-            renderStatsCard(godName, godData)
-          )
-        ) : (
-          <View style={styles.emptyContainer}>
-            <MaterialIcons name="inbox" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              暂无数据
-            </Text>
-          </View>
-        )}
+        <View ref={contentRef} collapsable={false} style={{ backgroundColor: colors.background }}>
+          {Object.keys(stats).length > 0 ? (
+            Object.entries(stats).map(([godName, godData]) => 
+              renderStatsCard(godName, godData)
+            )
+          ) : (
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="inbox" size={64} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                暂无数据
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* 日期选择器 */}
@@ -458,6 +518,22 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  shareButtonContainer: {
+    marginBottom: 12,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   dateRow: {
     flexDirection: 'row',
