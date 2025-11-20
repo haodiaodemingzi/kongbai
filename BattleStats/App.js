@@ -20,9 +20,9 @@ import DashboardScreen from './screens/DashboardScreen';
 import UploadScreen from './screens/UploadScreen';
 import PersonManagementScreen from './screens/PersonManagementScreen';
 import GroupManagementScreen from './screens/GroupManagementScreen';
+import ThemeSettingsScreen from './screens/ThemeSettingsScreen';
 import { getStoredToken, getStoredUser } from './services/api';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { THEMES, THEME_COLORS } from './themes/theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -34,51 +34,27 @@ function HomeScreen({ navigation }) {
 
 // 个人中心组件
 function ProfileScreen({ onLogout, navigation }) {
-  const { currentTheme, colors, changeTheme } = useTheme();
-
-  const themes = [
-    { key: THEMES.RED, name: '热情红', icon: 'favorite', color: '#e74c3c' },
-    { key: THEMES.BLUE, name: '科技蓝', icon: 'star', color: '#3498db' },
-    { key: THEMES.BLACK, name: '经典黑', icon: 'dark-mode', color: '#2c3e50' },
-    { key: THEMES.WHITE, name: '简约白', icon: 'light-mode', color: '#ecf0f1' },
-    { key: THEMES.GREEN, name: '翡翠绿', icon: 'eco', color: '#1cb74d' },
-  ];
+  const { colors } = useTheme();
 
   return (
     <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>配置中心</Text>
       
-      {/* 主题选择 */}
+      {/* 系统设置 */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>主题颜色</Text>
-        <View style={styles.themeContainer}>
-          {themes.map((theme) => (
-            <TouchableOpacity
-              key={theme.key}
-              style={[
-                styles.themeOption,
-                { backgroundColor: colors.cardBackground, borderColor: colors.border },
-                currentTheme === theme.key && { borderColor: theme.color, borderWidth: 2 }
-              ]}
-              onPress={() => changeTheme(theme.key)}
-            >
-              <View style={[styles.themeColor, { backgroundColor: theme.color }]}>
-                <MaterialIcons 
-                  name={theme.icon} 
-                  size={24} 
-                  color={theme.key === THEMES.WHITE ? '#3498db' : '#fff'} 
-                />
-              </View>
-              <Text style={[styles.themeName, { color: colors.text }]}>{theme.name}</Text>
-              {currentTheme === theme.key && (
-                <MaterialIcons name="check-circle" size={20} color={theme.color} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>系统设置</Text>
+        
+        <TouchableOpacity
+          style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+          onPress={() => navigation.navigate('ThemeSettings')}
+        >
+          <MaterialIcons name="palette" size={24} color={colors.primary} />
+          <Text style={[styles.menuItemText, { color: colors.text }]}>主题颜色</Text>
+          <MaterialIcons name="chevron-right" size={24} color={colors.textLight} />
+        </TouchableOpacity>
       </View>
 
-      {/* 管理菜单 */}
+      {/* 系统管理 */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>系统管理</Text>
         
@@ -244,6 +220,14 @@ function MainStackNavigator({ onLogout }) {
           presentation: 'card',
         }} 
       />
+      <Stack.Screen 
+        name="ThemeSettings" 
+        component={ThemeSettingsScreen} 
+        options={{ 
+          title: '主题颜色',
+          presentation: 'card',
+        }} 
+      />
     </Stack.Navigator>
   );
 }
@@ -394,40 +378,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     paddingHorizontal: 20,
-  },
-  themeContainer: {
-    paddingHorizontal: 20,
-  },
-  themeOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  themeColor: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  themeName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
