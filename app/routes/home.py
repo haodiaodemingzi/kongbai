@@ -142,6 +142,8 @@ def index():
                             daily_scores_data={'dates': [], 'players': []})
 
 # ==================== API 接口 ====================
+# 注意: API 接口已移动到 app/routes/api_dashboard.py
+# 以下接口保留用于向后兼容，实际建议使用 api_dashboard.py 中的接口
 
 @home_bp.route('/api/dashboard', methods=['GET'])
 @token_required

@@ -134,6 +134,7 @@ def create_app(config_class=Config):
     from app.routes.api_battle import api_battle_bp
     from app.routes.api_person import api_person_bp
     from app.routes.api_player_group import api_player_group_bp
+    from app.routes.api_dashboard import api_dashboard_bp
     from app.routes.person import bp as person_bp
     from app.routes.reward import bp as reward_bp
     from app.routes.player_group import bp as player_group_bp
@@ -151,12 +152,13 @@ def create_app(config_class=Config):
     app.register_blueprint(api_battle_bp, url_prefix='/api/battle')  # API 战斗数据蓝图
     app.register_blueprint(api_person_bp, url_prefix='/api/person')  # API 人员管理蓝图
     app.register_blueprint(api_player_group_bp, url_prefix='/api/player_group')  # API 分组管理蓝图
+    app.register_blueprint(api_dashboard_bp, url_prefix='/api')  # API 仪表盘蓝图
     app.register_blueprint(battle_bp, url_prefix='/battle')
     app.register_blueprint(home_bp)
     app.register_blueprint(person_bp)
     app.register_blueprint(reward_bp)
     app.register_blueprint(player_group_bp)
-    logger.info("蓝图已注册: /auth, /api/auth, /api/battle, /api/person, /api/player_group, /battle, /, /person, /reward, /player_group")
+    logger.info("蓝图已注册: /auth, /api/auth, /api/battle, /api/person, /api/player_group, /api/dashboard, /battle, /, /person, /reward, /player_group")
     
     # 为需要登录的蓝图添加保护
     for blueprint in [home_bp, battle_bp, player_group_bp]:

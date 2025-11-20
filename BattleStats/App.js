@@ -16,6 +16,7 @@ import {
 import LoginScreen from './screens/LoginScreen';
 import RankingsScreen from './screens/RankingsScreen';
 import BattleRankingsScreen from './screens/BattleRankingsScreen';
+import DashboardScreen from './screens/DashboardScreen';
 import UploadScreen from './screens/UploadScreen';
 import PersonManagementScreen from './screens/PersonManagementScreen';
 import GroupManagementScreen from './screens/GroupManagementScreen';
@@ -36,10 +37,11 @@ function ProfileScreen({ onLogout, navigation }) {
   const { currentTheme, colors, changeTheme } = useTheme();
 
   const themes = [
-    { key: THEMES.RED, name: '热情红', icon: 'favorite', color: '#e74c3c' },
-    { key: THEMES.BLUE, name: '科技蓝', icon: 'star', color: '#3498db' },
-    { key: THEMES.BLACK, name: '经典黑', icon: 'dark-mode', color: '#2c3e50' },
-    { key: THEMES.WHITE, name: '简约白', icon: 'light-mode', color: '#ffffff' },
+    { key: THEMES.RED, name: '热情红', icon: 'favorite', color: '#a81808ff' },
+    { key: THEMES.BLUE, name: '科技蓝', icon: 'star', color: '#0455e0ffff' },
+    { key: THEMES.BLACK, name: '经典黑', icon: 'dark-mode', color: '#2c3e5058' },
+    { key: THEMES.WHITE, name: '简约白', icon: 'light-mode', color: '#f0d9d9dcff' },
+    { key: THEMES.GREEN , name: '翡翠绿', icon: 'dark-mode', color: '#1cb74d58' },
   ];
 
   return (
@@ -121,7 +123,9 @@ function TabNavigator({ onLogout }) {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           
-          if (route.name === 'Home') {
+          if (route.name === 'Dashboard') {
+            iconName = 'dashboard';
+          } else if (route.name === 'Home') {
             iconName = 'home';
           } else if (route.name === 'Rankings') {
             iconName = 'leaderboard';
@@ -156,10 +160,18 @@ function TabNavigator({ onLogout }) {
       })}
     >
       <Tab.Screen 
+        name="Dashboard" 
+        component={DashboardScreen} 
+        options={{ 
+          title: '仪表盘',
+          headerTitle: '数据仪表盘'
+        }} 
+      />
+      <Tab.Screen 
         name="Home" 
         component={HomeScreen} 
         options={{ 
-          title: '首页',
+          title: '战绩',
           headerTitle: '战绩排名'
         }} 
       />
