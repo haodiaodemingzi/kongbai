@@ -15,6 +15,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { getPlayerRankings } from '../services/api';
 import PlayerDetailScreen from './PlayerDetailScreen';
+import { useTheme } from '../contexts/ThemeContext';
 
 // 时间范围选项
 const TIME_RANGES = [
@@ -34,6 +35,7 @@ const FACTIONS = [
 ];
 
 export default function BattleRankingsScreen() {
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [players, setPlayers] = useState([]);
@@ -149,7 +151,7 @@ export default function BattleRankingsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#e74c3c" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>加载中...</Text>
       </View>
     );
@@ -169,7 +171,7 @@ export default function BattleRankingsScreen() {
                   key={item.value}
                   style={[
                     styles.filterButton,
-                    selectedTime === item.value && styles.filterButtonActive,
+                    selectedTime === item.value && { backgroundColor: colors.primary },
                   ]}
                   onPress={() => handleTimeSelect(item.value)}
                 >
@@ -201,7 +203,7 @@ export default function BattleRankingsScreen() {
                 key={item.value}
                 style={[
                   styles.filterButton,
-                  selectedFaction === item.value && styles.filterButtonActive,
+                  selectedFaction === item.value && { backgroundColor: colors.primary },
                 ]}
                 onPress={() => setSelectedFaction(item.value)}
               >
@@ -227,7 +229,7 @@ export default function BattleRankingsScreen() {
         }
       >
         {/* 表头 */}
-        <View style={styles.tableHeader}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.primary }]}>
           <Text style={[styles.headerCell, styles.nameCell]}>玩家</Text>
           <Text style={[styles.headerCell, styles.killsCell]}>击杀</Text>
           <Text style={[styles.headerCell, styles.deathsCell]}>死亡</Text>
@@ -308,7 +310,7 @@ export default function BattleRankingsScreen() {
                 <Text style={styles.cancelButtonText}>取消</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
+                style={[styles.modalButton, { backgroundColor: colors.primary }]}
                 onPress={confirmCustomTime}
               >
                 <Text style={styles.confirmButtonText}>确定</Text>

@@ -14,6 +14,7 @@ import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { getGodRankings } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 // 势力颜色映射
 const GOD_COLORS = {
@@ -39,6 +40,7 @@ const TABS = [
 
 export default function RankingsScreen() {
   const navigation = useNavigation();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [rankingData, setRankingData] = useState(null);
@@ -92,7 +94,7 @@ export default function RankingsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3498db" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>加载中...</Text>
       </View>
     );
@@ -189,7 +191,7 @@ export default function RankingsScreen() {
                     {player.name}
                   </Text>
                   <View style={[styles.cell, styles.jobCell]}>
-                    <View style={styles.jobBadge}>
+                    <View style={[styles.jobBadge, { backgroundColor: colors.primary }]}>
                       <Text style={styles.jobText}>{player.job || '未知'}</Text>
                     </View>
                   </View>

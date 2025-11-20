@@ -20,6 +20,8 @@ import UploadScreen from './screens/UploadScreen';
 import PersonManagementScreen from './screens/PersonManagementScreen';
 import GroupManagementScreen from './screens/GroupManagementScreen';
 import { getStoredToken, getStoredUser } from './services/api';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { THEMES, THEME_COLORS } from './themes/theme';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -31,41 +33,88 @@ function HomeScreen({ navigation }) {
 
 // 个人中心组件
 function ProfileScreen({ onLogout, navigation }) {
+  const { currentTheme, colors, changeTheme } = useTheme();
+
+  const themes = [
+    { key: THEMES.RED, name: '热情红', icon: 'favorite', color: '#e74c3c' },
+    { key: THEMES.BLUE, name: '科技蓝', icon: 'star', color: '#3498db' },
+    { key: THEMES.BLACK, name: '经典黑', icon: 'dark-mode', color: '#2c3e50' },
+    { key: THEMES.WHITE, name: '简约白', icon: 'light-mode', color: '#ffffff' },
+  ];
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>配置中心</Text>
+    <ScrollView style={[styles.scrollContainer, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.text }]}>配置中心</Text>
       
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => navigation.navigate('PersonManagement')}
-      >
-        <MaterialIcons name="people" size={24} color="#e74c3c" />
-        <Text style={styles.menuItemText}>人员管理</Text>
-        <MaterialIcons name="chevron-right" size={24} color="#95a5a6" />
-      </TouchableOpacity>
+      {/* 主题选择 */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>主题颜色</Text>
+        <View style={styles.themeContainer}>
+          {themes.map((theme) => (
+            <TouchableOpacity
+              key={theme.key}
+              style={[
+                styles.themeOption,
+                { backgroundColor: colors.cardBackground, borderColor: colors.border },
+                currentTheme === theme.key && { borderColor: theme.color, borderWidth: 2 }
+              ]}
+              onPress={() => changeTheme(theme.key)}
+            >
+              <View style={[styles.themeColor, { backgroundColor: theme.color }]}>
+                <MaterialIcons 
+                  name={theme.icon} 
+                  size={24} 
+                  color={theme.key === THEMES.WHITE ? '#3498db' : '#fff'} 
+                />
+              </View>
+              <Text style={[styles.themeName, { color: colors.text }]}>{theme.name}</Text>
+              {currentTheme === theme.key && (
+                <MaterialIcons name="check-circle" size={20} color={theme.color} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* 管理菜单 */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>系统管理</Text>
+        
+        <TouchableOpacity
+          style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+          onPress={() => navigation.navigate('PersonManagement')}
+        >
+          <MaterialIcons name="people" size={24} color={colors.primary} />
+          <Text style={[styles.menuItemText, { color: colors.text }]}>人员管理</Text>
+          <MaterialIcons name="chevron-right" size={24} color={colors.textLight} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.menuItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+          onPress={() => navigation.navigate('GroupManagement')}
+        >
+          <MaterialIcons name="group" size={24} color={colors.primary} />
+          <Text style={[styles.menuItemText, { color: colors.text }]}>分组管理</Text>
+          <MaterialIcons name="chevron-right" size={24} color={colors.textLight} />
+        </TouchableOpacity>
+      </View>
       
+      {/* 登出按钮 */}
       <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => navigation.navigate('GroupManagement')}
-      >
-        <MaterialIcons name="group" size={24} color="#e74c3c" />
-        <Text style={styles.menuItemText}>分组管理</Text>
-        <MaterialIcons name="chevron-right" size={24} color="#95a5a6" />
-      </TouchableOpacity>
-      
-      <TouchableOpacity
-        style={styles.logoutButton}
+        style={[styles.logoutButton, { backgroundColor: colors.primary }]}
         onPress={onLogout}
       >
-        <MaterialIcons name="logout" size={20} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={styles.logoutButtonText}>登出</Text>
+        <MaterialIcons name="logout" size={20} color={colors.headerText} style={{ marginRight: 8 }} />
+        <Text style={[styles.logoutButtonText, { color: colors.headerText }]}>登出</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 // 底部标签导航
 function TabNavigator({ onLogout }) {
+  const { colors } = useTheme();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -84,10 +133,10 @@ function TabNavigator({ onLogout }) {
           
           return <MaterialIcons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: '#e74c3c',
+          backgroundColor: colors.tabBarBackground,
           borderTopWidth: 0,
           height: 60,
           paddingBottom: 8,
@@ -98,9 +147,9 @@ function TabNavigator({ onLogout }) {
           fontWeight: '600',
         },
         headerStyle: {
-          backgroundColor: '#e74c3c',
+          backgroundColor: colors.headerBackground,
         },
-        headerTintColor: '#fff',
+        headerTintColor: colors.headerText,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -145,13 +194,15 @@ function TabNavigator({ onLogout }) {
 
 // 主堆栈导航（包含二级页面）
 function MainStackNavigator({ onLogout }) {
+  const { colors } = useTheme();
+  
   return (
     <Stack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#e74c3c',
+          backgroundColor: colors.headerBackground,
         },
-        headerTintColor: '#fff',
+        headerTintColor: colors.headerText,
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -185,7 +236,8 @@ function MainStackNavigator({ onLogout }) {
   );
 }
 
-export default function App() {
+// 主应用内容组件
+function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -243,6 +295,15 @@ export default function App() {
   );
 }
 
+// 主 App 组件，包装 ThemeProvider
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -251,11 +312,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  scrollContainer: {
+    flex: 1,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2c3e50',
-    marginBottom: 10,
+    marginBottom: 20,
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -275,6 +341,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#ecf0f1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -297,9 +366,54 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 8,
     marginTop: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
   },
   logoutButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  themeContainer: {
+    paddingHorizontal: 20,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  themeColor: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  themeName: {
+    flex: 1,
     fontSize: 16,
     fontWeight: '600',
   },

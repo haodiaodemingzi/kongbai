@@ -1,0 +1,83 @@
+// 主题配置
+
+export const THEMES = {
+  RED: 'red',
+  BLUE: 'blue',
+  BLACK: 'black',
+  WHITE: 'white',
+};
+
+export const THEME_COLORS = {
+  red: {
+    name: '热情红',
+    primary: '#e74c3c',
+    primaryDark: '#c0392b',
+    primaryLight: '#f39c9c',
+    background: '#f5f6fa',
+    cardBackground: '#ffffff',
+    text: '#2c3e50',
+    textSecondary: '#7f8c8d',
+    textLight: '#95a5a6',
+    border: '#ecf0f1',
+    tabBarBackground: '#e74c3c',
+    tabBarActive: '#ffffff',
+    tabBarInactive: 'rgba(255, 255, 255, 0.6)',
+    headerBackground: '#e74c3c',
+    headerText: '#ffffff',
+  },
+  blue: {
+    name: '科技蓝',
+    primary: '#3498db',
+    primaryDark: '#2980b9',
+    primaryLight: '#5dade2',
+    background: '#f5f6fa',
+    cardBackground: '#ffffff',
+    text: '#2c3e50',
+    textSecondary: '#7f8c8d',
+    textLight: '#95a5a6',
+    border: '#ecf0f1',
+    tabBarBackground: '#3498db',
+    tabBarActive: '#ffffff',
+    tabBarInactive: 'rgba(255, 255, 255, 0.6)',
+    headerBackground: '#3498db',
+    headerText: '#ffffff',
+  },
+  black: {
+    name: '经典黑',
+    primary: '#2c3e50',
+    primaryDark: '#1a252f',
+    primaryLight: '#34495e',
+    background: '#1a1a1a',
+    cardBackground: '#2c2c2c',
+    text: '#ecf0f1',
+    textSecondary: '#bdc3c7',
+    textLight: '#95a5a6',
+    border: '#34495e',
+    tabBarBackground: '#2c3e50',
+    tabBarActive: '#ffffff',
+    tabBarInactive: 'rgba(255, 255, 255, 0.6)',
+    headerBackground: '#2c3e50',
+    headerText: '#ffffff',
+  },
+  white: {
+    name: '简约白',
+    primary: '#ffffff',
+    primaryDark: '#ecf0f1',
+    primaryLight: '#ffffff',
+    background: '#f8f9fa',
+    cardBackground: '#ffffff',
+    text: '#2c3e50',
+    textSecondary: '#7f8c8d',
+    textLight: '#95a5a6',
+    border: '#dee2e6',
+    tabBarBackground: '#ffffff',
+    tabBarActive: '#3498db',
+    tabBarInactive: '#95a5a6',
+    headerBackground: '#ffffff',
+    headerText: '#2c3e50',
+  },
+};
+
+export const getThemeColors = (theme) => {
+  return THEME_COLORS[theme] || THEME_COLORS.red;
+};
