@@ -8,6 +8,9 @@ console.log('API Base URL:', API_BASE_URL);
 // Token 存储键
 const TOKEN_KEY = '@battle_stats_token';
 const USER_KEY = '@battle_stats_user';
+const REMEMBER_USERNAME_KEY = '@battle_stats_remember_username';
+const REMEMBER_PASSWORD_KEY = '@battle_stats_remember_password';
+const REMEMBER_SETTINGS_KEY = '@battle_stats_remember_settings';
 
 // 创建 axios 实例
 const apiClient = axios.create({
@@ -53,9 +56,11 @@ apiClient.interceptors.response.use(
  * 登录
  * @param {string} username 用户名
  * @param {string} password 密码
+ * @param {boolean} rememberUsername 是否记住用户名
+ * @param {boolean} rememberPassword 是否记住密码
  * @returns {Promise} 返回 token 和用户信息
  */
-export const login = async (username, password) => {
+export const login = async (username, password, rememberUsername = false, rememberPassword = false) => {
   try {
     const response = await apiClient.post('/api/auth/login', {
       username,
@@ -68,6 +73,26 @@ export const login = async (username, password) => {
       // 保存 token 和用户信息到本地
       await AsyncStorage.setItem(TOKEN_KEY, token);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+      
+      // 根据用户选择保存或删除用户名
+      if (rememberUsername) {
+        await AsyncStorage.setItem(REMEMBER_USERNAME_KEY, username);
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_USERNAME_KEY);
+      }
+      
+      // 根据用户选择保存或删除密码
+      if (rememberPassword) {
+        await AsyncStorage.setItem(REMEMBER_PASSWORD_KEY, password);
+      } else {
+        await AsyncStorage.removeItem(REMEMBER_PASSWORD_KEY);
+      }
+      
+      // 保存记住设置
+      await AsyncStorage.setItem(REMEMBER_SETTINGS_KEY, JSON.stringify({ 
+        rememberUsername, 
+        rememberPassword 
+      }));
       
       return { success: true, token, user };
     } else {
@@ -122,6 +147,28 @@ export const getStoredToken = async () => {
 export const getStoredUser = async () => {
   const userStr = await AsyncStorage.getItem(USER_KEY);
   return userStr ? JSON.parse(userStr) : null;
+};
+
+/**
+ * 获取记住的用户名
+ */
+export const getRememberedUsername = async () => {
+  return await AsyncStorage.getItem(REMEMBER_USERNAME_KEY);
+};
+
+/**
+ * 获取记住的密码
+ */
+export const getRememberedPassword = async () => {
+  return await AsyncStorage.getItem(REMEMBER_PASSWORD_KEY);
+};
+
+/**
+ * 获取记住设置
+ */
+export const getRememberSettings = async () => {
+  const settingsStr = await AsyncStorage.getItem(REMEMBER_SETTINGS_KEY);
+  return settingsStr ? JSON.parse(settingsStr) : { rememberUsername: false, rememberPassword: false };
 };
 
 // ==================== 首页数据 API ====================

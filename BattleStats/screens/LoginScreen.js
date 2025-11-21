@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,21 +13,48 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { login } from '../services/api';
+import { login, getRememberedUsername, getRememberedPassword, getRememberSettings } from '../services/api';
 
 export default function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberUsername, setRememberUsername] = useState(false);
+  const [rememberPassword, setRememberPassword] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
-  React.useEffect(() => {
+  useEffect(() => {
+    // 加载动画
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
+    
+    // 加载记住的用户名
+    loadRememberedUsername();
   }, []);
+
+  // 加载记住的用户名和密码
+  const loadRememberedUsername = async () => {
+    try {
+      const savedUsername = await getRememberedUsername();
+      const savedPassword = await getRememberedPassword();
+      const settings = await getRememberSettings();
+      
+      if (savedUsername && settings.rememberUsername) {
+        setUsername(savedUsername);
+        setRememberUsername(true);
+      }
+      
+      if (savedPassword && settings.rememberPassword) {
+        setPassword(savedPassword);
+        setRememberPassword(true);
+      }
+    } catch (error) {
+      console.error('加载用户名失败:', error);
+    }
+  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -37,7 +64,7 @@ export default function LoginScreen({ onLoginSuccess }) {
 
     setLoading(true);
     try {
-      const result = await login(username, password);
+      const result = await login(username, password, rememberUsername, rememberPassword);
 
       if (result.success) {
         // 登录成功，添加淡出动画后进入主界面
@@ -109,6 +136,34 @@ export default function LoginScreen({ onLoginSuccess }) {
                 />
               </View>
             </View>
+
+            {/* 记住账号复选框 */}
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setRememberUsername(!rememberUsername)}
+              disabled={loading}
+            >
+              <View style={[styles.checkbox, rememberUsername && styles.checkboxChecked]}>
+                {rememberUsername && (
+                  <MaterialIcons name="check" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>记住账号</Text>
+            </TouchableOpacity>
+
+            {/* 记住密码复选框 */}
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setRememberPassword(!rememberPassword)}
+              disabled={loading}
+            >
+              <View style={[styles.checkbox, rememberPassword && styles.checkboxChecked]}>
+                {rememberPassword && (
+                  <MaterialIcons name="check" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>记住密码</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.loginButton, loading && styles.loginButtonDisabled]}
@@ -250,6 +305,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#667eea',
     marginLeft: 8,
+    fontWeight: '500',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#667eea',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    backgroundColor: '#667eea',
+    borderColor: '#667eea',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#2c3e50',
     fontWeight: '500',
   },
 });

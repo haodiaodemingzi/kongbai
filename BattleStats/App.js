@@ -22,7 +22,7 @@ import PersonManagementScreen from './screens/PersonManagementScreen';
 import GroupManagementScreen from './screens/GroupManagementScreen';
 import ThemeSettingsScreen from './screens/ThemeSettingsScreen';
 import GodsStatsScreen from './screens/GodsStatsScreen';
-import { getStoredToken, getStoredUser } from './services/api';
+import { getStoredToken, getStoredUser, logout } from './services/api';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 const Tab = createBottomTabNavigator();
@@ -252,15 +252,22 @@ function AppContent() {
 
   const checkStoredToken = async () => {
     try {
-      // 清除旧的 token，强制用户重新登录
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('@battle_stats_token');
-      await AsyncStorage.removeItem('@battle_stats_user');
+      // 检查本地是否有保存的 token
+      const token = await getStoredToken();
+      const user = await getStoredUser();
       
-      // 不自动登录，让用户手动登录
-      setIsLoggedIn(false);
+      if (token && user) {
+        // 有保存的 token,自动登录
+        console.log('发现保存的 token,自动登录');
+        setIsLoggedIn(true);
+      } else {
+        // 没有保存的 token,显示登录界面
+        console.log('没有保存的 token,显示登录界面');
+        setIsLoggedIn(false);
+      }
     } catch (error) {
       console.error('检查 token 失败:', error);
+      setIsLoggedIn(false);
     } finally {
       setLoading(false);
     }
@@ -271,7 +278,14 @@ function AppContent() {
     setLoading(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // 调用 logout API 清除 token 和用户信息
+      // 但保留记住的用户名
+      await logout();
+    } catch (error) {
+      console.error('登出失败:', error);
+    }
     setIsLoggedIn(false);
   };
 
