@@ -45,9 +45,19 @@ export default function BattleRankingsScreen() {
   
   // 自定义时间相关状态
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState('start'); // 'start' or 'end'
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const [tempDate, setTempDate] = useState(new Date()); // 临时存储选择的日期
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date();
+    date.setHours(23, 59, 0, 0);
+    return date;
+  });
   const [showCustomModal, setShowCustomModal] = useState(false);
 
   useEffect(() => {
@@ -101,6 +111,16 @@ export default function BattleRankingsScreen() {
     return `${year}-${month}-${day}`;
   };
   
+  // 格式化日期时间为 YYYY-MM-DD HH:MM
+  const formatDateTime = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
+  
   // 处理时间选择
   const handleTimeSelect = (value) => {
     if (value === 'custom') {
@@ -112,12 +132,41 @@ export default function BattleRankingsScreen() {
   
   // 处理日期选择
   const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'set' && selectedDate) {
+        // Android: 选择日期后,打开时间选择器
+        setTempDate(selectedDate);
+        setShowTimePicker(true);
+      }
+    } else {
+      // iOS: 直接更新日期时间
+      if (selectedDate) {
+        if (datePickerMode === 'start') {
+          setStartDate(selectedDate);
+        } else {
+          setEndDate(selectedDate);
+        }
+      }
+    }
+  };
+  
+  // 处理时间选择
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    
+    if (event.type === 'set' && selectedTime) {
+      // 合并日期和时间
+      const finalDate = new Date(tempDate);
+      finalDate.setHours(selectedTime.getHours());
+      finalDate.setMinutes(selectedTime.getMinutes());
+      finalDate.setSeconds(0);
+      finalDate.setMilliseconds(0);
+      
       if (datePickerMode === 'start') {
-        setStartDate(selectedDate);
+        setStartDate(finalDate);
       } else {
-        setEndDate(selectedDate);
+        setEndDate(finalDate);
       }
     }
   };
@@ -184,7 +233,7 @@ export default function BattleRankingsScreen() {
                     {item.label}
                     {item.value === 'custom' && selectedTime === 'custom' && (
                       <Text style={styles.customDateText}>
-                        {'\n'}{formatDate(startDate)} ~ {formatDate(endDate)}
+                        {' \n'}{formatDateTime(startDate)}{' \n'}至 {formatDateTime(endDate)}
                       </Text>
                     )}
                   </Text>
@@ -277,28 +326,30 @@ export default function BattleRankingsScreen() {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>选择时间范围</Text>
             
-            {/* 开始日期 */}
+            {/* 开始日期时间 */}
             <TouchableOpacity
               style={styles.dateButton}
               onPress={() => {
                 setDatePickerMode('start');
+                setTempDate(startDate);
                 setShowDatePicker(true);
               }}
             >
-              <Text style={styles.dateLabel}>开始日期:</Text>
-              <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
+              <Text style={styles.dateLabel}>开始时间:</Text>
+              <Text style={styles.dateValue}>{formatDateTime(startDate)}</Text>
             </TouchableOpacity>
             
-            {/* 结束日期 */}
+            {/* 结束日期时间 */}
             <TouchableOpacity
               style={styles.dateButton}
               onPress={() => {
                 setDatePickerMode('end');
+                setTempDate(endDate);
                 setShowDatePicker(true);
               }}
             >
-              <Text style={styles.dateLabel}>结束日期:</Text>
-              <Text style={styles.dateValue}>{formatDate(endDate)}</Text>
+              <Text style={styles.dateLabel}>结束时间:</Text>
+              <Text style={styles.dateValue}>{formatDateTime(endDate)}</Text>
             </TouchableOpacity>
             
             {/* 按钮组 */}
@@ -323,10 +374,21 @@ export default function BattleRankingsScreen() {
       {/* 日期选择器 */}
       {showDatePicker && (
         <DateTimePicker
-          value={datePickerMode === 'start' ? startDate : endDate}
-          mode="date"
+          value={tempDate}
+          mode={Platform.OS === 'ios' ? 'datetime' : 'date'}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={onDateChange}
+        />
+      )}
+      
+      {/* 时间选择器 (仅 Android) */}
+      {showTimePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={tempDate}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onTimeChange}
         />
       )}
     </View>
