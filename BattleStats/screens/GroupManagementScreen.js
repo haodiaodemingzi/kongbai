@@ -15,7 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'https://bigmang.xyz';
+const API_BASE_URL = 'https://bigmang.top';
 const TOKEN_KEY = '@battle_stats_token';
 
 export default function GroupManagementScreen() {

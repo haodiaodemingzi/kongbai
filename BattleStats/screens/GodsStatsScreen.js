@@ -33,7 +33,9 @@ export default function GodsStatsScreen() {
   
   // 自定义时间相关状态
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState('start'); // 'start' or 'end'
+  const [tempDate, setTempDate] = useState(new Date()); // 临时存储选择的日期
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
@@ -103,13 +105,41 @@ export default function GodsStatsScreen() {
 
   // 处理日期选择
   const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'set' && selectedDate) {
+        // Android: 选择日期后,打开时间选择器
+        setTempDate(selectedDate);
+        setShowTimePicker(true);
+      }
+    } else {
+      // iOS: 直接更新日期
+      if (selectedDate) {
+        if (datePickerMode === 'start') {
+          setStartDate(selectedDate);
+        } else {
+          setEndDate(selectedDate);
+        }
+      }
+    }
+  };
+
+  // 处理时间选择
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
     
-    if (selectedDate) {
+    if (event.type === 'set' && selectedTime) {
+      // 合并日期和时间
+      const finalDate = new Date(tempDate);
+      finalDate.setHours(selectedTime.getHours());
+      finalDate.setMinutes(selectedTime.getMinutes());
+      finalDate.setSeconds(0);
+      finalDate.setMilliseconds(0);
+      
       if (datePickerMode === 'start') {
-        setStartDate(selectedDate);
+        setStartDate(finalDate);
       } else {
-        setEndDate(selectedDate);
+        setEndDate(finalDate);
       }
     }
   };
@@ -117,6 +147,7 @@ export default function GodsStatsScreen() {
   // 打开日期选择器
   const openDatePicker = (mode) => {
     setDatePickerMode(mode);
+    setTempDate(mode === 'start' ? startDate : endDate);
     setShowDatePicker(true);
   };
 
@@ -492,10 +523,21 @@ export default function GodsStatsScreen() {
       {/* 日期选择器 */}
       {showDatePicker && (
         <DateTimePicker
-          value={datePickerMode === 'start' ? startDate : endDate}
-          mode="datetime"
+          value={tempDate}
+          mode={Platform.OS === 'ios' ? 'datetime' : 'date'}
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={onDateChange}
+        />
+      )}
+
+      {/* 时间选择器 (仅 Android) */}
+      {showTimePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={tempDate}
+          mode="time"
+          is24Hour={true}
+          display="default"
+          onChange={onTimeChange}
         />
       )}
     </View>

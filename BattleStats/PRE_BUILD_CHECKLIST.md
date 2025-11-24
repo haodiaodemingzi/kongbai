@@ -4,7 +4,7 @@
 
 ### 1. API 配置 ✅
 - [x] API 地址已设置为生产环境
-- [x] 当前地址: `https://bigmang.xyz`
+- [x] 当前地址: `https://bigmang.top`
 - [x] 文件位置: `config.js`
 
 ```javascript

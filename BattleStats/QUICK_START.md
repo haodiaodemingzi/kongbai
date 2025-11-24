@@ -14,7 +14,7 @@ npm install
 编辑 `services/api.js` 第 6 行：
 
 ```javascript
-const API_BASE_URL = 'https://bigmang.xyz'; // 改成你的服务器地址
+const API_BASE_URL = 'https://bigmang.top'; // 改成你的服务器地址
 ```
 
 ### 步骤 3: 运行应用
@@ -113,7 +113,7 @@ npm start
 
 #### 1. 测试登录
 ```
-POST https://bigmang.xyz/auth/api/login
+POST https://bigmang.top/auth/api/login
 Content-Type: application/json
 
 {
@@ -139,7 +139,7 @@ Content-Type: application/json
 
 #### 2. 测试获取排名（需要 token）
 ```
-GET https://bigmang.xyz/battle/api/rankings?time_range=week&faction=比湿奴
+GET https://bigmang.top/battle/api/rankings?time_range=week&faction=比湿奴
 Authorization: Bearer <your_token>
 ```
 
@@ -165,7 +165,7 @@ Authorization: Bearer <your_token>
 
 #### 3. 测试获取首页数据（需要 token）
 ```
-GET https://bigmang.xyz/api/dashboard?date_range=week
+GET https://bigmang.top/api/dashboard?date_range=week
 Authorization: Bearer <your_token>
 ```
 

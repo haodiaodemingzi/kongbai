@@ -69,7 +69,7 @@ eas build --platform android --profile preview
 
 ### 1. API 地址已配置
 
-当前使用生产环境：`https://bigmang.xyz`
+当前使用生产环境：`https://bigmang.top`
 
 如需修改，编辑 `config.js`:
 ```javascript

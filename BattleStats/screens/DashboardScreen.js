@@ -13,7 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'https://bigmang.xyz';
+const API_BASE_URL = 'https://bigmang.top';
 const TOKEN_KEY = '@battle_stats_token';
 
 const screenWidth = Dimensions.get('window').width;

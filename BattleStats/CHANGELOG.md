@@ -138,7 +138,7 @@
 - 主题色: #667eea
 
 ### config.js
-- API 地址: https://bigmang.xyz
+- API 地址: https://bigmang.top
 - 环境: production
 
 ### eas.json

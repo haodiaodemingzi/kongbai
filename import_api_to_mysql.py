@@ -30,18 +30,18 @@ load_dotenv()
 SQL_OUTPUT_FILE = "person_data.sql"
 
 # API配置
-API_BASE_URL = 'https://bigmang.xyz/api/api/v1/person'
+API_BASE_URL = 'https://bigmang.top/api/api/v1/person'
 TOTAL_PAGES = 3
 PAGE_SIZE = 500
 AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhc2NvcGUiOiIxIiwiZXhwIjoxNzQyNjQyOTc4LCJpZGVudGl0eSI6MSwibmljZSI6ImFkbWluIiwib3JpZ19pYXQiOjE3NDI2MzkzNzgsInJvbGVpZCI6MSwicm9sZWtleSI6ImFkbWluIiwicm9sZW5hbWUiOiLns7vnu5_nrqHnkIblkZgifQ.ZAOBc-rMmyRwMOjMGb6_0QkG6zxvvVaDo7ANPcYnJI0'
 
 # 请求头
 HEADERS = {
-    'authority': 'bigmang.xyz',
+    'authority': 'bigmang.top',
     'accept': 'application/json, text/plain, */*',
     'accept-language': 'zh-CN,zh;q=0.9',
     'authorization': f'Bearer {AUTH_TOKEN}',
-    'referer': 'https://bigmang.xyz/admin/person',
+    'referer': 'https://bigmang.top/admin/person',
     'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-platform': '"Windows"',

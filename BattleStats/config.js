@@ -15,9 +15,9 @@ const API_URLS = {
   },
   // 生产环境
   production: {
-    android: 'https://bigmang.xyz',
-    ios: 'https://bigmang.xyz',
-    web: 'https://bigmang.xyz',
+    android: 'https://bigmang.top',
+    ios: 'https://bigmang.top',
+    web: 'https://bigmang.top',
   },
 };
 

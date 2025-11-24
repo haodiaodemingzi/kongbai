@@ -74,9 +74,9 @@ const ENV = 'production'; // 使用生产环境
 生产环境地址已配置为：
 ```javascript
 production: {
-  android: 'https://bigmang.xyz',
-  ios: 'https://bigmang.xyz',
-  web: 'https://bigmang.xyz',
+  android: 'https://bigmang.top',
+  ios: 'https://bigmang.top',
+  web: 'https://bigmang.top',
 }
 ```
 
@@ -95,7 +95,7 @@ Invoke-WebRequest -Uri "http://localhost:5000/api/auth/login" -Method POST -Cont
 
 ```bash
 # Postman
-POST https://bigmang.xyz/api/auth/login
+POST https://bigmang.top/api/auth/login
 Content-Type: application/json
 
 {
@@ -230,9 +230,9 @@ const ENV = 'production';
 
 const API_URLS = {
   production: {
-    android: 'https://bigmang.xyz',
-    ios: 'https://bigmang.xyz',
-    web: 'https://bigmang.xyz',
+    android: 'https://bigmang.top',
+    ios: 'https://bigmang.top',
+    web: 'https://bigmang.top',
   },
 };
 ```
