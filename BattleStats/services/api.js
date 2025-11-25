@@ -269,12 +269,24 @@ export const getPlayerDetails = async (playerName, timeRange = 'week') => {
 /**
  * 获取玩家详细信息
  * @param {string} playerName 玩家名称
- * @param {string} timeRange 时间范围
+ * @param {Object} params 参数
+ * @param {string} params.time_range 时间范围
+ * @param {string} params.start_datetime 开始时间
+ * @param {string} params.end_datetime 结束时间
  */
-export const getPlayerDetail = async (playerName, timeRange = 'week') => {
+export const getPlayerDetail = async (playerName, params = {}) => {
   try {
+    const requestParams = {};
+    
+    if (params.start_datetime && params.end_datetime) {
+      requestParams.start_datetime = params.start_datetime;
+      requestParams.end_datetime = params.end_datetime;
+    } else {
+      requestParams.time_range = params.time_range || 'week';
+    }
+    
     const response = await apiClient.get(`/api/battle/player/${encodeURIComponent(playerName)}`, {
-      params: { time_range: timeRange },
+      params: requestParams,
     });
 
     if (response.data.status === 'success') {
@@ -388,6 +400,73 @@ export const getGroupDetails = async (params = {}) => {
     return {
       success: false,
       message: error.response?.data?.message || '获取分组详情失败',
+    };
+  }
+};
+
+/**
+ * 获取职业列表
+ */
+export const getJobs = async () => {
+  try {
+    const response = await apiClient.get('/api/battle/jobs');
+
+    if (response.data.status === 'success') {
+      return { success: true, data: response.data.data };
+    } else {
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    console.error('获取职业列表失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '获取职业列表失败',
+    };
+  }
+};
+
+/**
+ * 获取分组击杀/被杀明细
+ * @param {Object} params 参数
+ * @param {string} params.group_name 分组名称
+ * @param {string} params.direction 方向 (out: 分组杀了谁, in: 分组被谁杀)
+ * @param {string} params.time_range 时间范围
+ * @param {string} params.start_datetime 开始时间
+ * @param {string} params.end_datetime 结束时间
+ * @param {number} params.limit 返回条数
+ */
+export const getGroupKillDetails = async (params = {}) => {
+  try {
+    const requestParams = {
+      group_name: params.group_name,
+      direction: params.direction || 'out',
+    };
+    
+    if (params.start_datetime && params.end_datetime) {
+      requestParams.start_datetime = params.start_datetime;
+      requestParams.end_datetime = params.end_datetime;
+    } else {
+      requestParams.time_range = params.time_range || 'week';
+    }
+    
+    if (params.limit) {
+      requestParams.limit = params.limit;
+    }
+    
+    const response = await apiClient.get('/api/battle/group_kill_details', {
+      params: requestParams,
+    });
+
+    if (response.data.status === 'success') {
+      return { success: true, data: response.data.data };
+    } else {
+      return { success: false, message: response.data.message };
+    }
+  } catch (error) {
+    console.error('获取分组击杀明细失败:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '获取分组击杀明细失败',
     };
   }
 };

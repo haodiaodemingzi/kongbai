@@ -13,10 +13,12 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { getGodsStats, getGroupDetails } from '../services/api';
+import { getGodsStats, getGroupDetails, getGroupKillDetails } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import PlayerDetailScreen from './PlayerDetailScreen';
+import GroupDetailScreen from './GroupDetailScreen';
 
 export default function GodsStatsScreen() {
   const { colors } = useTheme();
@@ -24,9 +26,6 @@ export default function GodsStatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({});
   const [showGrouped, setShowGrouped] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState({}); // 记录展开的分组
-  const [groupMembers, setGroupMembers] = useState({}); // 缓存分组成员数据
-  const [loadingGroups, setLoadingGroups] = useState({}); // 记录正在加载的分组
   const [isCapturing, setIsCapturing] = useState(false); // 截图中状态
   const scrollViewRef = useRef(null); // ScrollView 引用
   const contentRef = useRef(null); // 内容引用，用于截图
@@ -47,6 +46,8 @@ export default function GodsStatsScreen() {
     return date;
   });
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
 
   useEffect(() => {
     fetchGodsStats();
@@ -188,59 +189,6 @@ export default function GodsStatsScreen() {
     }
   };
 
-  // 切换分组展开/折叠
-  const toggleGroupExpand = async (godName, playerName) => {
-    const groupKey = `${godName}_${playerName}`;
-    
-    // 如果已经展开，则折叠
-    if (expandedGroups[groupKey]) {
-      setExpandedGroups(prev => ({
-        ...prev,
-        [groupKey]: false
-      }));
-      return;
-    }
-    
-    // 如果已经有缓存数据，直接展开
-    if (groupMembers[groupKey]) {
-      setExpandedGroups(prev => ({
-        ...prev,
-        [groupKey]: true
-      }));
-      return;
-    }
-    
-    // 否则加载数据
-    setLoadingGroups(prev => ({ ...prev, [groupKey]: true }));
-    
-    try {
-      const result = await getGroupDetails({
-        god: godName,
-        player_name: playerName,
-        start_datetime: formatDateTime(startDate),
-        end_datetime: formatDateTime(endDate),
-      });
-      
-      if (result.success) {
-        setGroupMembers(prev => ({
-          ...prev,
-          [groupKey]: result.data.members || []
-        }));
-        setExpandedGroups(prev => ({
-          ...prev,
-          [groupKey]: true
-        }));
-      } else {
-        Alert.alert('错误', result.message || '获取分组详情失败');
-      }
-    } catch (error) {
-      console.error('获取分组详情失败:', error);
-      Alert.alert('错误', '网络错误，请稍后重试');
-    } finally {
-      setLoadingGroups(prev => ({ ...prev, [groupKey]: false }));
-    }
-  };
-
   // 渲染统计卡片
   const renderStatsCard = (godName, godData) => {
     const godColors = {
@@ -288,18 +236,19 @@ export default function GodsStatsScreen() {
           </View>
 
           {/* 玩家数据 */}
-          {godData.players && godData.players.map((player, index) => {
-            const groupKey = `${godName}_${player.name}`;
-            const isExpanded = expandedGroups[groupKey];
-            const isLoading = loadingGroups[groupKey];
-            const members = groupMembers[groupKey] || [];
-            
-            return (
+          {godData.players && godData.players.map((player, index) => (
               <View key={index}>
-                {/* 主行 - 可点击展开 */}
+                {/* 主行 - 可点击查看详情或展开成员 */}
                 <TouchableOpacity
-                  disabled={!showGrouped || !player.is_group}
-                  onPress={() => showGrouped && player.is_group && toggleGroupExpand(godName, player.name)}
+                  onPress={() => {
+                    if (showGrouped && player.is_group) {
+                      // 分组模式下点击分组 -> 显示分组详情
+                      setSelectedGroup(player.name);
+                    } else {
+                      // 非分组或普通玩家 -> 显示玩家详情
+                      setSelectedPlayer(player.name);
+                    }
+                  }}
                   style={[
                     styles.playerRow,
                     { backgroundColor: index % 2 === 0 ? colors.cardBackground : colors.background },
@@ -318,7 +267,7 @@ export default function GodsStatsScreen() {
                     </Text>
                     {showGrouped && player.is_group && (
                       <MaterialIcons 
-                        name={isExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
+                        name="info" 
                         size={18} 
                         color={colors.primary} 
                       />
@@ -330,64 +279,35 @@ export default function GodsStatsScreen() {
                     {player.bless > 0 ? `🏮${player.bless}` : '0'}
                   </Text>
                 </TouchableOpacity>
-
-                {/* 展开的成员列表 */}
-                {showGrouped && player.is_group && isExpanded && (
-                  <View style={[styles.membersContainer, { backgroundColor: colors.background }]}>
-                    {isLoading ? (
-                      <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="small" color={colors.primary} />
-                        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>加载中...</Text>
-                      </View>
-                    ) : members.length > 0 ? (
-                      <>
-                        {/* 成员表头 */}
-                        <View style={styles.memberHeader}>
-                          <Text style={[styles.memberHeaderText, { flex: 2, color: colors.textSecondary }]}>游戏ID</Text>
-                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>神族</Text>
-                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>击杀</Text>
-                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>死亡</Text>
-                          <Text style={[styles.memberHeaderText, { flex: 1, color: colors.textSecondary }]}>爆灯</Text>
-                        </View>
-                        {/* 成员数据 */}
-                        {members.map((member, mIndex) => (
-                          <View 
-                            key={mIndex} 
-                            style={[
-                              styles.memberRow,
-                              { borderBottomColor: colors.border }
-                            ]}
-                          >
-                            <Text style={[styles.memberName, { color: colors.text }]} numberOfLines={1}>
-                              {member.name}
-                            </Text>
-                            <Text style={[styles.memberGod, { color: colors.textSecondary }]}>
-                              {member.god}
-                            </Text>
-                            <Text style={[styles.memberStat, { color: colors.primary }]}>{member.kills}</Text>
-                            <Text style={[styles.memberStat, { color: '#e74c3c' }]}>{member.deaths}</Text>
-                            <Text style={[styles.memberStat, { color: member.bless > 0 ? '#27ae60' : colors.textSecondary }]}>
-                              {member.bless > 0 ? `🏮${member.bless}` : '0'}
-                            </Text>
-                          </View>
-                        ))}
-                      </>
-                    ) : (
-                      <View style={styles.emptyMembersContainer}>
-                        <Text style={[styles.emptyMembersText, { color: colors.textSecondary }]}>
-                          暂无成员数据
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )}
               </View>
-            );
-          })}
+            )
+          )}
         </View>
       </View>
     );
   };
+
+  // 如果选中了分组，显示分组详情
+  if (selectedGroup) {
+    return (
+      <GroupDetailScreen
+        groupName={selectedGroup}
+        timeRange={{ startDate, endDate }}
+        onBack={() => setSelectedGroup(null)}
+      />
+    );
+  }
+
+  // 如果选中了玩家，显示玩家详情
+  if (selectedPlayer) {
+    return (
+      <PlayerDetailScreen
+        playerName={selectedPlayer}
+        timeRange={{ startDate, endDate }}
+        onBack={() => setSelectedPlayer(null)}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -702,61 +622,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  membersContainer: {
-    paddingLeft: 16,
-    paddingVertical: 4,
-    borderLeftWidth: 2,
-    borderLeftColor: '#e0e0e0',
-    marginLeft: 8,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  memberHeader: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#d0d0d0',
-    backgroundColor: '#f5f5f5',
-  },
-  memberHeaderText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  memberRow: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    alignItems: 'center',
-  },
-  memberName: {
-    flex: 2,
-    fontSize: 12,
-  },
-  memberGod: {
-    flex: 1,
-    fontSize: 11,
-    textAlign: 'center',
-  },
-  memberStat: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  emptyMembersContainer: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  emptyMembersText: {
-    fontSize: 12,
   },
   emptyContainer: {
     alignItems: 'center',

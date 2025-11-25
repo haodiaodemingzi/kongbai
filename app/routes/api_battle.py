@@ -26,7 +26,8 @@ from app.services.battle_service import (
     get_god_rankings as get_god_rankings_service,
     get_gods_stats as get_gods_stats_service,
     get_all_jobs as get_all_jobs_service,
-    get_faction_kill_details as get_faction_kill_details_service
+    get_faction_kill_details as get_faction_kill_details_service,
+    get_group_kill_details as get_group_kill_details_service
 )
 
 # 导入必要的函数（从 battle.py）
@@ -370,6 +371,72 @@ def api_get_gods_stats():
         return jsonify({
             'status': 'error',
             'message': f'获取三神统计失败: {str(e)}'
+        }), 500
+
+
+@api_battle_bp.route('/group_kill_details', methods=['GET'])
+@token_required
+def api_get_group_kill_details():
+    """API 获取玩家分组的击杀/被杀明细汇总"""
+    try:
+        group_name = request.args.get('group_name')
+        direction = request.args.get('direction', 'out')
+        time_range = request.args.get('time_range', 'week')
+        start_datetime = request.args.get('start_datetime')
+        end_datetime = request.args.get('end_datetime')
+        limit = request.args.get('limit', default=100, type=int)
+
+        if not group_name:
+            return jsonify({
+                'status': 'error',
+                'message': '缺少必要参数: group_name'
+            }), 400
+
+        # 解析日期时间
+        start_dt = None
+        end_dt = None
+        
+        if start_datetime:
+            try:
+                start_dt = datetime.strptime(start_datetime, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return jsonify({
+                    'status': 'error',
+                    'message': '开始时间格式不正确，应为 YYYY-MM-DD HH:MM:SS'
+                }), 400
+                
+        if end_datetime:
+            try:
+                end_dt = datetime.strptime(end_datetime, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return jsonify({
+                    'status': 'error',
+                    'message': '结束时间格式不正确，应为 YYYY-MM-DD HH:MM:SS'
+                }), 400
+
+        details = get_group_kill_details_service(
+            group_name=group_name,
+            direction=direction,
+            time_range=time_range,
+            start_datetime=start_dt,
+            end_datetime=end_dt,
+            limit=limit
+        )
+
+        return jsonify({
+            'status': 'success',
+            'message': '获取分组击杀明细成功',
+            'data': {
+                'group_name': group_name,
+                'direction': direction,
+                'details': details
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"API 获取分组击杀明细时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'获取分组击杀明细失败: {str(e)}'
         }), 500
 
 

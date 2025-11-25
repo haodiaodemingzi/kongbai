@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { getPlayerRankings } from '../services/api';
+import { getPlayerRankings, getJobs } from '../services/api';
 import PlayerDetailScreen from './PlayerDetailScreen';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -41,7 +41,10 @@ export default function BattleRankingsScreen() {
   const [players, setPlayers] = useState([]);
   const [selectedTime, setSelectedTime] = useState('today');
   const [selectedFaction, setSelectedFaction] = useState('');
+  const [selectedJob, setSelectedJob] = useState('');
+  const [jobs, setJobs] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedPlayerTimeRange, setSelectedPlayerTimeRange] = useState(null);
   
   // 自定义时间相关状态
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -61,13 +64,26 @@ export default function BattleRankingsScreen() {
   const [showCustomModal, setShowCustomModal] = useState(false);
 
   useEffect(() => {
+    fetchJobs();
     fetchRankings();
-  }, [selectedTime, selectedFaction, startDate, endDate]);
+  }, [selectedTime, selectedFaction, selectedJob, startDate, endDate]);
+
+  const fetchJobs = async () => {
+    try {
+      const result = await getJobs();
+      if (result.success) {
+        setJobs(result.data);
+      }
+    } catch (error) {
+      console.error('获取职业列表失败:', error);
+    }
+  };
 
   const fetchRankings = async () => {
     try {
       const params = {
         faction: selectedFaction,
+        job: selectedJob,
       };
       
       // 如果是自定义时间，使用日期参数
@@ -192,6 +208,7 @@ export default function BattleRankingsScreen() {
     return (
       <PlayerDetailScreen
         playerName={selectedPlayer}
+        timeRange={selectedPlayerTimeRange}
         onBack={() => setSelectedPlayer(null)}
       />
     );
@@ -268,6 +285,50 @@ export default function BattleRankingsScreen() {
             ))}
           </View>
         </View>
+
+        {/* 职业筛选 */}
+        <View style={styles.filterSection}>
+          <Text style={styles.filterLabel}>职业筛选</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.filterButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.filterButton,
+                  selectedJob === '' && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => setSelectedJob('')}
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    selectedJob === '' && styles.filterButtonTextActive,
+                  ]}
+                >
+                  全部
+                </Text>
+              </TouchableOpacity>
+              {jobs.map((job) => (
+                <TouchableOpacity
+                  key={job}
+                  style={[
+                    styles.filterButton,
+                    selectedJob === job && { backgroundColor: colors.primary },
+                  ]}
+                  onPress={() => setSelectedJob(job)}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedJob === job && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    {job}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
       </View>
 
       {/* 排名列表 */}
@@ -291,7 +352,10 @@ export default function BattleRankingsScreen() {
           <TouchableOpacity
             key={player.id}
             style={styles.tableRow}
-            onPress={() => setSelectedPlayer(player.name)}
+            onPress={() => {
+              setSelectedPlayer(player.name);
+              setSelectedPlayerTimeRange(selectedTime === 'custom' ? { startDate, endDate } : { timeRange: selectedTime });
+            }}
           >
             <View style={[styles.cell, styles.nameCell]}>
               <Text style={styles.playerName}>

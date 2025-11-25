@@ -652,6 +652,91 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
         raise
 
 
+def get_group_kill_details(group_name, direction='out', time_range='week', start_datetime=None, end_datetime=None, limit=100):
+    """
+    获取指定玩家分组的击杀/被杀明细汇总
+    direction为out表示该分组击杀了哪些人, 为in表示该分组被哪些人击杀
+    支持时间筛选
+    """
+    from datetime import datetime, timedelta
+    
+    # 构建时间条件
+    date_condition = ""
+    params = {'group_name': group_name}
+    
+    if start_datetime and end_datetime:
+        date_condition = "AND br.publish_at BETWEEN :start_datetime AND :end_datetime"
+        params['start_datetime'] = start_datetime
+        params['end_datetime'] = end_datetime
+    elif time_range:
+        now = datetime.now()
+        if time_range == 'today':
+            date_condition = "AND DATE(br.publish_at) = CURDATE()"
+        elif time_range == 'yesterday':
+            date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+        elif time_range == 'week':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+        elif time_range == 'month':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+        elif time_range == 'three_months':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)"
+        elif time_range == 'all':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)"
+    
+    if direction == 'out':
+        # 该分组击杀了哪些人
+        sql = f"""
+        SELECT 
+            v.id AS target_id,
+            v.name AS target_name,
+            v.job AS target_job,
+            v.god AS target_god,
+            COUNT(*) AS cnt
+        FROM battle_record br
+        JOIN person k ON br.win = k.name
+        JOIN person v ON br.lost = v.name
+        JOIN player_group pg ON k.player_group_id = pg.id
+        WHERE pg.group_name = :group_name
+          AND br.deleted_at IS NULL
+          {date_condition}
+        GROUP BY v.id, v.name, v.job, v.god
+        ORDER BY cnt DESC
+        LIMIT {int(limit)}
+        """
+    else:
+        # 该分组被哪些人击杀
+        sql = f"""
+        SELECT 
+            k.id AS target_id,
+            k.name AS target_name,
+            k.job AS target_job,
+            k.god AS target_god,
+            COUNT(*) AS cnt
+        FROM battle_record br
+        JOIN person v ON br.lost = v.name
+        JOIN person k ON br.win = k.name
+        JOIN player_group pg ON v.player_group_id = pg.id
+        WHERE pg.group_name = :group_name
+          AND br.deleted_at IS NULL
+          {date_condition}
+        GROUP BY k.id, k.name, k.job, k.god
+        ORDER BY cnt DESC
+        LIMIT {int(limit)}
+        """
+    
+    rows = db.session.execute(text(sql), params).fetchall()
+    return [
+        {
+            'id': r.target_id,
+            'name': r.target_name,
+            'job': r.target_job,
+            'god': r.target_god,
+            'count': int(r.cnt or 0)
+        }
+        for r in rows
+    ]
+
+
 def get_faction_kill_details(faction, direction='out', time_range='week', start_datetime=None, end_datetime=None, limit=100):
     """
     获取指定势力的击杀明细

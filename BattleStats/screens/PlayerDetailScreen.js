@@ -11,7 +11,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { getPlayerDetail } from '../services/api';
 
-export default function PlayerDetailScreen({ playerName, onBack }) {
+export default function PlayerDetailScreen({ playerName, timeRange, onBack }) {
   
   const [loading, setLoading] = useState(true);
   const [playerData, setPlayerData] = useState(null);
@@ -23,7 +23,18 @@ export default function PlayerDetailScreen({ playerName, onBack }) {
   const fetchPlayerDetail = async () => {
     try {
       setLoading(true);
-      const result = await getPlayerDetail(playerName);
+      const params = {};
+      
+      if (timeRange) {
+        if (timeRange.startDate && timeRange.endDate) {
+          params.start_datetime = formatDateTime(timeRange.startDate);
+          params.end_datetime = formatDateTime(timeRange.endDate);
+        } else if (timeRange.timeRange) {
+          params.time_range = timeRange.timeRange;
+        }
+      }
+      
+      const result = await getPlayerDetail(playerName, params);
       
       if (result.success) {
         setPlayerData(result.data);
@@ -36,6 +47,15 @@ export default function PlayerDetailScreen({ playerName, onBack }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatDateTime = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:00`;
   };
 
   if (loading) {
@@ -115,6 +135,56 @@ export default function PlayerDetailScreen({ playerName, onBack }) {
           </Text>
           <Text style={styles.statLabel}>总分</Text>
         </View>
+      </View>
+
+      {/* 击杀明细 */}
+      <View style={styles.detailsSection}>
+        <Text style={styles.sectionTitle}>击杀明细</Text>
+        {playerData.kills_details && playerData.kills_details.length > 0 ? (
+          playerData.kills_details.map((kill, index) => (
+            <View key={kill.id || index} style={styles.detailCard}>
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailName}>{kill.name}</Text>
+                <Text style={[styles.detailCount, styles.killCount]}>{kill.count}次</Text>
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>职业：</Text>
+                <Text style={styles.detailValue}>{kill.job}</Text>
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>势力：</Text>
+                <Text style={styles.detailValue}>{kill.god}</Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noDataText}>暂无击杀记录</Text>
+        )}
+      </View>
+
+      {/* 被杀明细 */}
+      <View style={styles.detailsSection}>
+        <Text style={styles.sectionTitle}>被杀明细</Text>
+        {playerData.deaths_details && playerData.deaths_details.length > 0 ? (
+          playerData.deaths_details.map((death, index) => (
+            <View key={death.id || index} style={styles.detailCard}>
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailName}>{death.name}</Text>
+                <Text style={[styles.detailCount, styles.deathCount]}>{death.count}次</Text>
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>职业：</Text>
+                <Text style={styles.detailValue}>{death.job}</Text>
+              </View>
+              <View style={styles.detailInfo}>
+                <Text style={styles.detailLabel}>势力：</Text>
+                <Text style={styles.detailValue}>{death.god}</Text>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noDataText}>暂无被杀记录</Text>
+        )}
       </View>
 
       {/* 近期战斗记录 */}
@@ -272,6 +342,58 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: '#7f8c8d',
+  },
+  detailsSection: {
+    padding: 15,
+  },
+  detailCard: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ecf0f1',
+  },
+  detailName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+  detailCount: {
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  killCount: {
+    color: '#27ae60',
+  },
+  deathCount: {
+    color: '#e74c3c',
+  },
+  detailInfo: {
+    flexDirection: 'row',
+    marginBottom: 3,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    width: 50,
+  },
+  detailValue: {
+    fontSize: 12,
+    color: '#2c3e50',
+    fontWeight: '500',
   },
   battlesSection: {
     padding: 15,
