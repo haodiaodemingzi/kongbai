@@ -72,7 +72,19 @@ export default function BattleRankingsScreen() {
     try {
       const result = await getJobs();
       if (result.success) {
-        setJobs(result.data);
+        // 过滤掉空字符串和纯数字的职业
+        const filteredJobs = result.data.filter(job => {
+          // 去除空字符串、null、undefined
+          if (!job || job.trim() === '') {
+            return false;
+          }
+          // 去除纯数字的职业
+          if (/^\d+$/.test(job.trim())) {
+            return false;
+          }
+          return true;
+        });
+        setJobs(filteredJobs);
       }
     } catch (error) {
       console.error('获取职业列表失败:', error);
