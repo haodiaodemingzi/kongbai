@@ -19,8 +19,25 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import PlayerDetailScreen from './PlayerDetailScreen';
 import GroupDetailScreen from './GroupDetailScreen';
+import GroupMembersScreen from './GroupMembersScreen';
 
-export default function GodsStatsScreen() {
+// 格式化日期范围显示
+const formatDateRange = (startDate, endDate) => {
+  if (!startDate || !endDate) return '选择时间范围';
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  const formatDate = (date) => {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}-${day}`;
+  };
+  
+  return `${formatDate(start)} ~ ${formatDate(end)}`;
+};
+
+export default function GodsStatsScreen({ navigation }) {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,6 +65,7 @@ export default function GodsStatsScreen() {
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
 
   useEffect(() => {
     fetchGodsStats();
@@ -198,94 +216,111 @@ export default function GodsStatsScreen() {
     };
 
     return (
-      <View key={godName} style={[styles.godCard, { borderLeftColor: godColors[godName] || colors.primary }]}>
+      <View key={godName} style={styles.godCard}>
+        {/* 势力头部 - 参考PlayerDetailScreen的深色头部 */}
         <View style={[styles.godHeader, { backgroundColor: godColors[godName] || colors.primary }]}>
           <Text style={styles.godName}>{godName}</Text>
-        </View>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{godData.player_count}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>玩家</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{godData.kills}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>击杀</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#e74c3c' }]}>{godData.deaths}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>死亡</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#27ae60' }]}>{godData.bless}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>爆灯</Text>
-          </View>
+          <Text style={styles.godSubtitle}>势力统计</Text>
         </View>
 
-        {/* 玩家列表 */}
+        {/* 玩家卡片列表 */}
         <View style={styles.playersContainer}>
-          {/* 玩家战绩标题已移除 */}
-          {/* 表头 */}
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, { flex: 2, color: colors.text }]}>
-              {showGrouped ? '玩家' : '游戏ID'}
-            </Text>
-            <Text style={[styles.tableHeaderText, { flex: 1, color: colors.text }]}>击杀</Text>
-            <Text style={[styles.tableHeaderText, { flex: 1, color: colors.text }]}>死亡</Text>
-            <Text style={[styles.tableHeaderText, { flex: 1, color: colors.text }]}>爆灯</Text>
-          </View>
-
-          {/* 玩家数据 */}
           {godData.players && godData.players.map((player, index) => (
-              <View key={index}>
-                {/* 主行 - 可点击查看详情或展开成员 */}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (showGrouped && player.is_group) {
-                      // 分组模式下点击分组 -> 显示分组详情
-                      setSelectedGroup(player.name);
-                    } else {
-                      // 非分组或普通玩家 -> 显示玩家详情
-                      setSelectedPlayer(player.name);
-                    }
-                  }}
-                  style={[
-                    styles.playerRow,
-                    { backgroundColor: index % 2 === 0 ? colors.cardBackground : colors.background },
-                    player.is_group && { backgroundColor: colors.primary + '10' }
-                  ]}
-                >
-                  <View style={styles.playerNameContainer}>
-                    <Text 
-                      style={[
-                        styles.playerName, 
-                        { color: player.is_group ? colors.primary : colors.text }
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {player.name}
-                    </Text>
+            <View key={index} style={styles.playerCardContainer}>
+              {/* 玩家卡片 - 参考PlayerDetailScreen的detailCard样式 */}
+              <TouchableOpacity
+                onPress={() => {
+                  if (!showGrouped || !player.is_group) {
+                    setSelectedPlayer(player.name);
+                  }
+                }}
+                disabled={showGrouped && player.is_group}
+                style={[
+                  styles.playerCard,
+                  player.is_group && styles.groupCard
+                ]}
+              >
+                {/* 玩家信息头部 */}
+                <View style={styles.playerCardHeader}>
+                  <View style={styles.playerNameSection}>
                     {showGrouped && player.is_group && (
                       <MaterialIcons 
-                        name="info" 
-                        size={18} 
+                        name="group" 
+                        size={20} 
                         color={colors.primary} 
+                        style={styles.groupIcon}
                       />
                     )}
+                    <Text style={styles.playerName}>
+                      {showGrouped ? player.name : `${player.name}（${player.job || '未知'}）`}
+                    </Text>
                   </View>
-                  <Text style={[styles.playerStat, { color: colors.primary }]}>{player.kills}</Text>
-                  <Text style={[styles.playerStat, { color: '#e74c3c' }]}>{player.deaths}</Text>
-                  <Text style={[styles.playerStat, { color: player.bless > 0 ? '#27ae60' : colors.textSecondary }]}>
-                    {player.bless > 0 ? `🏮${player.bless}` : '0'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
+
+                  {/* 操作按钮 */}
+                  {showGrouped && player.is_group && (
+                    <View style={styles.groupActionsContainer}>
+                      <TouchableOpacity
+                        style={styles.groupActionButton}
+                        onPress={() => setSelectedGroup(player.name)}
+                      >
+                        <MaterialIcons 
+                          name="trending-up" 
+                          size={18} 
+                          color={colors.primary} 
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.groupActionButton}
+                        onPress={() => setSelectedGroupForMembers(player.name)}
+                      >
+                        <MaterialIcons 
+                          name="people" 
+                          size={18} 
+                          color={colors.primary} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                {/* 统计数据 - 参考PlayerDetailScreen的infoRow样式 */}
+                <View style={styles.playerStatsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>击杀</Text>
+                    <Text style={[styles.statValue, { color: '#27ae60' }]}>{player.kills}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>死亡</Text>
+                    <Text style={[styles.statValue, { color: '#e74c3c' }]}>{player.deaths}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statLabel}>爆灯</Text>
+                    <Text style={[
+                      styles.statValue, 
+                      { color: player.bless > 0 ? '#f39c12' : colors.textSecondary }
+                    ]}>
+                      {player.bless > 0 ? `🏮${player.bless}` : '0'}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
       </View>
     );
   };
+
+  // 如果选中了分组成员，显示分组成员战绩
+  if (selectedGroupForMembers) {
+    return (
+      <GroupMembersScreen
+        groupName={selectedGroupForMembers}
+        timeRange={{ startDate, endDate }}
+        onBack={() => setSelectedGroupForMembers(null)}
+      />
+    );
+  }
 
   // 如果选中了分组，显示分组详情
   if (selectedGroup) {
@@ -332,40 +367,26 @@ export default function GodsStatsScreen() {
             {isCapturing ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <>
-                <MaterialIcons name="share" size={20} color="#fff" />
-                <Text style={styles.shareButtonText}>分享截图</Text>
-              </>
+              <MaterialIcons name="share" size={18} color="#fff" />
             )}
+            <Text style={styles.shareButtonText}>分享统计</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 时间选择 */}
+        {/* 日期选择 */}
         <View style={styles.dateRow}>
           <TouchableOpacity
-            style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-            onPress={() => openDatePicker('start')}
+            style={[styles.dateButton, { borderColor: colors.border }]}
+            onPress={() => setShowCustomModal(true)}
           >
-            <MaterialIcons name="event" size={18} color={colors.primary} />
-            <Text style={[styles.dateButtonText, { color: colors.text }]} numberOfLines={1}>
-              {formatDisplayDateTime(startDate)}
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.dateSeparator, { color: colors.textSecondary }]}>至</Text>
-
-          <TouchableOpacity
-            style={[styles.dateButton, { backgroundColor: colors.background, borderColor: colors.border }]}
-            onPress={() => openDatePicker('end')}
-          >
-            <MaterialIcons name="event" size={18} color={colors.primary} />
-            <Text style={[styles.dateButtonText, { color: colors.text }]} numberOfLines={1}>
-              {formatDisplayDateTime(endDate)}
+            <MaterialIcons name="date-range" size={18} color={colors.text} />
+            <Text style={[styles.dateButtonText, { color: colors.text }]}>
+              {formatDateRange(startDate, endDate)}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* 显示模式切换 */}
+        {/* 切换按钮 */}
         <View style={styles.toggleRow}>
           <TouchableOpacity
             style={[
@@ -474,7 +495,51 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 14,
+    fontSize: 16,
+  },
+  header: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  groupButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  groupButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  dateButtonText: {
+    fontSize: 12,
   },
   filterContainer: {
     padding: 12,
@@ -501,14 +566,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  dateButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
   },
   dateButtonText: {
     marginLeft: 8,
@@ -541,10 +598,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   godCard: {
-    margin: 12,
-    borderRadius: 12,
+    marginBottom: 20,
     backgroundColor: '#fff',
-    borderLeftWidth: 4,
+    borderRadius: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -552,76 +608,95 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   godHeader: {
-    padding: 12,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  godName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#f8f9fa',
-  },
-  statItem: {
-    flex: 1,
+    padding: 20,
+    paddingTop: 30,
     alignItems: 'center',
   },
-  statValue: {
+  godName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  godSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  playersContainer: {
+    padding: 6,
+    backgroundColor: '#f8f9fa',
+  },
+  playerCardContainer: {
+    marginBottom: 6,
+  },
+  playerCard: {
+    backgroundColor: '#ffffff',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  groupCard: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  playerCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ecf0f1',
+  },
+  playerNameSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  groupIcon: {
+    marginRight: 4,
+  },
+  playerName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  groupActionsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  groupActionButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playerStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   statLabel: {
     fontSize: 12,
-    marginTop: 4,
-  },
-  playersContainer: {
-    padding: 12,
-  },
-  playersTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: '#e0e0e0',
-  },
-  tableHeaderText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  playerRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    alignItems: 'center',
-  },
-  playerNameContainer: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  playerName: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  playerStat: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
+    color: '#7f8c8d',
   },
   emptyContainer: {
     alignItems: 'center',

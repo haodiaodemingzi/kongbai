@@ -547,6 +547,7 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
                     )
                     SELECT
                         pd.player_name AS name,
+                        p.job AS job,
                         MAX(pd.is_group) AS is_group,
                         SUM(COALESCE(pbs.kills, 0)) AS kills,
                         SUM(COALESCE(pbs.deaths, 0)) AS deaths,
@@ -555,8 +556,10 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
                         player_distinct pd
                     LEFT JOIN
                         player_battle_stats pbs ON pd.id = pbs.id
+                    LEFT JOIN
+                        person p ON pd.id = p.id
                     GROUP BY
-                        pd.group_key, pd.player_name
+                        pd.group_key, pd.player_name, p.job
                     HAVING
                         SUM(COALESCE(pbs.kills, 0)) > 0 OR SUM(COALESCE(pbs.deaths, 0)) > 0 OR SUM(COALESCE(pbs.bless, 0)) > 0
                     ORDER BY
@@ -592,6 +595,7 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
                         SELECT 
                             p.id,
                             p.name AS name,
+                            p.job AS job,
                             COALESCE(ws.kills, 0) as kills,
                             COALESCE(ls.deaths, 0) as deaths,
                             COALESCE(ws.bless, 0) as bless
@@ -606,6 +610,7 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
                     )
                     SELECT 
                         name,
+                        job,
                         kills,
                         deaths,
                         bless
@@ -622,6 +627,7 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
             for row in db.session.execute(query, query_params):
                 player_data = {
                     'name': row.name,
+                    'job': row.job if hasattr(row, 'job') and row.job else '未知',
                     'kills': int(row.kills or 0),
                     'deaths': int(row.deaths or 0),
                     'bless': int(row.bless or 0)
