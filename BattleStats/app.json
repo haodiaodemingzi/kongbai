@@ -2,7 +2,7 @@
   "expo": {
     "name": "战斗统计",
     "slug": "battle-stats",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,7 @@
         "backgroundColor": "#e74c3c"
       },
       "package": "com.kongbai.battlestats",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "INTERNET"
       ]

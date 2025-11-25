@@ -24,7 +24,9 @@ from app.services.battle_service import (
     get_player_rankings as get_rankings_service,
     get_player_details as get_player_details_service,
     get_god_rankings as get_god_rankings_service,
-    get_gods_stats as get_gods_stats_service
+    get_gods_stats as get_gods_stats_service,
+    get_all_jobs as get_all_jobs_service,
+    get_faction_kill_details as get_faction_kill_details_service
 )
 
 # 导入必要的函数（从 battle.py）
@@ -139,6 +141,66 @@ def api_get_player_details(player_name):
             'message': f'获取玩家详情失败: {str(e)}'
         }), 500
 
+
+@api_battle_bp.route('/jobs', methods=['GET'])
+@token_required
+def api_get_jobs():
+    try:
+        jobs = get_all_jobs_service()
+        return jsonify({
+            'status': 'success',
+            'message': '获取职业列表成功',
+            'data': jobs
+        }), 200
+    except Exception as e:
+        logger.error(f"API 获取职业列表时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'获取职业列表失败: {str(e)}'
+        }), 500
+
+
+@api_battle_bp.route('/faction_kill_details', methods=['GET'])
+@token_required
+def api_get_faction_kill_details():
+    try:
+        faction = request.args.get('faction')
+        direction = request.args.get('direction', 'out')
+        time_range = request.args.get('time_range', 'week')
+        start_datetime = request.args.get('start_datetime')
+        end_datetime = request.args.get('end_datetime')
+        limit = request.args.get('limit', default=100, type=int)
+
+        if not faction:
+            return jsonify({
+                'status': 'error',
+                'message': '缺少必要参数: faction'
+            }), 400
+
+        details = get_faction_kill_details_service(
+            faction=faction,
+            direction=direction,
+            time_range=time_range,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+            limit=limit
+        )
+
+        return jsonify({
+            'status': 'success',
+            'message': '获取势力击杀明细成功',
+            'data': {
+                'faction': faction,
+                'direction': direction,
+                'details': details
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"API 获取势力击杀明细时出错: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'获取势力击杀明细失败: {str(e)}'
+        }), 500
 
 @api_battle_bp.route('/upload', methods=['POST'])
 @token_required

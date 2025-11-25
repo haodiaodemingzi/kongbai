@@ -330,6 +330,94 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
     
     recent_battles = db.session.execute(text(recent_battles_sql), {"player_name": player_name}).fetchall()
     
+    # 查询击杀明细
+    kills_details_sql = """
+    SELECT 
+        v.id AS victim_id,
+        v.name AS victim_name,
+        v.job AS victim_job,
+        v.god AS victim_god,
+        COUNT(*) AS kill_count
+    FROM 
+        battle_record br
+    JOIN 
+        person v ON br.lost = v.name
+    WHERE 
+        br.win = :player_name
+        AND br.deleted_at IS NULL
+        {date_condition}
+    GROUP BY 
+        v.id, v.name, v.job, v.god
+    ORDER BY 
+        kill_count DESC
+    LIMIT 50
+    """.format(date_condition=date_condition)
+    
+    if not date_condition and (start_datetime and end_datetime):
+        old_condition = """
+        AND (:start_datetime IS NULL OR br.publish_at >= :start_datetime)
+        AND (:end_datetime IS NULL OR br.publish_at <= :end_datetime)
+        """
+        kills_details_sql = kills_details_sql.replace("{date_condition}", old_condition)
+        kills_rows = db.session.execute(text(kills_details_sql), {"player_name": player_name, "start_datetime": start_datetime, "end_datetime": end_datetime}).fetchall()
+    else:
+        kills_rows = db.session.execute(text(kills_details_sql), {"player_name": player_name}).fetchall()
+    
+    kills_details = [
+        {
+            'id': row.victim_id,
+            'name': row.victim_name,
+            'job': row.victim_job,
+            'god': row.victim_god,
+            'count': int(row.kill_count or 0)
+        }
+        for row in kills_rows
+    ]
+    
+    # 查询被杀明细
+    deaths_details_sql = """
+    SELECT 
+        k.id AS killer_id,
+        k.name AS killer_name,
+        k.job AS killer_job,
+        k.god AS killer_god,
+        COUNT(*) AS death_count
+    FROM 
+        battle_record br
+    JOIN 
+        person k ON br.win = k.name
+    WHERE 
+        br.lost = :player_name
+        AND br.deleted_at IS NULL
+        {date_condition}
+    GROUP BY 
+        k.id, k.name, k.job, k.god
+    ORDER BY 
+        death_count DESC
+    LIMIT 50
+    """.format(date_condition=date_condition)
+    
+    if not date_condition and (start_datetime and end_datetime):
+        old_condition = """
+        AND (:start_datetime IS NULL OR br.publish_at >= :start_datetime)
+        AND (:end_datetime IS NULL OR br.publish_at <= :end_datetime)
+        """
+        deaths_details_sql = deaths_details_sql.replace("{date_condition}", old_condition)
+        deaths_rows = db.session.execute(text(deaths_details_sql), {"player_name": player_name, "start_datetime": start_datetime, "end_datetime": end_datetime}).fetchall()
+    else:
+        deaths_rows = db.session.execute(text(deaths_details_sql), {"player_name": player_name}).fetchall()
+    
+    deaths_details = [
+        {
+            'id': row.killer_id,
+            'name': row.killer_name,
+            'job': row.killer_job,
+            'god': row.killer_god,
+            'count': int(row.death_count or 0)
+        }
+        for row in deaths_rows
+    ]
+    
     # 构建返回数据
     player_details = {
         'id': result.player_id,
@@ -353,7 +441,9 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
                 'publish_at': battle.publish_at.strftime('%Y-%m-%d %H:%M:%S') if battle.publish_at else None
             }
             for battle in recent_battles
-        ]
+        ],
+        'kills_details': kills_details,
+        'deaths_details': deaths_details
     }
     
     logger.debug(f"获取玩家 {player_name} 详情成功")
@@ -560,3 +650,86 @@ def get_gods_stats(start_datetime=None, end_datetime=None, show_grouped=False):
     except Exception as e:
         logger.error(f"获取三神统计时出错: {str(e)}", exc_info=True)
         raise
+
+
+def get_faction_kill_details(faction, direction='out', time_range='week', start_datetime=None, end_datetime=None, limit=100):
+    """
+    获取指定势力的击杀明细
+    direction为out表示该势力击杀了哪些人, 为in表示该势力被哪些人击杀
+    支持时间筛选
+    """
+    # 构建时间条件
+    date_condition = ""
+    if start_datetime and end_datetime:
+        date_condition = "AND br.publish_at BETWEEN :start_datetime AND :end_datetime"
+    elif time_range:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        if time_range == 'today':
+            date_condition = "AND DATE(br.publish_at) = CURDATE()"
+        elif time_range == 'yesterday':
+            date_condition = "AND DATE(br.publish_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)"
+        elif time_range == 'week':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+        elif time_range == 'month':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+        elif time_range == 'three_months':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)"
+        elif time_range == 'all':
+            date_condition = "AND br.publish_at >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)"
+    
+    params = {'faction': faction}
+    if start_datetime and end_datetime:
+        params['start_datetime'] = start_datetime
+        params['end_datetime'] = end_datetime
+    
+    if direction == 'out':
+        # 该势力击杀了哪些人
+        sql = f"""
+        SELECT 
+            v.id AS target_id,
+            v.name AS target_name,
+            v.job AS target_job,
+            v.god AS target_god,
+            COUNT(*) AS cnt
+        FROM battle_record br
+        JOIN person k ON br.win = k.name
+        JOIN person v ON br.lost = v.name
+        WHERE k.god = :faction
+          AND br.deleted_at IS NULL
+          {date_condition}
+        GROUP BY v.id, v.name, v.job, v.god
+        ORDER BY cnt DESC
+        LIMIT {int(limit)}
+        """
+    else:
+        # 该势力被哪些人击杀
+        sql = f"""
+        SELECT 
+            k.id AS target_id,
+            k.name AS target_name,
+            k.job AS target_job,
+            k.god AS target_god,
+            COUNT(*) AS cnt
+        FROM battle_record br
+        JOIN person v ON br.lost = v.name
+        JOIN person k ON br.win = k.name
+        WHERE v.god = :faction
+          AND br.deleted_at IS NULL
+          {date_condition}
+        GROUP BY k.id, k.name, k.job, k.god
+        ORDER BY cnt DESC
+        LIMIT {int(limit)}
+        """
+    
+    rows = db.session.execute(text(sql), params).fetchall()
+    return [
+        {
+            'id': r.target_id,
+            'name': r.target_name,
+            'job': r.target_job,
+            'god': r.target_god,
+            'count': int(r.cnt or 0)
+        }
+        for r in rows
+    ]

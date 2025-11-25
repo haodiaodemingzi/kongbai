@@ -148,7 +148,7 @@ function TabNavigator({ onLogout }) {
         component={HomeScreen} 
         options={{ 
           title: '战绩',
-          headerTitle: '战绩排名'
+          headerTitle: '战绩详情'
         }} 
       />
       <Tab.Screen 
