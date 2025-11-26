@@ -17,7 +17,7 @@ logger = get_logger()
 # 默认密钥，应该从环境变量或配置中读取
 SECRET_KEY = 'your-secret-key-change-in-production'
 ALGORITHM = 'HS256'
-TOKEN_EXPIRATION_HOURS = 24  # token 有效期 24 小时
+TOKEN_EXPIRATION_HOURS = 720  # token 有效期 30 天
 
 def generate_token(user_id, username):
     """
