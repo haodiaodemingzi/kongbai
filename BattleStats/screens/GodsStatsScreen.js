@@ -18,7 +18,6 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import PlayerDetailScreen from './PlayerDetailScreen';
 import GroupDetailScreen from './GroupDetailScreen';
-import GroupMembersScreen from './GroupMembersScreen';
 
 // 格式化日期范围显示
 const formatDateRange = (startDate, endDate) => {
@@ -81,7 +80,6 @@ export default function GodsStatsScreen({ navigation }) {
   }, [startDate, endDate]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [selectedGroupForMembers, setSelectedGroupForMembers] = useState(null);
 
   useEffect(() => {
     fetchGodsStats();
@@ -113,14 +111,15 @@ export default function GodsStatsScreen({ navigation }) {
     }
   };
   
-  // 格式化日期时间为 YYYY-MM-DDTHH:MM
+  // 格式化日期时间为 YYYY-MM-DD HH:MM:SS
   const formatDateTime = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
   
   // 格式化显示日期时间
@@ -304,37 +303,38 @@ export default function GodsStatsScreen({ navigation }) {
               {/* 玩家卡片 - 参考PlayerDetailScreen的detailCard样式 */}
               <TouchableOpacity
                 onPress={() => {
-                  if (!showGrouped || !player.is_group) {
+                  if (showGrouped && player.is_group) {
+                    // 分组模式下点击分组卡片,跳转到分组详情页
+                    setSelectedGroup(player.name);
+                  } else {
+                    // 非分组或普通玩家,跳转到玩家详情页
                     setSelectedPlayer(player.name);
                   }
                 }}
-                disabled={showGrouped && player.is_group}
                 style={[
                   styles.playerCard,
                   player.is_group && styles.groupCard
                 ]}
               >
-                {/* 两行布局：第一行名称+统计，第二行操作图标 */}
-                <View>
-                  {/* 第一行：玩家信息 + 统计数据 */}
-                  <View style={styles.playerInfoRow}>
-                    {/* 左侧：玩家信息 */}
-                    <View style={styles.playerInfoSection}>
-                      {showGrouped && player.is_group && (
-                        <MaterialIcons 
-                          name="group" 
-                          size={16} 
-                          color="#2c3e50" 
-                          style={styles.groupIcon}
-                        />
-                      )}
-                      <Text style={styles.playerName}>
-                        {showGrouped ? player.name : `${player.name}（${player.job || '未知'}）`}
-                      </Text>
-                    </View>
+                {/* 玩家信息 + 统计数据 */}
+                <View style={styles.playerInfoRow}>
+                  {/* 左侧：玩家信息 */}
+                  <View style={styles.playerInfoSection}>
+                    {showGrouped && player.is_group && (
+                      <MaterialIcons 
+                        name="group" 
+                        size={16} 
+                        color="#2c3e50" 
+                        style={styles.groupIcon}
+                      />
+                    )}
+                    <Text style={styles.playerName}>
+                      {showGrouped ? player.name : `${player.name}（${player.job || '未知'}）`}
+                    </Text>
+                  </View>
 
-                    {/* 右侧：统计数据 */}
-                    <View style={styles.statsSection}>
+                  {/* 右侧：统计数据 */}
+                  <View style={styles.statsSection}>
                     <View style={styles.statInline}>
                       <Text style={[styles.statValue, { color: '#2196F3' }]}>{player.kills}</Text>
                       <Text style={[styles.statLabel, { color: '#2196F3' }]}>击杀</Text>
@@ -352,36 +352,6 @@ export default function GodsStatsScreen({ navigation }) {
                       </Text>
                     </View>
                   </View>
-                  </View>
-
-                  {/* 第二行：操作图标（仅分组显示） */}
-                  {showGrouped && player.is_group && (
-                    <View style={styles.groupActionsRow}>
-                      <TouchableOpacity
-                        style={styles.groupActionButton}
-                        onPress={() => setSelectedGroup(player.name)}
-                      >
-                        <MaterialIcons 
-                          name="trending-up" 
-                          size={14} 
-                          color="#2c3e50" 
-                        />
-                        <Text style={styles.groupActionText}>详情</Text>
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity
-                        style={styles.groupActionButton}
-                        onPress={() => setSelectedGroupForMembers(player.name)}
-                      >
-                        <MaterialIcons 
-                          name="bar-chart" 
-                          size={14} 
-                          color="#2c3e50" 
-                        />
-                        <Text style={styles.groupActionText}>成员</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
                 </View>
               </TouchableOpacity>
             </View>
@@ -391,23 +361,15 @@ export default function GodsStatsScreen({ navigation }) {
     );
   };
 
-  // 如果选中了分组成员，显示分组成员战绩
-  if (selectedGroupForMembers) {
-    return (
-      <GroupMembersScreen
-        groupName={selectedGroupForMembers}
-        timeRange={{ startDate, endDate }}
-        onBack={() => setSelectedGroupForMembers(null)}
-      />
-    );
-  }
-
   // 如果选中了分组，显示分组详情
   if (selectedGroup) {
     return (
       <GroupDetailScreen
         groupName={selectedGroup}
-        timeRange={{ startDate, endDate }}
+        timeRange={{ 
+          startDate: formatDateTime(startDate), 
+          endDate: formatDateTime(endDate) 
+        }}
         onBack={() => setSelectedGroup(null)}
       />
     );
@@ -892,29 +854,6 @@ const styles = StyleSheet.create({
   godStatLabelInline: {
     fontSize: 9,
     opacity: 0.8,
-  },
-  // 分组操作按钮样式
-  groupActionsRow: {
-    flexDirection: 'row',
-    marginTop: 6,
-    marginLeft: 20, // 与分组图标对齐
-    gap: 12,
-  },
-  groupActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  groupActionText: {
-    fontSize: 11,
-    color: '#2c3e50',
-    fontWeight: '500',
   },
   playersContainer: {
     padding: 6,

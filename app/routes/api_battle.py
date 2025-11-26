@@ -464,21 +464,29 @@ def api_get_group_details():
         
         if start_datetime_str:
             try:
-                start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M')
+                # 尝试多种日期格式
+                try:
+                    start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    start_datetime = datetime.strptime(start_datetime_str, '%Y-%m-%dT%H:%M')
             except ValueError:
                 return jsonify({
                     'status': 'error',
-                    'message': '开始时间格式不正确'
+                    'message': '开始时间格式不正确，应为 YYYY-MM-DD HH:MM:SS 或 YYYY-MM-DDTHH:MM'
                 }), 400
                 
         if end_datetime_str:
             try:
-                end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M')
-                end_datetime = end_datetime.replace(second=59)
+                # 尝试多种日期格式
+                try:
+                    end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    end_datetime = datetime.strptime(end_datetime_str, '%Y-%m-%dT%H:%M')
+                    end_datetime = end_datetime.replace(second=59)
             except ValueError:
                 return jsonify({
                     'status': 'error',
-                    'message': '结束时间格式不正确'
+                    'message': '结束时间格式不正确，应为 YYYY-MM-DD HH:MM:SS 或 YYYY-MM-DDTHH:MM'
                 }), 400
         
         # 构建日期条件
@@ -524,6 +532,7 @@ def api_get_group_details():
             SELECT 
                 p.id,
                 p.name,
+                p.job,
                 p.god,
                 COUNT(DISTINCT CASE WHEN br.win = p.name THEN br.id END) AS kills,
                 COUNT(DISTINCT CASE WHEN br.lost = p.name THEN br.id END) AS deaths,
@@ -538,7 +547,7 @@ def api_get_group_details():
                 {'' if god is None else 'AND p.god = :god'}
                 {date_condition}
             GROUP BY 
-                p.id, p.name, p.god
+                p.id, p.name, p.job, p.god
             HAVING 
                 kills > 0 OR deaths > 0
             ORDER BY 
@@ -554,6 +563,7 @@ def api_get_group_details():
             members.append({
                 'id': row.id,
                 'name': row.name,
+                'job': row.job,
                 'god': row.god,
                 'kills': int(row.kills or 0),
                 'deaths': int(row.deaths or 0),
