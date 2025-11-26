@@ -256,7 +256,7 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
         FROM 
             person p
         LEFT JOIN 
-            battle_record br ON (br.win = p.name OR br.lost = p.name) AND br.deleted_at IS NULL
+            battle_record br ON (br.win = p.name OR br.lost = p.name)
         WHERE 
             p.name = :player_name
             AND p.deleted_at IS NULL
@@ -321,7 +321,6 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
         battle_record br 
     WHERE 
         (br.win = :player_name OR br.lost = :player_name)
-        AND br.deleted_at IS NULL
         {date_condition}
     ORDER BY 
         br.publish_at DESC 
@@ -344,7 +343,6 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
         person v ON br.lost = v.name
     WHERE 
         br.win = :player_name
-        AND br.deleted_at IS NULL
         {date_condition}
     GROUP BY 
         v.id, v.name, v.job, v.god
@@ -388,7 +386,6 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
         person k ON br.win = k.name
     WHERE 
         br.lost = :player_name
-        AND br.deleted_at IS NULL
         {date_condition}
     GROUP BY 
         k.id, k.name, k.job, k.god
