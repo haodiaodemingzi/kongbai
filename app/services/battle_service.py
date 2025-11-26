@@ -285,7 +285,7 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
     result = db.session.execute(text(sql), {"player_name": player_name}).first()
     
     # 如果没有战绩记录，返回基本信息
-    if not result or result.kills == 0:
+    if not result or (result.kills == 0 and result.deaths == 0):
         logger.debug(f"玩家 {player_name} 没有战绩记录")
         return {
             'id': player.id,
@@ -299,7 +299,9 @@ def get_player_details(player_name, time_range='week', start_datetime=None, end_
             'blessings': 0,
             'last_battle_time': None,
             'last_position': '0,0',
-            'recent_battles': []
+            'recent_battles': [],
+            'kills_details': [],
+            'deaths_details': []
         }
     
     # 获取近期战斗记录
