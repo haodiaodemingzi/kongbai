@@ -540,12 +540,11 @@ def api_get_group_details():
             FROM 
                 person p
             LEFT JOIN 
-                battle_record br ON p.name IN (br.win, br.lost)
+                battle_record br ON (br.win = p.name OR br.lost = p.name) {date_condition}
             WHERE 
                 p.deleted_at IS NULL
                 AND p.player_group_id = :group_id
                 {'' if god is None else 'AND p.god = :god'}
-                {date_condition}
             GROUP BY 
                 p.id, p.name, p.job, p.god
             HAVING 
@@ -556,6 +555,10 @@ def api_get_group_details():
         
         # 添加分组ID参数
         query_params['group_id'] = group_id
+        
+        # 调试日志
+        logger.info(f"查询分组成员SQL参数: {query_params}")
+        logger.info(f"查询分组成员SQL: {members_query}")
         
         # 获取成员数据
         members = []

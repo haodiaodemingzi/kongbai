@@ -40,11 +40,11 @@ const formatDateRange = (startDate, endDate) => {
 // 获取势力配置
 const getGodConfig = (godName) => {
   const configs = {
-    '梵天': { backgroundColor: '#FFD700', textColor: '#000000' }, // 黄色背景黑字
-    '湿婆': { backgroundColor: '#4169E1', textColor: '#FFFFFF' }, // 蓝色背景白字
-    '比湿奴': { backgroundColor: '#DC143C', textColor: '#FFFFFF' }, // 红色背景白字
+    '梵天': { backgroundColor: '#FFD700', textColor: '#000000' }, // 黄色浅色背景用黑字
+    '湿婆': { backgroundColor: '#4169E1', textColor: '#FFFFFF' }, // 蓝色深色背景用白字
+    '比湿奴': { backgroundColor: '#DC143C', textColor: '#FFFFFF' }, // 红色深色背景用白字
   };
-  return configs[godName] || { backgroundColor: '#6c757d', textColor: '#FFFFFF' };
+  return configs[godName] || { backgroundColor: '#6c757d', textColor: '#FFFFFF' }; // 默认深色背景用白字
 };
 
 export default function GodsStatsScreen({ navigation }) {
@@ -281,15 +281,15 @@ export default function GodsStatsScreen({ navigation }) {
           {/* 右侧：统计数据 */}
           <View style={styles.godStatsInline}>
             <View style={styles.godStatInlineItem}>
-              <Text style={[styles.godStatValueInline, { color: '#2196F3' }]}>{godData.kills}</Text>
+              <Text style={[styles.godStatValueInline, { color: godConfig.textColor }]}>{godData.kills}</Text>
               <Text style={[styles.godStatLabelInline, { color: godConfig.textColor }]}>击杀</Text>
             </View>
             <View style={styles.godStatInlineItem}>
-              <Text style={[styles.godStatValueInline, { color: '#F44336' }]}>{godData.deaths}</Text>
+              <Text style={[styles.godStatValueInline, { color: godConfig.textColor }]}>{godData.deaths}</Text>
               <Text style={[styles.godStatLabelInline, { color: godConfig.textColor }]}>死亡</Text>
             </View>
             <View style={styles.godStatInlineItem}>
-              <Text style={[styles.godStatValueInline, { color: '#FF9800' }]}>
+              <Text style={[styles.godStatValueInline, { color: godConfig.textColor }]}>
                 {godData.bless > 0 ? `🏮${godData.bless}` : '🏮0'}
               </Text>
             </View>
@@ -324,7 +324,7 @@ export default function GodsStatsScreen({ navigation }) {
                       <MaterialIcons 
                         name="group" 
                         size={16} 
-                        color="#2c3e50" 
+                        color="#2c3e50"
                         style={styles.groupIcon}
                       />
                     )}
@@ -337,11 +337,9 @@ export default function GodsStatsScreen({ navigation }) {
                   <View style={styles.statsSection}>
                     <View style={styles.statInline}>
                       <Text style={[styles.statValue, { color: '#2196F3' }]}>{player.kills}</Text>
-                      <Text style={[styles.statLabel, { color: '#2196F3' }]}>击杀</Text>
                     </View>
                     <View style={styles.statInline}>
                       <Text style={[styles.statValue, { color: '#F44336' }]}>{player.deaths}</Text>
-                      <Text style={[styles.statLabel, { color: '#F44336' }]}>死亡</Text>
                     </View>
                     <View style={styles.statInline}>
                       <Text style={[
@@ -767,7 +765,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   godCard: {
-    marginBottom: 20,
+    marginBottom: 7,
     backgroundColor: '#fff',
     borderRadius: 0,
     shadowColor: '#000',
