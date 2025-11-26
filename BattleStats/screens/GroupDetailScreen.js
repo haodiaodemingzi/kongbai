@@ -9,16 +9,15 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getGroupKillDetails, getGroupDetails } from '../services/api';
+import { getPlayerDetail, getGroupDetails } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function GroupDetailScreen({ groupName, timeRange, onBack }) {
   const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('kills'); // 'kills' 或 'members'
-  const [killDetails, setKillDetails] = useState([]);
-  const [deathDetails, setDeathDetails] = useState([]);
   const [members, setMembers] = useState([]);
+  const [memberDetails, setMemberDetails] = useState({}); // 存储每个成员的击杀/被杀明细
 
   useEffect(() => {
     fetchGroupDetails();
@@ -33,63 +32,62 @@ export default function GroupDetailScreen({ groupName, timeRange, onBack }) {
       console.log('activeTab:', activeTab);
       console.log('timeRange:', timeRange);
       
-      if (activeTab === 'kills') {
-        // 获取击杀数据
-        const params = {
-          group_name: groupName,
-          direction: 'out',
-        };
+      // 先获取成员列表
+      const params = {
+        player_name: groupName,
+      };
+      
+      if (timeRange && timeRange.startDate && timeRange.endDate) {
+        params.start_datetime = timeRange.startDate;
+        params.end_datetime = timeRange.endDate;
+      }
+      
+      console.log('获取成员列表参数:', params);
+      const result = await getGroupDetails(params);
+      console.log('成员列表返回结果:', result);
+      
+      if (!result.success) {
+        Alert.alert('错误', result.message || '获取分组成员失败');
+        return;
+      }
+      
+      const membersList = result.data.members || [];
+      setMembers(membersList);
+      
+      // 如果是击杀数据标签页，获取每个成员的击杀/被杀明细
+      if (activeTab === 'kills' && membersList.length > 0) {
+        const detailsMap = {};
         
-        if (timeRange && timeRange.startDate && timeRange.endDate) {
-          params.start_datetime = timeRange.startDate;
-          params.end_datetime = timeRange.endDate;
+        // 为每个成员获取击杀和被杀明细
+        for (const member of membersList) {
+          const detailParams = {};
+          
+          if (timeRange && timeRange.startDate && timeRange.endDate) {
+            detailParams.start_datetime = timeRange.startDate;
+            detailParams.end_datetime = timeRange.endDate;
+          } else {
+            detailParams.time_range = 'week';
+          }
+          
+          console.log(`获取成员 ${member.name} 的详情，参数:`, detailParams);
+          const result = await getPlayerDetail(member.name, detailParams);
+          console.log(`成员 ${member.name} 详情结果:`, result);
+          
+          if (result.success) {
+            detailsMap[member.name] = {
+              kills: result.data.kills_details || [],
+              deaths: result.data.deaths_details || [],
+            };
+          } else {
+            detailsMap[member.name] = {
+              kills: [],
+              deaths: [],
+            };
+          }
         }
         
-        console.log('击杀数据请求参数:', params);
-        const result = await getGroupKillDetails(params);
-        
-        if (result.success) {
-          setKillDetails(result.data.details || []);
-        } else {
-          Alert.alert('错误', result.message || '获取分组击杀明细失败');
-        }
-
-        // 获取被杀明细
-        const deathParams = {
-          group_name: groupName,
-          direction: 'in',
-        };
-        
-        if (timeRange && timeRange.startDate && timeRange.endDate) {
-          deathParams.start_datetime = timeRange.startDate;
-          deathParams.end_datetime = timeRange.endDate;
-        }
-
-        const deathResult = await getGroupKillDetails(deathParams);
-        
-        if (deathResult.success) {
-          setDeathDetails(deathResult.data.details || []);
-        }
-      } else {
-        // 获取成员战绩
-        const params = {
-          player_name: groupName,
-        };
-        
-        if (timeRange && timeRange.startDate && timeRange.endDate) {
-          params.start_datetime = timeRange.startDate;
-          params.end_datetime = timeRange.endDate;
-        }
-        
-        console.log('成员战绩请求参数:', params);
-        const result = await getGroupDetails(params);
-        console.log('成员战绩返回结果:', result);
-        
-        if (result.success) {
-          setMembers(result.data.members || []);
-        } else {
-          Alert.alert('错误', result.message || '获取分组成员失败');
-        }
+        console.log('成员明细数据:', detailsMap);
+        setMemberDetails(detailsMap);
       }
     } catch (error) {
       console.error('获取分组详情失败:', error);
@@ -121,57 +119,88 @@ export default function GroupDetailScreen({ groupName, timeRange, onBack }) {
 
     if (activeTab === 'kills') {
       return (
-        <>
-          {/* 击杀明细 */}
-          <View style={styles.detailsSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>击杀明细</Text>
-            {killDetails && killDetails.length > 0 ? (
-              killDetails.map((kill, index) => (
-                <View key={kill.id || index} style={[styles.detailCard, { backgroundColor: colors.cardBackground }]}>
-                  <View style={styles.detailHeader}>
-                    <Text style={[styles.detailName, { color: colors.text }]}>{kill.name}</Text>
-                    <Text style={[styles.detailCount, styles.killCount]}>{kill.count}次</Text>
+        <View style={styles.detailsSection}>
+          {members && members.length > 0 ? (
+            members.map((member, index) => {
+              const details = memberDetails[member.name] || { kills: [], deaths: [] };
+              const hasKills = details.kills.length > 0;
+              const hasDeaths = details.deaths.length > 0;
+              
+              return (
+                <View key={member.id || index} style={styles.memberSection}>
+                  {/* 成员信息头部 */}
+                  <View style={[styles.memberHeader, { backgroundColor: colors.primary }]}>
+                    <View style={styles.memberHeaderLeft}>
+                      <MaterialIcons name="person" size={20} color="#fff" />
+                      <Text style={styles.memberHeaderName}>{member.name}</Text>
+                    </View>
+                    <View style={styles.memberHeaderStats}>
+                      <Text style={styles.memberHeaderStat}>
+                        <MaterialIcons name="arrow-upward" size={14} color="#fff" /> {member.kills}
+                      </Text>
+                      <Text style={styles.memberHeaderStat}>
+                        <MaterialIcons name="arrow-downward" size={14} color="#fff" /> {member.deaths}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailInfo}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>职业：</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{kill.job}</Text>
-                  </View>
-                  <View style={styles.detailInfo}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>势力：</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{kill.god}</Text>
-                  </View>
-                </View>
-              ))
-            ) : (
-              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>暂无击杀记录</Text>
-            )}
-          </View>
 
-          {/* 被杀明细 */}
-          <View style={styles.detailsSection}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>被杀明细</Text>
-            {deathDetails && deathDetails.length > 0 ? (
-              deathDetails.map((death, index) => (
-                <View key={death.id || index} style={[styles.detailCard, { backgroundColor: colors.cardBackground }]}>
-                  <View style={styles.detailHeader}>
-                    <Text style={[styles.detailName, { color: colors.text }]}>{death.name}</Text>
-                    <Text style={[styles.detailCount, styles.deathCount]}>{death.count}次</Text>
-                  </View>
-                  <View style={styles.detailInfo}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>职业：</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{death.job}</Text>
-                  </View>
-                  <View style={styles.detailInfo}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>势力：</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{death.god}</Text>
-                  </View>
+                  {/* 击杀明细 */}
+                  {hasKills && (
+                    <View style={styles.detailSubSection}>
+                      <Text style={[styles.subSectionTitle, { color: colors.text }]}>
+                        ⚔️ 击杀了谁 ({details.kills.length})
+                      </Text>
+                      {details.kills.map((kill, idx) => (
+                        <View key={idx} style={[styles.detailCard, { backgroundColor: colors.cardBackground }]}>
+                          <View style={styles.detailRow}>
+                            <Text style={[styles.detailName, { color: colors.text }]}>{kill.name}</Text>
+                            <Text style={[styles.detailCount, styles.killCount]}>{kill.count}次</Text>
+                          </View>
+                          <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                              {kill.job} · {kill.god}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* 被杀明细 */}
+                  {hasDeaths && (
+                    <View style={styles.detailSubSection}>
+                      <Text style={[styles.subSectionTitle, { color: colors.text }]}>
+                        💀 被谁击杀 ({details.deaths.length})
+                      </Text>
+                      {details.deaths.map((death, idx) => (
+                        <View key={idx} style={[styles.detailCard, { backgroundColor: colors.cardBackground }]}>
+                          <View style={styles.detailRow}>
+                            <Text style={[styles.detailName, styles.deathNameColor]}>{death.name}</Text>
+                            <Text style={[styles.detailCount, styles.deathCount]}>{death.count}次</Text>
+                          </View>
+                          <View style={styles.detailRow}>
+                            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                              {death.job} · {death.god}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {!hasKills && !hasDeaths && (
+                    <Text style={[styles.noDataText, { color: colors.textSecondary }]}>暂无战斗记录</Text>
+                  )}
                 </View>
-              ))
-            ) : (
-              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>暂无被杀记录</Text>
-            )}
-          </View>
-        </>
+              );
+            })
+          ) : (
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="inbox" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>暂无成员数据</Text>
+            </View>
+          )}
+        </View>
       );
     } else {
       return (
@@ -371,31 +400,67 @@ const styles = StyleSheet.create({
   detailsSection: {
     padding: 15,
   },
-  detailCard: {
-    padding: 12,
+  memberSection: {
+    marginBottom: 20,
     borderRadius: 8,
+    overflow: 'hidden',
+  },
+  memberHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+  },
+  memberHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  memberHeaderName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  memberHeaderStats: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  memberHeaderStat: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  detailSubSection: {
+    padding: 12,
+    paddingTop: 8,
+  },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
     marginBottom: 8,
+  },
+  detailCard: {
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
-  detailHeader: {
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    marginBottom: 2,
   },
   detailName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   detailCount: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   killCount: {
@@ -404,17 +469,11 @@ const styles = StyleSheet.create({
   deathCount: {
     color: '#e74c3c',
   },
-  detailInfo: {
-    flexDirection: 'row',
-    marginBottom: 3,
+  deathNameColor: {
+    color: '#e74c3c',
   },
   detailLabel: {
-    fontSize: 12,
-    width: 50,
-  },
-  detailValue: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
   },
   sectionTitle: {
     fontSize: 20,
